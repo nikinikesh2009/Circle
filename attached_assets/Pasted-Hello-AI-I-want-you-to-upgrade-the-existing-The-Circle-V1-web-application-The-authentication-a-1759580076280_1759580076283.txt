@@ -1,0 +1,66 @@
+Hello AI, I want you to **upgrade the existing The Circle V1 web application**. The authentication and MVP wall feed are already done. Your goal is to **make the app professional, usable, and visually appealing**, with foundational navigation and UI improvements. Use **Next.js + React + Tailwind CSS**. Keep code clean, modular, and error-free.
+
+---
+
+## 1️⃣ Navigation & Layout
+- Add **top navbar or sidebar** with links: Home (Wall), Profile, Logout
+- Highlight the active page
+- Make navbar responsive and collapsible on mobile
+- Reorganize Dashboard/Wall layout: center the feed, use **card-style posts** with proper spacing and shadows
+- Ensure all pages are connected and navigation works
+
+---
+
+## 2️⃣ UI/UX & Dark Mode
+- Apply dark mode styling consistently
+- Smooth hover and click effects for buttons
+- Use readable fonts, consistent spacing, and padding
+- Add subtle animations to posts or streak updates
+- Make the wall feed visually appealing with cards
+
+---
+
+## 3️⃣ Streaks & Gamification
+- Display **streak counter prominently** on the dashboard
+- Update streak counter visually when "Mark Motivation as Done" is clicked
+- Optional: small animation/confetti when streak milestone reached
+
+---
+
+## 4️⃣ Profile Page
+- Show user info: email and streak
+- Add **update password functionality**
+- Optional: avatar upload placeholder
+
+---
+
+## 5️⃣ Community MVP (Optional)
+- Display list of active users (names only)
+- Optional: sort by streak or points (for future V2)
+- Ensure minimal layout integration with dashboard
+
+---
+
+## 6️⃣ Backend / Firebase
+- Connect streak updates to Firebase database
+- Ensure all data changes reflect instantly in UI
+- Maintain Firebase security rules (auth read/write)
+
+---
+
+## 7️⃣ Deployment
+- Make sure project is **deploy-ready on Replit**
+- Include updated package.json and dependencies
+- Keep README.md updated with setup instructions
+
+---
+
+## ✅ Workflow / Step-By-Step To-Do Inside Prompt
+1. Add navigation menu to all pages
+2. Redesign dashboard layout with card-style posts
+3. Apply dark mode styling + hover/click effects
+4. Enhance streak counter with visual feedback
+5. Update profile page with streak display and password update
+6. Optional: minimal community list integration
+7. Test all flows: login, wall, streak increment, navigation, profile
+8. Ensure project is deploy-ready

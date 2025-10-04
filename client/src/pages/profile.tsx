@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { User, Flame, Trophy, Calendar, Heart, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 export default function Profile() {
   const { userData, updateUserPassword } = useAuth();
@@ -12,6 +13,9 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,18 +51,40 @@ export default function Profile() {
     try {
       await updateUserPassword(currentPassword, newPassword);
       toast({
-        title: "Password Updated",
-        description: "Your password has been successfully updated.",
+        title: "Success!",
+        description: "Your password has been updated successfully.",
       });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
     } catch (error: any) {
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update password. Please check your current password.",
-        variant: "destructive",
-      });
+      console.error('Error updating password:', error);
+      
+      if (error.code === 'auth/wrong-password') {
+        toast({
+          title: "Error",
+          description: "Current password is incorrect.",
+          variant: "destructive",
+        });
+      } else if (error.code === 'auth/weak-password') {
+        toast({
+          title: "Error",
+          description: "New password is too weak. Please use a stronger password.",
+          variant: "destructive",
+        });
+      } else if (error.code === 'auth/requires-recent-login') {
+        toast({
+          title: "Error",
+          description: "Please log out and log back in before changing your password.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update password. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setUpdating(false);
     }
@@ -66,123 +92,248 @@ export default function Profile() {
 
   if (!userData) return null;
 
-  const completionRate = userData.totalDays > 0 ? Math.round((userData.streak / userData.totalDays) * 100) : 0;
-  const initials = userData.email.substring(0, 2).toUpperCase();
-
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Your Profile</h1>
-        <p className="text-muted-foreground">Manage your account settings and view your progress</p>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+        
+        {/* Page Header */}
+        <div className="animate-fade-in-up">
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-3 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            Your Profile
+          </h1>
+          <p className="text-lg text-muted-foreground">Manage your account and track your progress</p>
+        </div>
+
+        {/* User Profile Header */}
+        <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <Card className="relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/10 via-card to-secondary/10 shadow-2xl rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5"></div>
+            <CardContent className="relative p-8 md:p-10">
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-2xl">
+                  <User className="w-12 h-12 text-primary-foreground" data-testid="icon-user-avatar" />
+                </div>
+                <div className="text-center md:text-left flex-1">
+                  <h2 className="text-3xl md:text-4xl font-bold mb-2 text-foreground" data-testid="text-user-email">
+                    {userData.email}
+                  </h2>
+                  <p className="text-muted-foreground text-lg">
+                    Member since {userData.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Stats Display */}
+        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-primary" />
+            <h2 className="text-3xl font-bold">Your Stats</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Current Streak */}
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-accent/5 hover:from-accent/10 hover:to-card transition-all duration-500 hover:-translate-y-1 hover:scale-105 shadow-xl hover:shadow-2xl hover:shadow-accent/30 rounded-3xl">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/30 to-accent/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Flame className="w-8 h-8 text-accent" />
+                  </div>
+                </div>
+                <p className="text-5xl font-black mb-3 bg-gradient-to-r from-accent to-accent/70 bg-clip-text text-transparent" data-testid="text-current-streak">
+                  {userData.streak}
+                </p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Current Streak</p>
+              </CardContent>
+            </Card>
+
+            {/* Best Streak */}
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-primary/5 hover:from-primary/10 hover:to-card transition-all duration-500 hover:-translate-y-1 hover:scale-105 shadow-xl hover:shadow-2xl hover:shadow-primary/30 rounded-3xl">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Trophy className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <p className="text-5xl font-black mb-3 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent" data-testid="text-best-streak">
+                  {userData.bestStreak}
+                </p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Best Streak</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Days */}
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-secondary/5 hover:from-secondary/10 hover:to-card transition-all duration-500 hover:-translate-y-1 hover:scale-105 shadow-xl hover:shadow-2xl hover:shadow-secondary/30 rounded-3xl">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/30 to-secondary/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Calendar className="w-8 h-8 text-secondary" />
+                  </div>
+                </div>
+                <p className="text-5xl font-black mb-3 bg-gradient-to-r from-secondary to-secondary/70 bg-clip-text text-transparent" data-testid="text-total-days">
+                  {userData.totalDays}
+                </p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total Days</p>
+              </CardContent>
+            </Card>
+
+            {/* Likes Given */}
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-red-500/5 hover:from-red-500/10 hover:to-card transition-all duration-500 hover:-translate-y-1 hover:scale-105 shadow-xl hover:shadow-2xl hover:shadow-red-500/30 rounded-3xl">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500/30 to-red-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Heart className="w-8 h-8 text-red-500" />
+                  </div>
+                </div>
+                <p className="text-5xl font-black mb-3 bg-gradient-to-r from-red-500 to-red-500/70 bg-clip-text text-transparent" data-testid="text-likes-given">
+                  {userData.likesGiven}
+                </p>
+                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Likes Given</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Password Update Section */}
+        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-3">
+            <Lock className="w-6 h-6 text-primary" />
+            <h2 className="text-3xl font-bold">Security</h2>
+          </div>
+
+          <Card className="border-border/50 shadow-xl rounded-3xl overflow-hidden">
+            <CardContent className="p-8 md:p-10">
+              <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <Lock className="w-5 h-5 text-primary" />
+                Update Password
+              </h3>
+              
+              <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                {/* Current Password */}
+                <div className="space-y-2">
+                  <label 
+                    className="block text-sm font-semibold text-foreground" 
+                    htmlFor="current-password"
+                  >
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showCurrentPassword ? "text" : "password"}
+                      id="current-password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter your current password"
+                      className="bg-background border-input pr-12 focus:ring-2 focus:ring-primary/50 transition-all duration-200"
+                      data-testid="input-current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-current-password"
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* New Password */}
+                <div className="space-y-2">
+                  <label 
+                    className="block text-sm font-semibold text-foreground" 
+                    htmlFor="new-password"
+                  >
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showNewPassword ? "text" : "password"}
+                      id="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter your new password"
+                      className="bg-background border-input pr-12 focus:ring-2 focus:ring-primary/50 transition-all duration-200"
+                      data-testid="input-new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-new-password"
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="space-y-2">
+                  <label 
+                    className="block text-sm font-semibold text-foreground" 
+                    htmlFor="confirm-new-password"
+                  >
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirm-new-password"
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Confirm your new password"
+                      className="bg-background border-input pr-12 focus:ring-2 focus:ring-primary/50 transition-all duration-200"
+                      data-testid="input-confirm-new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      data-testid="button-toggle-confirm-password"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-5 h-5" />
+                      ) : (
+                        <Eye className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  disabled={updating}
+                  className="relative overflow-hidden font-bold text-lg px-8 py-6 bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-2xl hover:shadow-primary/50 transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="button-update-password"
+                >
+                  {updating ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Updating Password...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Update Password
+                    </>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
       </div>
-
-      {/* Profile Card */}
-      <Card className="border-border mb-6">
-        <CardContent className="p-8">
-          <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-3xl font-bold text-primary-foreground">
-              <span data-testid="text-user-initials">{initials}</span>
-            </div>
-            <div className="text-center md:text-left flex-1">
-              <h2 className="text-2xl font-bold mb-1" data-testid="text-user-email">{userData.email}</h2>
-              <p className="text-muted-foreground">Member since {userData.createdAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</p>
-            </div>
-          </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div className="text-center p-4 bg-background rounded-lg">
-              <p className="text-3xl font-bold text-accent" data-testid="text-current-streak">{userData.streak}</p>
-              <p className="text-sm text-muted-foreground mt-1">Current Streak</p>
-            </div>
-            <div className="text-center p-4 bg-background rounded-lg">
-              <p className="text-3xl font-bold text-primary" data-testid="text-total-days">{userData.totalDays}</p>
-              <p className="text-sm text-muted-foreground mt-1">Total Days</p>
-            </div>
-            <div className="text-center p-4 bg-background rounded-lg">
-              <p className="text-3xl font-bold text-secondary" data-testid="text-likes-given">{userData.likesGiven}</p>
-              <p className="text-sm text-muted-foreground mt-1">Likes Given</p>
-            </div>
-            <div className="text-center p-4 bg-background rounded-lg">
-              <p className="text-3xl font-bold text-foreground" data-testid="text-completion-rate">{completionRate}%</p>
-              <p className="text-sm text-muted-foreground mt-1">Completion</p>
-            </div>
-          </div>
-
-          {/* Account Info */}
-          <div className="border-t border-border pt-6">
-            <h3 className="text-lg font-semibold mb-4">Account Information</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Email</span>
-                <span className="font-medium" data-testid="text-profile-email">{userData.email}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-muted-foreground">Account Status</span>
-                <span className="px-3 py-1 bg-secondary/10 text-secondary text-sm font-medium rounded-full">Active</span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Password Update Section */}
-      <Card className="border-border">
-        <CardContent className="p-8">
-          <h3 className="text-lg font-semibold mb-4">Update Password</h3>
-          <form onSubmit={handlePasswordUpdate}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2" htmlFor="current-password">Current Password</label>
-                <Input
-                  type="password"
-                  id="current-password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-background border-input"
-                  data-testid="input-current-password"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" htmlFor="new-password">New Password</label>
-                <Input
-                  type="password"
-                  id="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-background border-input"
-                  data-testid="input-new-password"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" htmlFor="confirm-new-password">Confirm New Password</label>
-                <Input
-                  type="password"
-                  id="confirm-new-password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="bg-background border-input"
-                  data-testid="input-confirm-new-password"
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              disabled={updating}
-              className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
-              data-testid="button-update-password"
-            >
-              {updating ? 'Updating...' : 'Update Password'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
     </div>
   );
 }

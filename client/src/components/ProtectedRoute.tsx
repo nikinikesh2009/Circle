@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!loading && !currentUser) {
-      setLocation('/');
+      setLocation('/login');
     }
   }, [currentUser, loading, setLocation]);
 
