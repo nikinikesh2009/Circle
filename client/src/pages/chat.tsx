@@ -10,6 +10,8 @@ import { Loader2, Send, Trash2, Bot, User, Sparkles, Calendar, Target, Brain, Pa
 import { type ChatMessage } from "@shared/schema";
 import { storage } from "@/lib/firebase";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 export default function Chat() {
   const { currentUser } = useAuth();
@@ -312,9 +314,17 @@ export default function Chat() {
                         )}
                       </div>
                     )}
-                    <p className="text-sm whitespace-pre-wrap break-words" data-testid={`text-message-${msg.id}`}>
-                      {msg.content}
-                    </p>
+                    {msg.role === "assistant" ? (
+                      <div 
+                        className="text-sm prose prose-sm dark:prose-invert max-w-none" 
+                        data-testid={`text-message-${msg.id}`}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked(msg.content) as string) }}
+                      />
+                    ) : (
+                      <p className="text-sm whitespace-pre-wrap break-words" data-testid={`text-message-${msg.id}`}>
+                        {msg.content}
+                      </p>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">

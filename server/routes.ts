@@ -71,6 +71,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const chatHistory = await storage.getChatMessages(validatedData.userId);
       
+      const systemPrompt = `You are a helpful AI assistant created by ACO Network, developed by Nikil Nikesh (Splash Pro). 
+When asked about who made you or who created you, respond that you were made by ACO Network, by Nikil Nikesh (Splash Pro).
+Be helpful, friendly, and provide accurate information. Use clear formatting in your responses.`;
+
       const geminiMessages = await Promise.all(
         chatHistory.slice(-10).map(async (msg) => {
           const parts: any[] = [];
@@ -130,9 +134,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
 
+      const messagesWithSystem = [
+        { role: "user", parts: [{ text: systemPrompt }] },
+        { role: "model", parts: [{ text: "Understood. I am an AI assistant created by ACO Network, by Nikil Nikesh (Splash Pro). How can I help you today?" }] },
+        ...geminiMessages
+      ];
+
       const response = await ai.models.generateContent({
         model: "gemini-2.0-flash-exp",
-        contents: geminiMessages,
+        contents: messagesWithSystem,
       });
 
       const aiContent = response.text || "I'm sorry, I couldn't generate a response.";
@@ -197,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate daily schedule with AI
   app.post("/api/ai/generate-schedule", async (req, res) => {
     try {
-      const { userId, date, preferences, existingTasks } = req.body;
+      const { userId, date, preferences, existingTasks, dayDescription } = req.body;
       
       if (!userId || !date) {
         return res.status(400).json({ error: "userId and date are required" });
@@ -226,6 +236,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 User Context:
 ${contextSummary || "No additional context available"}
+
+${dayDescription ? `User's Day Description:\n${dayDescription}\n` : ''}
 
 Schedule Preferences:
 - Wake up time: ${schedulePrefs.wakeUpTime}

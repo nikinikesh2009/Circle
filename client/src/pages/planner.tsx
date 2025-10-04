@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Sparkles, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Sparkles, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { ref, get, set, update, remove } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
@@ -54,6 +54,9 @@ export default function Planner() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [dayDescription, setDayDescription] = useState('');
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -100,6 +103,7 @@ export default function Planner() {
         body: JSON.stringify({
           userId: currentUser.uid,
           date: selectedDate,
+          dayDescription: dayDescription.trim() || undefined,
           existingTasks: tasks.length > 0 ? tasks : null
         })
       });
@@ -135,6 +139,7 @@ export default function Planner() {
             title: "Schedule generated!",
             description: `AI created ${data.tasks.length} tasks for your day.`,
           });
+          setDayDescription('');
         }
       } else {
         throw new Error('Failed to generate schedule');
@@ -147,6 +152,47 @@ export default function Planner() {
       });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const openEditDialog = (task: Task) => {
+    setEditingTask(task);
+    setShowEditDialog(true);
+  };
+
+  const updateTask = async () => {
+    if (!currentUser || !editingTask) return;
+    
+    try {
+      const [startHour, startMin] = editingTask.startTime.split(':').map(Number);
+      const [endHour, endMin] = editingTask.endTime.split(':').map(Number);
+      const duration = (endHour * 60 + endMin) - (startHour * 60 + startMin);
+      
+      const taskRef = ref(db, `tasks/${currentUser.uid}/${selectedDate}/${editingTask.id}`);
+      await update(taskRef, {
+        title: editingTask.title,
+        description: editingTask.description,
+        category: editingTask.category,
+        startTime: editingTask.startTime,
+        endTime: editingTask.endTime,
+        duration,
+        priority: editingTask.priority,
+      });
+      
+      await loadTasks();
+      setShowEditDialog(false);
+      setEditingTask(null);
+      
+      toast({
+        title: "Task updated",
+        description: "Your task has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -263,25 +309,40 @@ export default function Planner() {
                 Daily Planner
               </h1>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full sm:w-auto"
-                data-testid="input-date"
+          </div>
+
+          <Card className="mb-4 border-primary/20">
+            <CardContent className="pt-6">
+              <Label htmlFor="dayDescription" className="text-base font-semibold mb-2 block">
+                Describe Your Day (Optional)
+              </Label>
+              <Textarea
+                id="dayDescription"
+                value={dayDescription}
+                onChange={(e) => setDayDescription(e.target.value)}
+                placeholder="Example: I have a meeting at 2 PM, need to go to the gym, and want to study for 2 hours. I prefer morning workouts..."
+                className="min-h-[100px] resize-none mb-4"
+                data-testid="input-day-description"
               />
-              <Button onClick={generateSchedule} disabled={generating} className="gap-2 w-full sm:w-auto" data-testid="button-generate">
-                <Sparkles className="w-4 h-4" />
-                {generating ? 'Generating...' : 'AI Generate'}
-              </Button>
-              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-full sm:w-auto" data-testid="button-add-task">
-                    <Plus className="w-4 h-4" />
-                    Add Task
-                  </Button>
-                </DialogTrigger>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full sm:w-auto"
+                  data-testid="input-date"
+                />
+                <Button onClick={generateSchedule} disabled={generating} className="gap-2 w-full sm:w-auto" data-testid="button-generate">
+                  <Sparkles className="w-4 h-4" />
+                  {generating ? 'Generating...' : 'AI Generate'}
+                </Button>
+                <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2 w-full sm:w-auto" data-testid="button-add-task">
+                      <Plus className="w-4 h-4" />
+                      Add Task
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent data-testid="dialog-add-task">
                   <DialogHeader>
                     <DialogTitle>Add New Task</DialogTitle>
@@ -373,9 +434,10 @@ export default function Planner() {
                     <Button onClick={addTask} className="w-full" data-testid="button-save-task">Add Task</Button>
                   </div>
                 </DialogContent>
-              </Dialog>
-            </div>
-          </div>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
           
           {totalTasks > 0 && (
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -454,16 +516,28 @@ export default function Planner() {
                             data-testid={`button-complete-${task.id}`}
                             className="w-full sm:w-auto"
                           >
+                            <CheckCircle2 className="w-4 h-4 mr-1" />
                             Complete
                           </Button>
                         )}
                         <Button
                           size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(task)}
+                          data-testid={`button-edit-${task.id}`}
+                          className="w-full sm:w-auto"
+                        >
+                          <Pencil className="w-4 h-4 mr-1" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="ghost"
                           onClick={() => deleteTask(task.id)}
                           data-testid={`button-delete-${task.id}`}
-                          className="w-full sm:w-auto"
+                          className="w-full sm:w-auto text-destructive hover:text-destructive"
                         >
+                          <Trash2 className="w-4 h-4 mr-1" />
                           Delete
                         </Button>
                       </div>
@@ -474,6 +548,102 @@ export default function Planner() {
             ))}
           </div>
         )}
+
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent data-testid="dialog-edit-task">
+            <DialogHeader>
+              <DialogTitle>Edit Task</DialogTitle>
+              <DialogDescription>Update your task details</DialogDescription>
+            </DialogHeader>
+            {editingTask && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editTaskTitle">Title</Label>
+                  <Input
+                    id="editTaskTitle"
+                    value={editingTask.title}
+                    onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
+                    placeholder="Task name"
+                    data-testid="input-edit-task-title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editTaskDescription">Description (optional)</Label>
+                  <Textarea
+                    id="editTaskDescription"
+                    value={editingTask.description || ''}
+                    onChange={(e) => setEditingTask({ ...editingTask, description: e.target.value })}
+                    placeholder="Task details"
+                    data-testid="input-edit-task-description"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editTaskCategory">Category</Label>
+                    <Select
+                      value={editingTask.category}
+                      onValueChange={(value: Task['category']) => setEditingTask({ ...editingTask, category: value })}
+                    >
+                      <SelectTrigger id="editTaskCategory" data-testid="select-edit-task-category">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="study">Study</SelectItem>
+                        <SelectItem value="work">Work</SelectItem>
+                        <SelectItem value="gym">Gym</SelectItem>
+                        <SelectItem value="meal">Meal</SelectItem>
+                        <SelectItem value="break">Break</SelectItem>
+                        <SelectItem value="personal">Personal</SelectItem>
+                        <SelectItem value="social">Social</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="editTaskPriority">Priority</Label>
+                    <Select
+                      value={editingTask.priority}
+                      onValueChange={(value: Task['priority']) => setEditingTask({ ...editingTask, priority: value })}
+                    >
+                      <SelectTrigger id="editTaskPriority" data-testid="select-edit-task-priority">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="editStartTime">Start Time</Label>
+                    <Input
+                      id="editStartTime"
+                      type="time"
+                      value={editingTask.startTime}
+                      onChange={(e) => setEditingTask({ ...editingTask, startTime: e.target.value })}
+                      data-testid="input-edit-start-time"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="editEndTime">End Time</Label>
+                    <Input
+                      id="editEndTime"
+                      type="time"
+                      value={editingTask.endTime}
+                      onChange={(e) => setEditingTask({ ...editingTask, endTime: e.target.value })}
+                      data-testid="input-edit-end-time"
+                    />
+                  </div>
+                </div>
+                <Button onClick={updateTask} className="w-full" data-testid="button-update-task">Update Task</Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
