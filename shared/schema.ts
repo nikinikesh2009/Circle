@@ -155,3 +155,19 @@ export const insertGroupMemberSchema = groupMemberSchema.omit({
 
 export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
+
+// Chat Message Schema
+export const chatMessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  createdAt: z.date(),
+});
+
+export const insertChatMessageSchema = chatMessageSchema.omit({ 
+  id: true, 
+  createdAt: true
+});
+
+export type ChatMessage = z.infer<typeof chatMessageSchema>;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
