@@ -6,12 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Trash2, Bot, User, Sparkles, Calendar, Target, Brain } from "lucide-react";
+import { Loader2, Send, Trash2, Bot, User, Sparkles, Calendar, Target, Brain, Paperclip, X, Image as ImageIcon, FileText, Music, Mic } from "lucide-react";
 import { type ChatMessage } from "@shared/schema";
+import { storage } from "@/lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function Chat() {
   const { currentUser } = useAuth();
   const [message, setMessage] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
@@ -50,10 +56,39 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim() && !sendMutation.isPending) {
-      sendMutation.mutate(message.trim());
+    if ((!message.trim() && !selectedFile) || sendMutation.isPending || uploading) return;
+
+    try {
+      let fileData = null;
+      if (selectedFile) {
+        setUploading(true);
+        fileData = await uploadFile(selectedFile);
+        removeFile();
+      }
+
+      const content = message.trim() || (fileData ? `[Uploaded ${fileData.type}]` : "");
+      
+      await apiRequest("POST", "/api/chat/messages", { 
+        userId: currentUser?.uid,
+        role: "user", 
+        content,
+        ...(fileData && {
+          fileUrl: fileData.url,
+          fileType: fileData.type,
+          fileName: fileData.fileName,
+          mimeType: fileData.mimeType
+        })
+      });
+
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/messages?userId=${currentUser?.uid}`] });
+      setMessage("");
+    } catch (error) {
+      console.error("Error sending message:", error);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -62,6 +97,69 @@ export default function Chat() {
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("File size must be less than 10MB");
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg", "image/png", "image/gif", "image/webp",
+      "audio/mpeg", "audio/wav", "audio/flac", "audio/ogg",
+      "application/pdf"
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      alert("Unsupported file type. Please upload images, audio files, or PDFs.");
+      return;
+    }
+
+    setSelectedFile(file);
+
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setFilePreview(null);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setFilePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<{url: string, type: string, fileName: string, mimeType: string}> => {
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${currentUser?.uid}/${Date.now()}.${fileExtension}`;
+    const fileRef = storageRef(storage, `chat-files/${fileName}`);
+    
+    await uploadBytes(fileRef, file);
+    const url = await getDownloadURL(fileRef);
+
+    let fileType: "image" | "audio" | "document" = "document";
+    if (file.type.startsWith("image/")) fileType = "image";
+    else if (file.type.startsWith("audio/")) fileType = "audio";
+    else if (file.type === "application/pdf") fileType = "document";
+
+    return {
+      url,
+      type: fileType,
+      fileName: file.name,
+      mimeType: file.type
+    };
   };
 
   const quickActions = [
@@ -180,6 +278,40 @@ export default function Chat() {
                         : "bg-muted text-foreground"
                     }`}
                   >
+                    {msg.fileUrl && (
+                      <div className="mb-2">
+                        {msg.fileType === "image" && (
+                          <img 
+                            src={msg.fileUrl} 
+                            alt={msg.fileName || "Uploaded image"} 
+                            className="max-w-full rounded max-h-64 object-contain"
+                          />
+                        )}
+                        {msg.fileType === "audio" && (
+                          <div className="flex items-center gap-2 p-2 bg-background/20 rounded">
+                            <Music className="w-5 h-5" />
+                            <div className="flex-1">
+                              <p className="text-xs font-medium">{msg.fileName}</p>
+                              <audio controls src={msg.fileUrl} className="w-full mt-1" />
+                            </div>
+                          </div>
+                        )}
+                        {msg.fileType === "document" && (
+                          <a 
+                            href={msg.fileUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-2 bg-background/20 rounded hover:bg-background/30 transition"
+                          >
+                            <FileText className="w-5 h-5" />
+                            <div className="flex-1">
+                              <p className="text-xs font-medium">{msg.fileName}</p>
+                              <p className="text-xs opacity-70">Click to view PDF</p>
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <p className="text-sm whitespace-pre-wrap break-words" data-testid={`text-message-${msg.id}`}>
                       {msg.content}
                     </p>
@@ -207,25 +339,72 @@ export default function Chat() {
         </div>
 
       <div className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-lg">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4 space-y-3">
+          {selectedFile && (
+            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+              {filePreview ? (
+                <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
+              ) : (
+                <div className="w-16 h-16 bg-primary/10 rounded flex items-center justify-center">
+                  {selectedFile.type.startsWith("audio/") ? (
+                    <Music className="w-8 h-8 text-primary" />
+                  ) : (
+                    <FileText className="w-8 h-8 text-primary" />
+                  )}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={removeFile}
+                data-testid="button-remove-file"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,audio/*,application/pdf"
+              onChange={handleFileSelect}
+              className="hidden"
+              data-testid="input-file"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || sendMutation.isPending}
+              className="h-[60px] w-[60px] flex-shrink-0"
+              data-testid="button-attach-file"
+            >
+              <Paperclip className="w-5 h-5" />
+            </Button>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
               className="min-h-[60px] max-h-[200px] resize-none"
-              disabled={sendMutation.isPending}
+              disabled={sendMutation.isPending || uploading}
               data-testid="input-message"
             />
             <Button
               type="submit"
               size="icon"
               className="h-[60px] w-[60px] flex-shrink-0"
-              disabled={!message.trim() || sendMutation.isPending}
+              disabled={(!message.trim() && !selectedFile) || sendMutation.isPending || uploading}
               data-testid="button-send"
             >
-              {sendMutation.isPending ? (
+              {sendMutation.isPending || uploading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Send className="w-5 h-5" />

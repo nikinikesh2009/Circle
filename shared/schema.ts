@@ -162,6 +162,10 @@ export const chatMessageSchema = z.object({
   userId: z.string(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  fileUrl: z.string().optional(),
+  fileType: z.enum(["image", "audio", "document"]).optional(),
+  fileName: z.string().optional(),
+  mimeType: z.string().optional(),
   createdAt: z.date(),
 });
 

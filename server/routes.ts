@@ -34,13 +34,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userMessage = await storage.addChatMessage(validatedData);
 
       const chatHistory = await storage.getChatMessages(validatedData.userId);
-      const geminiMessages = chatHistory.slice(-10).map(msg => ({
-        role: msg.role === "assistant" ? "model" : "user",
-        parts: [{ text: msg.content }]
-      }));
+      
+      const geminiMessages = await Promise.all(
+        chatHistory.slice(-10).map(async (msg) => {
+          const parts: any[] = [];
+          
+          if (msg.fileUrl && msg.mimeType) {
+            try {
+              const fileResponse = await fetch(msg.fileUrl);
+              const arrayBuffer = await fileResponse.arrayBuffer();
+              const base64Data = Buffer.from(arrayBuffer).toString('base64');
+              
+              parts.push({
+                inlineData: {
+                  data: base64Data,
+                  mimeType: msg.mimeType
+                }
+              });
+              
+              if (msg.content && msg.content !== `[Uploaded ${msg.fileType}]`) {
+                parts.push({ text: msg.content });
+              } else {
+                parts.push({ text: "Please analyze this file." });
+              }
+            } catch (fileError) {
+              console.error("Error fetching file:", fileError);
+              parts.push({ text: msg.content || "File upload failed." });
+            }
+          } else {
+            parts.push({ text: msg.content });
+          }
+          
+          return {
+            role: msg.role === "assistant" ? "model" : "user",
+            parts
+          };
+        })
+      );
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.0-flash-exp",
         contents: geminiMessages,
       });
 
