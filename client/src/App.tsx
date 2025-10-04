@@ -17,6 +17,10 @@ import Feed from "@/pages/feed";
 import Groups from "@/pages/groups";
 import GroupDetail from "@/pages/group-detail";
 import Chat from "@/pages/chat";
+import Planner from "@/pages/planner";
+import Habits from "@/pages/habits";
+import Focus from "@/pages/focus";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import BottomNav from "@/components/BottomNav";
 import { Link, useLocation } from 'wouter';
@@ -36,11 +40,15 @@ function Navigation() {
 
   const navLinks = [
     { path: '/dashboard', label: 'Home', testId: 'nav-home' },
+    { path: '/planner', label: 'Planner', testId: 'nav-planner' },
+    { path: '/habits', label: 'Habits', testId: 'nav-habits' },
+    { path: '/focus', label: 'Focus', testId: 'nav-focus' },
     { path: '/chat', label: 'AI Chat', testId: 'nav-chat' },
     { path: '/feed', label: 'Feed', testId: 'nav-feed' },
     { path: '/groups', label: 'Groups', testId: 'nav-groups' },
     { path: '/community', label: 'Community', testId: 'nav-community' },
     { path: '/profile', label: 'Profile', testId: 'nav-profile' },
+    { path: '/settings', label: 'Settings', testId: 'nav-settings' },
   ];
 
   const handleLinkClick = () => {
@@ -192,6 +200,26 @@ function AppContent() {
           <Route path="/groups">
             <ProtectedRoute>
               <Groups />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/planner">
+            <ProtectedRoute>
+              <Planner />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/habits">
+            <ProtectedRoute>
+              <Habits />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/focus">
+            <ProtectedRoute>
+              <Focus />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/settings">
+            <ProtectedRoute>
+              <Settings />
             </ProtectedRoute>
           </Route>
           <Route component={NotFound} />

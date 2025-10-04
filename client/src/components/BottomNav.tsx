@@ -1,15 +1,15 @@
 import { Link, useLocation } from 'wouter';
-import { Home, MessageSquare, Users, Grid3x3, User } from 'lucide-react';
+import { Home, Calendar, Target, Zap, MessageSquare } from 'lucide-react';
 
 export default function BottomNav() {
   const [location] = useLocation();
 
   const navItems = [
     { path: '/dashboard', icon: Home, label: 'Home', testId: 'bottom-nav-home' },
-    { path: '/feed', icon: MessageSquare, label: 'Feed', testId: 'bottom-nav-feed' },
-    { path: '/chat', icon: MessageSquare, label: 'Chat', testId: 'bottom-nav-chat' },
-    { path: '/groups', icon: Grid3x3, label: 'Groups', testId: 'bottom-nav-groups' },
-    { path: '/profile', icon: User, label: 'Profile', testId: 'bottom-nav-profile' },
+    { path: '/planner', icon: Calendar, label: 'Planner', testId: 'bottom-nav-planner' },
+    { path: '/habits', icon: Target, label: 'Habits', testId: 'bottom-nav-habits' },
+    { path: '/focus', icon: Zap, label: 'Focus', testId: 'bottom-nav-focus' },
+    { path: '/chat', icon: MessageSquare, label: 'AI Chat', testId: 'bottom-nav-chat' },
   ];
 
   return (

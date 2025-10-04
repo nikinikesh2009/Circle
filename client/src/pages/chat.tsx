@@ -1,36 +1,44 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, Trash2, Bot, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, Trash2, Bot, User, Sparkles, Calendar, Target, Brain } from "lucide-react";
 import { type ChatMessage } from "@shared/schema";
 
 export default function Chat() {
+  const { currentUser } = useAuth();
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages = [], isLoading } = useQuery<ChatMessage[]>({
-    queryKey: ["/api/chat/messages"],
+    queryKey: [`/api/chat/messages?userId=${currentUser?.uid}`],
+    enabled: !!currentUser,
   });
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("POST", "/api/chat/messages", { role: "user", content });
+      return apiRequest("POST", "/api/chat/messages", { 
+        userId: currentUser?.uid,
+        role: "user", 
+        content 
+      });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/messages?userId=${currentUser?.uid}`] });
       setMessage("");
     },
   });
 
   const clearMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("DELETE", "/api/chat/messages");
+      return apiRequest("DELETE", `/api/chat/messages?userId=${currentUser?.uid}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/chat/messages"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/chat/messages?userId=${currentUser?.uid}`] });
     },
   });
 
@@ -56,16 +64,49 @@ export default function Chat() {
     }
   };
 
+  const quickActions = [
+    {
+      icon: Brain,
+      label: "Solve a Problem",
+      prompt: "I have a problem I need help solving: ",
+      testId: "quick-solve-problem"
+    },
+    {
+      icon: Calendar,
+      label: "Plan My Day",
+      prompt: "Can you help me plan my day? Here's what I need to do: ",
+      testId: "quick-plan-day"
+    },
+    {
+      icon: Target,
+      label: "Set a Goal",
+      prompt: "I want to set a goal and need help breaking it down: ",
+      testId: "quick-set-goal"
+    },
+  ];
+
+  const handleQuickAction = (prompt: string) => {
+    setMessage(prompt);
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">Please log in to use AI Chat</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              AI Assistant
+              AI Problem Solver
             </h1>
             <p className="text-muted-foreground mt-1">
-              Chat with Gemini AI
+              Get actionable solutions and step-by-step guidance
             </p>
           </div>
           <Button
@@ -79,6 +120,27 @@ export default function Chat() {
             Clear Chat
           </Button>
         </div>
+
+        {messages.length === 0 && (
+          <div className="mb-6 flex gap-3 flex-wrap">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <Button
+                  key={action.label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction(action.prompt)}
+                  className="gap-2"
+                  data-testid={action.testId}
+                >
+                  <Icon className="w-4 h-4" />
+                  {action.label}
+                </Button>
+              );
+            })}
+          </div>
+        )}
 
         <Card className="flex flex-col h-[calc(100vh-16rem)] bg-card/50 backdrop-blur-sm border-border">
           <div className="flex-1 overflow-y-auto p-6 space-y-4" data-testid="chat-messages-container">
