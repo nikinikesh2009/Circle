@@ -1,37 +1,35 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type ChatMessage, type InsertChatMessage } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  getChatMessages(): Promise<ChatMessage[]>;
+  addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  clearChatMessages(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
+  private chatMessages: ChatMessage[];
 
   constructor() {
-    this.users = new Map();
+    this.chatMessages = [];
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getChatMessages(): Promise<ChatMessage[]> {
+    return [...this.chatMessages];
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async addChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const message: ChatMessage = {
+      ...insertMessage,
+      id: randomUUID(),
+      createdAt: new Date(),
+    };
+    this.chatMessages.push(message);
+    return message;
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+  async clearChatMessages(): Promise<void> {
+    this.chatMessages = [];
   }
 }
 
