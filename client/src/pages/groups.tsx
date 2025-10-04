@@ -9,9 +9,10 @@ import { ref as dbRef, get, set, push, runTransaction } from 'firebase/database'
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { Group, GroupMember } from '@shared/schema';
-import { Users, Plus, LogOut, Image as ImageIcon, Loader2, X } from 'lucide-react';
+import { Users, Plus, LogOut, Image as ImageIcon, Loader2, X, Search, SlidersHorizontal } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Link } from 'wouter';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface GroupWithMembership extends Group {
   isMember: boolean;
@@ -30,6 +31,9 @@ export default function Groups() {
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<'all' | 'my'>('all');
   const [joiningGroup, setJoiningGroup] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'members' | 'name'>('newest');
+  const [showFilters, setShowFilters] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -246,9 +250,30 @@ export default function Groups() {
     }
   };
 
-  const filteredGroups = filter === 'my' 
-    ? groups.filter(g => g.isMember)
-    : groups;
+  const filteredGroups = groups
+    .filter(g => {
+      if (filter === 'my' && !g.isMember) return false;
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        return g.name.toLowerCase().includes(query) || 
+               g.description.toLowerCase().includes(query);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        case 'oldest':
+          return a.createdAt.getTime() - b.createdAt.getTime();
+        case 'members':
+          return b.memberCount - a.memberCount;
+        case 'name':
+          return a.name.localeCompare(b.name);
+        default:
+          return 0;
+      }
+    });
 
   if (loading) {
     return (
@@ -274,33 +299,79 @@ export default function Groups() {
           <p className="text-lg text-muted-foreground">Join communities and connect with like-minded people</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="flex gap-2">
+        <div className="space-y-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search groups by name or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 border-border/50 focus:border-primary/50"
+                data-testid="input-search-groups"
+              />
+            </div>
             <Button
-              variant={filter === 'all' ? 'default' : 'outline'}
-              onClick={() => setFilter('all')}
-              className={filter === 'all' ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''}
-              data-testid="button-filter-all"
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+              data-testid="button-toggle-filters"
             >
-              All Groups
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
             </Button>
             <Button
-              variant={filter === 'my' ? 'default' : 'outline'}
-              onClick={() => setFilter('my')}
-              className={filter === 'my' ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''}
-              data-testid="button-filter-my"
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-xl transition-all"
+              data-testid="button-toggle-create-form"
             >
-              My Groups
+              <Plus className="w-4 h-4 mr-2" />
+              Create
             </Button>
           </div>
-          <Button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-xl transition-all"
-            data-testid="button-toggle-create-form"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create Group
-          </Button>
+
+          {showFilters && (
+            <Card className="border-border/50 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="flex gap-2">
+                    <Button
+                      variant={filter === 'all' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilter('all')}
+                      className={filter === 'all' ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''}
+                      data-testid="button-filter-all"
+                    >
+                      All Groups
+                    </Button>
+                    <Button
+                      variant={filter === 'my' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setFilter('my')}
+                      className={filter === 'my' ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''}
+                      data-testid="button-filter-my"
+                    >
+                      My Groups
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Sort by:</span>
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-[140px] h-9 border-border/50" data-testid="select-sort-groups">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="newest">Newest First</SelectItem>
+                        <SelectItem value="oldest">Oldest First</SelectItem>
+                        <SelectItem value="members">Most Members</SelectItem>
+                        <SelectItem value="name">Alphabetical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {showCreateForm && (
