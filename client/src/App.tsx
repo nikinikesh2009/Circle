@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import Landing from "@/pages/landing";
+import HomeRedirect from "@/components/HomeRedirect";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
@@ -125,7 +125,7 @@ function AppContent() {
       <Navigation />
       <div className={showBottomNav ? 'pb-20 md:pb-0' : ''}>
         <Switch>
-          <Route path="/" component={Landing} />
+          <Route path="/" component={HomeRedirect} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
           <Route path="/dashboard">
