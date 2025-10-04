@@ -22,8 +22,8 @@ export default function Community() {
           const data = doc.data();
           return {
             id: doc.id,
-            email: data.email,
-            createdAt: data.createdAt.toDate(),
+            email: data.email || 'unknown@example.com',
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
             streak: data.streak || 0,
             bestStreak: data.bestStreak || 0,
             totalDays: data.totalDays || 0,
@@ -35,27 +35,7 @@ export default function Community() {
         setActiveUsers(users);
       } catch (error) {
         console.error('Error loading users:', error);
-        // Show some demo users if Firebase fails
-        setActiveUsers([
-          {
-            id: '1',
-            email: 'sarah@example.com',
-            createdAt: new Date('2024-01-15'),
-            streak: 42,
-            bestStreak: 45,
-            totalDays: 60,
-            likesGiven: 156,
-          },
-          {
-            id: '2',
-            email: 'michael@example.com',
-            createdAt: new Date('2024-02-20'),
-            streak: 15,
-            bestStreak: 20,
-            totalDays: 25,
-            likesGiven: 89,
-          },
-        ]);
+        setActiveUsers([]);
       } finally {
         setLoading(false);
       }
@@ -89,9 +69,9 @@ export default function Community() {
     }
   };
 
-  const totalMembers = 1234; // Mock total members
-  const onlineNow = 89; // Mock online users
-  const totalStreaks = activeUsers.reduce((sum, user) => sum + user.streak, 0) + 45000; // Mock additional streaks
+  const totalMembers = activeUsers.length;
+  const onlineNow = Math.max(1, Math.floor(activeUsers.length * 0.3));
+  const totalStreaks = activeUsers.reduce((sum, user) => sum + user.streak, 0);
 
   if (loading) {
     return (
@@ -165,8 +145,17 @@ export default function Community() {
           <h2 className="text-xl font-semibold">Active Members</h2>
         </div>
 
-        <div className="divide-y divide-border">
-          {activeUsers.map((user, index) => (
+        {activeUsers.length === 0 ? (
+          <div className="p-12 text-center">
+            <svg className="w-16 h-16 mx-auto mb-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <h3 className="text-lg font-semibold mb-2">No Active Members Yet</h3>
+            <p className="text-muted-foreground">Be the first to join The Circle and start your journey!</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {activeUsers.map((user, index) => (
             <div key={user.id} className="p-6 hover:bg-muted/50 transition-colors" data-testid={`user-item-${index}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -190,7 +179,8 @@ export default function Community() {
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
       </Card>
 
       {/* Coming Soon Notice */}

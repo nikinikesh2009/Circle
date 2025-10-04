@@ -60,3 +60,19 @@ export const insertUserStreakSchema = userStreakSchema.omit({
 
 export type UserStreak = z.infer<typeof userStreakSchema>;
 export type InsertUserStreak = z.infer<typeof insertUserStreakSchema>;
+
+// Post Likes Schema (tracks which users liked which posts)
+export const postLikeSchema = z.object({
+  id: z.string(), // Format: ${userId}_${postId}
+  userId: z.string(),
+  postId: z.string(),
+  createdAt: z.date(),
+});
+
+export const insertPostLikeSchema = postLikeSchema.omit({ 
+  id: true, 
+  createdAt: true
+});
+
+export type PostLike = z.infer<typeof postLikeSchema>;
+export type InsertPostLike = z.infer<typeof insertPostLikeSchema>;

@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, orderBy, limit, getDocs, doc, updateDoc, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, updateDoc, Timestamp, setDoc, getDoc, deleteDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { MotivationalPost } from '@shared/schema';
 
@@ -15,39 +15,43 @@ export default function Dashboard() {
   const [markingDone, setMarkingDone] = useState(false);
   const [liked, setLiked] = useState(false);
 
-  const motivationalPosts = [
-    {
-      content: "The journey of a thousand miles begins with a single step. Every day you show up is a victory worth celebrating.",
-      imageUrl: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=600",
-      category: "Daily Wisdom"
-    },
-    {
-      content: "Success is not final, failure is not fatal: it is the courage to continue that counts. Keep moving forward.",
-      imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=600",
-      category: "Motivation"
-    },
-    {
-      content: "The only impossible journey is the one you never begin. Start where you are, use what you have, do what you can.",
-      imageUrl: "https://images.unsplash.com/photo-1519904981063-b0cf448d479e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&h=600",
-      category: "Inspiration"
-    }
-  ];
-
   useEffect(() => {
     const loadTodaysPost = async () => {
       try {
-        // For demo purposes, randomly select a post
-        const randomIndex = Math.floor(Math.random() * motivationalPosts.length);
-        const selectedPost = motivationalPosts[randomIndex];
+        const postsQuery = query(collection(db, 'motivationalPosts'));
+        const querySnapshot = await getDocs(postsQuery);
         
-        setTodaysPost({
-          id: `post-${randomIndex}`,
-          content: selectedPost.content,
-          imageUrl: selectedPost.imageUrl,
-          category: selectedPost.category,
-          likes: Math.floor(Math.random() * 200) + 50,
-          createdAt: new Date()
+        if (querySnapshot.empty) {
+          toast({
+            title: "No posts available",
+            description: "Please run the seed script to add motivational posts.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        const posts: MotivationalPost[] = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            content: data.content || '',
+            imageUrl: data.imageUrl,
+            category: data.category || 'Daily Wisdom',
+            likes: data.likes || 0,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+          };
         });
+
+        const randomIndex = Math.floor(Math.random() * posts.length);
+        const selectedPost = posts[randomIndex];
+        setTodaysPost(selectedPost);
+
+        if (userData) {
+          const likeDocRef = doc(db, 'postLikes', `${userData.id}_${selectedPost.id}`);
+          const likeDoc = await getDoc(likeDocRef);
+          setLiked(likeDoc.exists());
+        }
       } catch (error) {
         console.error('Error loading post:', error);
         toast({
@@ -61,7 +65,7 @@ export default function Dashboard() {
     };
 
     loadTodaysPost();
-  }, []);
+  }, [userData]);
 
   const handleMarkAsDone = async () => {
     if (!userData) return;
@@ -116,12 +120,58 @@ export default function Dashboard() {
     }
   };
 
-  const handleLikePost = () => {
-    setLiked(!liked);
-    if (todaysPost) {
+  const handleLikePost = async () => {
+    if (!todaysPost || !userData) return;
+
+    const newLikedState = !liked;
+    const likeDocId = `${userData.id}_${todaysPost.id}`;
+    const oldLikes = todaysPost.likes;
+
+    setLiked(newLikedState);
+    setTodaysPost({
+      ...todaysPost,
+      likes: newLikedState ? oldLikes + 1 : oldLikes - 1
+    });
+
+    try {
+      if (newLikedState) {
+        await setDoc(doc(db, 'postLikes', likeDocId), {
+          userId: userData.id,
+          postId: todaysPost.id,
+          createdAt: Timestamp.now(),
+        });
+
+        await updateDoc(doc(db, 'motivationalPosts', todaysPost.id), {
+          likes: increment(1),
+        });
+
+        await updateDoc(doc(db, 'users', userData.id), {
+          likesGiven: increment(1),
+        });
+      } else {
+        await deleteDoc(doc(db, 'postLikes', likeDocId));
+
+        await updateDoc(doc(db, 'motivationalPosts', todaysPost.id), {
+          likes: increment(-1),
+        });
+
+        await updateDoc(doc(db, 'users', userData.id), {
+          likesGiven: increment(-1),
+        });
+      }
+
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error updating like:', error);
+      setLiked(!newLikedState);
       setTodaysPost({
         ...todaysPost,
-        likes: liked ? todaysPost.likes - 1 : todaysPost.likes + 1
+        likes: oldLikes
+      });
+      toast({
+        title: "Error",
+        description: "Failed to update like. Please try again.",
+        variant: "destructive",
       });
     }
   };
