@@ -1,42 +1,54 @@
 const CACHE_NAME = 'the-circle-v1';
-const urlsToCache = [
-  '/',
-  '/src/main.tsx',
-  '/src/index.css'
-];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
-  );
+  console.log('Service Worker installing...');
   self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+  
+  if (request.method !== 'GET') {
+    return;
+  }
+  
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+  
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      
+      return fetch(request).then((response) => {
+        if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
-        return fetch(event.request).then(
-          (response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-            return response;
-          }
-        );
-      })
+        
+        if (request.destination === 'document' || 
+            request.destination === 'script' || 
+            request.destination === 'style' ||
+            request.destination === 'image') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        
+        return response;
+      }).catch(() => {
+        if (request.destination === 'document') {
+          return caches.match('/');
+        }
+        return new Response('Offline', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        });
+      });
+    })
   );
 });
 
