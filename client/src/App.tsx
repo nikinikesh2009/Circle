@@ -18,6 +18,7 @@ import Groups from "@/pages/groups";
 import GroupDetail from "@/pages/group-detail";
 import Chat from "@/pages/chat";
 import NotFound from "@/pages/not-found";
+import BottomNav from "@/components/BottomNav";
 import { Link, useLocation } from 'wouter';
 import { Menu, X } from 'lucide-react';
 
@@ -146,50 +147,57 @@ function Navigation() {
 }
 
 function AppContent() {
+  const { currentUser } = useAuth();
+  const [location] = useLocation();
+  const showBottomNav = currentUser && !['/login', '/register', '/'].includes(location);
+
   return (
     <>
       <Navigation />
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
-        <Route path="/dashboard">
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/chat">
-          <ProtectedRoute>
-            <Chat />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/feed">
-          <ProtectedRoute>
-            <Feed />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/profile">
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/community">
-          <ProtectedRoute>
-            <Community />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/groups/:id">
-          <ProtectedRoute>
-            <GroupDetail />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/groups">
-          <ProtectedRoute>
-            <Groups />
-          </ProtectedRoute>
-        </Route>
-        <Route component={NotFound} />
-      </Switch>
+      <div className={showBottomNav ? 'pb-20 md:pb-0' : ''}>
+        <Switch>
+          <Route path="/" component={Landing} />
+          <Route path="/login" component={Login} />
+          <Route path="/register" component={Register} />
+          <Route path="/dashboard">
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/chat">
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/feed">
+            <ProtectedRoute>
+              <Feed />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/profile">
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/community">
+            <ProtectedRoute>
+              <Community />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/groups/:id">
+            <ProtectedRoute>
+              <GroupDetail />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/groups">
+            <ProtectedRoute>
+              <Groups />
+            </ProtectedRoute>
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </div>
+      {showBottomNav && <BottomNav />}
     </>
   );
 }
