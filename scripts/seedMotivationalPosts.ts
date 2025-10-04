@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, Timestamp, getDocs, query } from "firebase/firestore";
+import { getDatabase, ref, get, set, push } from "firebase/database";
 
 if (!process.env.VITE_FIREBASE_API_KEY || !process.env.VITE_FIREBASE_PROJECT_ID || !process.env.VITE_FIREBASE_APP_ID) {
   console.error('❌ Missing Firebase environment variables. Please set:');
@@ -12,13 +12,14 @@ if (!process.env.VITE_FIREBASE_API_KEY || !process.env.VITE_FIREBASE_PROJECT_ID 
 const firebaseConfig = {
   apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: `${process.env.VITE_FIREBASE_PROJECT_ID}.firebaseapp.com`,
+  databaseURL: `https://${process.env.VITE_FIREBASE_PROJECT_ID}-default-rtdb.firebaseio.com`,
   projectId: process.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: `${process.env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
   appId: process.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
 const motivationalPosts = [
   {
@@ -78,22 +79,25 @@ async function seedPosts() {
   console.log('Checking for existing posts...\n');
   
   try {
-    const existingPosts = await getDocs(query(collection(db, 'motivationalPosts')));
+    const postsRef = ref(db, 'motivationalPosts');
+    const snapshot = await get(postsRef);
     
-    if (!existingPosts.empty) {
-      console.log(`⚠️  Found ${existingPosts.size} existing posts in the database.`);
+    if (snapshot.exists()) {
+      const existingCount = Object.keys(snapshot.val()).length;
+      console.log(`⚠️  Found ${existingCount} existing posts in the database.`);
       console.log('Skipping seed to avoid duplicates.');
       console.log('If you want to re-seed, please delete the existing posts from Firebase Console first.\n');
       process.exit(0);
     }
 
     for (const post of motivationalPosts) {
-      const docRef = await addDoc(collection(db, 'motivationalPosts'), {
+      const newPostRef = push(postsRef);
+      await set(newPostRef, {
         ...post,
         likes: 0,
-        createdAt: Timestamp.now(),
+        createdAt: new Date().toISOString(),
       });
-      console.log(`✓ Added post: ${post.content.substring(0, 50)}... (ID: ${docRef.id})`);
+      console.log(`✓ Added post: ${post.content.substring(0, 50)}... (ID: ${newPostRef.key})`);
     }
     
     console.log('\n✅ Successfully seeded all motivational posts!');
@@ -101,9 +105,9 @@ async function seedPosts() {
   } catch (error: any) {
     console.error('\n❌ Error seeding posts:', error.message);
     console.error('\nTroubleshooting:');
-    console.error('1. Ensure Firestore is enabled in your Firebase Console');
+    console.error('1. Ensure Realtime Database is enabled in your Firebase Console');
     console.error('2. Check that your Firebase credentials are correct');
-    console.error('3. Verify Firestore security rules allow writes in test mode');
+    console.error('3. Verify Realtime Database security rules allow writes in test mode');
     process.exit(1);
   }
   

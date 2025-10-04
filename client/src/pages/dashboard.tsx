@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, getDocs, doc, updateDoc, Timestamp, setDoc, getDoc, deleteDoc, increment } from 'firebase/firestore';
+import { ref, get, set, update, remove, push, query as dbQuery, orderByChild, limitToFirst, runTransaction } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { MotivationalPost } from '@shared/schema';
 
@@ -18,10 +18,10 @@ export default function Dashboard() {
   useEffect(() => {
     const loadTodaysPost = async () => {
       try {
-        const postsQuery = query(collection(db, 'motivationalPosts'));
-        const querySnapshot = await getDocs(postsQuery);
+        const postsRef = ref(db, 'motivationalPosts');
+        const snapshot = await get(postsRef);
         
-        if (querySnapshot.empty) {
+        if (!snapshot.exists()) {
           toast({
             title: "No posts available",
             description: "Please run the seed script to add motivational posts.",
@@ -31,26 +31,24 @@ export default function Dashboard() {
           return;
         }
 
-        const posts: MotivationalPost[] = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            content: data.content || '',
-            imageUrl: data.imageUrl,
-            category: data.category || 'Daily Wisdom',
-            likes: data.likes || 0,
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
-          };
-        });
+        const postsData = snapshot.val();
+        const posts: MotivationalPost[] = Object.keys(postsData).map(key => ({
+          id: key,
+          content: postsData[key].content || '',
+          imageUrl: postsData[key].imageUrl,
+          category: postsData[key].category || 'Daily Wisdom',
+          likes: postsData[key].likes || 0,
+          createdAt: new Date(postsData[key].createdAt),
+        }));
 
         const randomIndex = Math.floor(Math.random() * posts.length);
         const selectedPost = posts[randomIndex];
         setTodaysPost(selectedPost);
 
         if (userData) {
-          const likeDocRef = doc(db, 'postLikes', `${userData.id}_${selectedPost.id}`);
-          const likeDoc = await getDoc(likeDocRef);
-          setLiked(likeDoc.exists());
+          const likeRef = ref(db, `postLikes/${userData.id}_${selectedPost.id}`);
+          const likeSnapshot = await get(likeRef);
+          setLiked(likeSnapshot.exists());
         }
       } catch (error) {
         console.error('Error loading post:', error);
@@ -71,42 +69,53 @@ export default function Dashboard() {
     if (!userData) return;
 
     const today = new Date().toISOString().split('T')[0];
-    
-    if (userData.lastCompletedDate === today) {
-      toast({
-        title: "Already completed!",
-        description: "You've already marked today's motivation as done.",
-      });
-      return;
-    }
 
     setMarkingDone(true);
     try {
-      const newStreak = userData.streak + 1;
-      const newBestStreak = Math.max(newStreak, userData.bestStreak);
-      const newTotalDays = userData.totalDays + 1;
+      const userRef = ref(db, `users/${userData.id}`);
+      
+      const result = await runTransaction(userRef, (currentUser) => {
+        if (!currentUser) return currentUser;
+        
+        if (currentUser.lastCompletedDate === today) {
+          return;
+        }
+        
+        const newStreak = (currentUser.streak || 0) + 1;
+        const newBestStreak = Math.max(newStreak, currentUser.bestStreak || 0);
+        const newTotalDays = (currentUser.totalDays || 0) + 1;
 
-      // Update user document in Firestore
-      await updateDoc(doc(db, 'users', userData.id), {
-        streak: newStreak,
-        bestStreak: newBestStreak,
-        totalDays: newTotalDays,
-        lastCompletedDate: today,
+        return {
+          ...currentUser,
+          streak: newStreak,
+          bestStreak: newBestStreak,
+          totalDays: newTotalDays,
+          lastCompletedDate: today,
+        };
       });
 
-      // Add streak record
-      await setDoc(doc(db, 'userStreaks', `${userData.id}-${today}`), {
+      if (!result.committed) {
+        toast({
+          title: "Already completed!",
+          description: "You've already marked today's motivation as done.",
+        });
+        return;
+      }
+
+      const streakRef = ref(db, `userStreaks/${userData.id}-${today}`);
+      await set(streakRef, {
         userId: userData.id,
         date: today,
         completed: true,
-        createdAt: Timestamp.now(),
+        createdAt: new Date().toISOString(),
       });
 
       await refreshUserData();
 
+      const updatedStreak = userData.streak + 1;
       toast({
         title: "Great job! 🎉",
-        description: `Streak updated to ${newStreak} days! Keep it up!`,
+        description: `Streak updated to ${updatedStreak} days! Keep it up!`,
       });
     } catch (error) {
       console.error('Error updating streak:', error);
@@ -123,47 +132,68 @@ export default function Dashboard() {
   const handleLikePost = async () => {
     if (!todaysPost || !userData) return;
 
-    const newLikedState = !liked;
     const likeDocId = `${userData.id}_${todaysPost.id}`;
+    const likeRef = ref(db, `postLikes/${likeDocId}`);
     const oldLikes = todaysPost.likes;
-
-    setLiked(newLikedState);
-    setTodaysPost({
-      ...todaysPost,
-      likes: newLikedState ? oldLikes + 1 : oldLikes - 1
-    });
+    const oldLikedState = liked;
 
     try {
-      if (newLikedState) {
-        await setDoc(doc(db, 'postLikes', likeDocId), {
-          userId: userData.id,
-          postId: todaysPost.id,
-          createdAt: Timestamp.now(),
+      const likeResult = await runTransaction(likeRef, (currentLike) => {
+        if (currentLike) {
+          return null;
+        } else {
+          return {
+            userId: userData.id,
+            postId: todaysPost.id,
+            createdAt: new Date().toISOString(),
+          };
+        }
+      });
+
+      if (!likeResult.committed) {
+        return;
+      }
+
+      const isLiking = likeResult.snapshot.val() !== null;
+
+      if (isLiking) {
+        setLiked(true);
+        setTodaysPost({
+          ...todaysPost,
+          likes: oldLikes + 1
         });
 
-        await updateDoc(doc(db, 'motivationalPosts', todaysPost.id), {
-          likes: increment(1),
+        const postLikesRef = ref(db, `motivationalPosts/${todaysPost.id}/likes`);
+        await runTransaction(postLikesRef, (currentLikes) => {
+          return (currentLikes || 0) + 1;
         });
 
-        await updateDoc(doc(db, 'users', userData.id), {
-          likesGiven: increment(1),
+        const userLikesRef = ref(db, `users/${userData.id}/likesGiven`);
+        await runTransaction(userLikesRef, (currentLikes) => {
+          return (currentLikes || 0) + 1;
         });
       } else {
-        await deleteDoc(doc(db, 'postLikes', likeDocId));
-
-        await updateDoc(doc(db, 'motivationalPosts', todaysPost.id), {
-          likes: increment(-1),
+        setLiked(false);
+        setTodaysPost({
+          ...todaysPost,
+          likes: oldLikes - 1
         });
 
-        await updateDoc(doc(db, 'users', userData.id), {
-          likesGiven: increment(-1),
+        const postLikesRef = ref(db, `motivationalPosts/${todaysPost.id}/likes`);
+        await runTransaction(postLikesRef, (currentLikes) => {
+          return Math.max(0, (currentLikes || 0) - 1);
+        });
+
+        const userLikesRef = ref(db, `users/${userData.id}/likesGiven`);
+        await runTransaction(userLikesRef, (currentLikes) => {
+          return Math.max(0, (currentLikes || 0) - 1);
         });
       }
 
       await refreshUserData();
     } catch (error) {
       console.error('Error updating like:', error);
-      setLiked(!newLikedState);
+      setLiked(oldLikedState);
       setTodaysPost({
         ...todaysPost,
         likes: oldLikes

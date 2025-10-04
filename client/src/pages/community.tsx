@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { ref, get, query, orderByChild, limitToFirst } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { User } from '@shared/schema';
 
@@ -11,19 +11,22 @@ export default function Community() {
   useEffect(() => {
     const loadActiveUsers = async () => {
       try {
-        const usersQuery = query(
-          collection(db, 'users'),
-          orderBy('streak', 'desc'),
-          limit(10)
-        );
+        const usersRef = ref(db, 'users');
+        const snapshot = await get(usersRef);
         
-        const querySnapshot = await getDocs(usersQuery);
-        const users: User[] = querySnapshot.docs.map(doc => {
-          const data = doc.data();
+        if (!snapshot.exists()) {
+          setActiveUsers([]);
+          setLoading(false);
+          return;
+        }
+
+        const usersData = snapshot.val();
+        const users: User[] = Object.keys(usersData).map(key => {
+          const data = usersData[key];
           return {
-            id: doc.id,
+            id: key,
             email: data.email || 'unknown@example.com',
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : new Date(),
+            createdAt: new Date(data.createdAt),
             streak: data.streak || 0,
             bestStreak: data.bestStreak || 0,
             totalDays: data.totalDays || 0,
@@ -31,8 +34,9 @@ export default function Community() {
             likesGiven: data.likesGiven || 0,
           };
         });
-        
-        setActiveUsers(users);
+
+        users.sort((a, b) => b.streak - a.streak);
+        setActiveUsers(users.slice(0, 10));
       } catch (error) {
         console.error('Error loading users:', error);
         setActiveUsers([]);

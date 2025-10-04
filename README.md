@@ -26,12 +26,24 @@ Daily motivation, habit tracking, and community connection.
 3. Enable **Email/Password** sign-in method
 4. Under **Settings** > **Authorized domains**, add your Replit dev URL
 
-#### Enable Firestore Database
-1. Navigate to **Firestore Database** in the left sidebar
-2. Click **Create database**
-3. Choose **Start in test mode** (for development)
-4. Select a location close to you
+#### Enable Realtime Database
+1. Navigate to **Realtime Database** in the left sidebar
+2. Click **Create Database**
+3. Choose a location close to you
+4. **IMPORTANT:** Choose **Start in test mode** (for development - allows read/write access)
 5. Click **Enable**
+
+**Verify Test Mode Rules:**
+After creating the database, go to the **Rules** tab and ensure your rules look like this:
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
+These permissive rules are for development only. Update them for production (see Security Notes section).
 
 #### Get Your Firebase Credentials
 1. Go to **Project settings** (gear icon) > **General**
@@ -51,13 +63,13 @@ npm install
 
 ### 3. Seed Motivational Posts
 
-After enabling Firestore, run the seed script to add initial motivational posts:
+After enabling Realtime Database, run the seed script to add initial motivational posts:
 
 ```bash
 npx tsx scripts/seedMotivationalPosts.ts
 ```
 
-This will add 10 motivational posts to your Firestore database. The script will skip if posts already exist to avoid duplicates.
+This will add 10 motivational posts to your Realtime Database. The script will skip if posts already exist to avoid duplicates.
 
 ### 4. Run the Application
 
@@ -81,7 +93,7 @@ The application will start on port 5000.
 ### For Administrators
 
 To add more motivational posts, you can either:
-- Use the Firebase Console to manually add documents to the `motivationalPosts` collection
+- Use the Firebase Console to manually add data to the `motivationalPosts` node
 - Modify `scripts/seedMotivationalPosts.ts` and re-run the seed script
 
 Each post should have this structure:
@@ -91,49 +103,61 @@ Each post should have this structure:
   imageUrl: "https://...", // Optional image URL
   category: "Daily Wisdom", // Category name
   likes: 0, // Initial like count
-  createdAt: Timestamp.now()
+  createdAt: new Date().toISOString()
 }
 ```
 
 ## Database Schema
 
-### Collections
+### Realtime Database Structure
 
-**users**
-- `id`: User ID (from Firebase Auth)
-- `email`: User email
-- `streak`: Current consecutive days streak
-- `bestStreak`: Highest streak ever achieved
-- `totalDays`: Total days completed
-- `lastCompletedDate`: Last date marked as done (YYYY-MM-DD)
-- `likesGiven`: Total likes given by user
-- `createdAt`: Account creation timestamp
+**users/{userId}**
+```json
+{
+  "email": "user@example.com",
+  "streak": 5,
+  "bestStreak": 10,
+  "totalDays": 25,
+  "lastCompletedDate": "2025-10-04",
+  "likesGiven": 15,
+  "createdAt": "2025-09-01T12:00:00.000Z"
+}
+```
 
-**motivationalPosts**
-- `id`: Auto-generated
-- `content`: The motivational message
-- `imageUrl`: Optional background image URL
-- `category`: Post category (e.g., "Daily Wisdom", "Motivation")
-- `likes`: Total number of likes
-- `createdAt`: Post creation timestamp
+**motivationalPosts/{postId}**
+```json
+{
+  "content": "The journey of a thousand miles begins with a single step.",
+  "imageUrl": "https://example.com/image.jpg",
+  "category": "Daily Wisdom",
+  "likes": 42,
+  "createdAt": "2025-10-01T08:00:00.000Z"
+}
+```
 
-**postLikes**
-- `id`: Format `${userId}_${postId}`
-- `userId`: ID of user who liked
-- `postId`: ID of post that was liked
-- `createdAt`: When the like occurred
+**postLikes/{userId}_{postId}**
+```json
+{
+  "userId": "user123",
+  "postId": "post456",
+  "createdAt": "2025-10-04T10:30:00.000Z"
+}
+```
 
-**userStreaks**
-- `id`: Auto-generated
-- `userId`: User ID
-- `date`: Date in YYYY-MM-DD format
-- `completed`: Boolean indicating completion
-- `createdAt`: Record creation timestamp
+**userStreaks/{userId}-{date}**
+```json
+{
+  "userId": "user123",
+  "date": "2025-10-04",
+  "completed": true,
+  "createdAt": "2025-10-04T10:30:00.000Z"
+}
+```
 
 ## Tech Stack
 
 - **Frontend**: React, Wouter (routing), Tailwind CSS
-- **Backend**: Firebase Authentication, Firestore Database
+- **Backend**: Firebase Authentication, Firebase Realtime Database
 - **UI Components**: shadcn/ui
 - **Build Tool**: Vite
 
@@ -169,26 +193,72 @@ The application uses Firebase's browser SDK for all operations. No separate back
 ## Security Notes
 
 **For Production:**
-1. Update Firestore security rules from test mode to production rules
+1. Update Realtime Database security rules from test mode to production rules
 2. Implement proper rate limiting for authentication
 3. Add email verification for new accounts
 4. Consider adding password reset functionality
 5. Review and update Firebase security rules based on your needs
 
+Example production Realtime Database rules:
+```json
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "$uid === auth.uid"
+      }
+    },
+    "motivationalPosts": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "userLikes": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "$uid === auth.uid"
+      }
+    }
+  }
+}
+```
+
 ## Troubleshooting
 
-### Firestore Connection Errors
-- Ensure Firestore is enabled in Firebase Console
-- Check that security rules are set to test mode
-- Verify all environment variables are correctly set
+### Realtime Database Connection Errors
+
+**"Permission denied" errors:**
+This is the most common error and means your Firebase Realtime Database isn't properly configured.
+
+**Solution:**
+1. Go to Firebase Console → Realtime Database
+2. Click on the **Rules** tab
+3. Ensure rules are set to test mode:
+```json
+{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}
+```
+4. Click **Publish** to save the rules
+5. Refresh your app and try again
+
+**Other connection issues:**
+- Ensure Realtime Database is enabled in Firebase Console (not just Firestore)
+- Verify all environment variables are correctly set in Replit Secrets
+- Confirm the `databaseURL` in firebase config matches your project
 
 ### No Motivational Posts Showing
-- Run the seed script: `npm run seed`
-- Check Firestore Console to verify posts exist
+- Run the seed script: `npx tsx scripts/seedMotivationalPosts.ts`
+- Check Realtime Database Console to verify posts exist under `motivationalPosts` node
+- Ensure your security rules allow read access
 
 ### Authentication Issues
 - Ensure Email/Password authentication is enabled
 - Add your Replit dev URL to authorized domains in Firebase
+- Check browser console for specific auth errors
 
 ## License
 

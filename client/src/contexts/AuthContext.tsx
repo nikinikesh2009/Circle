@@ -9,7 +9,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { ref, get, set, update } from 'firebase/database';
 import { auth, db } from '@/lib/firebase';
 import { User, InsertUser } from '@shared/schema';
 
@@ -45,13 +45,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchUserData = async (firebaseUser: FirebaseUser) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
+      const userRef = ref(db, `users/${firebaseUser.uid}`);
+      const snapshot = await get(userRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
         const user: User = {
           id: firebaseUser.uid,
           email: firebaseUser.email!,
-          createdAt: data.createdAt.toDate(),
+          createdAt: new Date(data.createdAt),
           streak: data.streak || 0,
           bestStreak: data.bestStreak || 0,
           totalDays: data.totalDays || 0,
@@ -75,7 +76,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Create user document in Firestore
       const newUser: Omit<User, 'id'> = {
         email: user.email!,
         createdAt: new Date(),
@@ -85,9 +85,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         likesGiven: 0,
       };
 
-      await setDoc(doc(db, 'users', user.uid), {
+      await set(ref(db, `users/${user.uid}`), {
         ...newUser,
-        createdAt: Timestamp.fromDate(newUser.createdAt),
+        createdAt: newUser.createdAt.toISOString(),
       });
 
       setUserData({ ...newUser, id: user.uid });

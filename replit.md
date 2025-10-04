@@ -75,34 +75,41 @@ server/
 **Design Rationale:**
 - Firebase chosen for rapid development and built-in security features
 - Authentication logic separated from business logic through context pattern
-- User data synced between Firebase Auth and Firestore for extended profile information
+- User data synced between Firebase Auth and Realtime Database for extended profile information
 
 ### Data Storage
 
 **Current State:**
-- **Primary Database**: Firestore (Firebase's NoSQL database)
+- **Primary Database**: Firebase Realtime Database (NoSQL, key-value tree structure)
 - **Fallback**: In-memory storage for backend operations (placeholder)
 - **ORM Configuration**: Drizzle ORM configured for PostgreSQL migration path
 - **Schema Management**: Zod schemas in `shared/schema.ts` provide runtime validation and TypeScript types
 
 **Data Models:**
-1. **User Schema**:
-   - Core fields: id, email, createdAt
-   - Gamification: streak, bestStreak, totalDays, lastCompletedDate
+1. **User Schema** (`users/{userId}`):
+   - Core fields: email, createdAt (ISO string)
+   - Gamification: streak, bestStreak, totalDays, lastCompletedDate (YYYY-MM-DD)
    - Social: likesGiven counter
 
-2. **MotivationalPost Schema**:
+2. **MotivationalPost Schema** (`motivationalPosts/{postId}`):
    - Content and optional image URL
    - Category classification
-   - Like counter and timestamps
+   - Like counter and timestamps (ISO strings)
 
-3. **UserStreak Schema** (partial):
-   - Links users to their streak records
-   - Supports historical tracking
+3. **PostLikes Schema** (`postLikes/{userId}_{postId}`):
+   - Tracks individual user likes on posts
+   - userId, postId, createdAt (ISO string)
+
+4. **UserStreak Schema** (`userStreaks/{userId}-{date}`):
+   - Links users to their daily streak records
+   - userId, date, completed boolean, createdAt
 
 **Design Decisions:**
-- Firestore selected for real-time capabilities and Firebase ecosystem integration
-- Drizzle ORM present suggests planned migration to PostgreSQL for relational data needs
+- **Firebase Realtime Database Migration** (October 2025): Migrated from Firestore to Realtime Database for simpler setup and easier deployment on Replit
+- **Atomic Operations**: All critical operations (streak updates, like/unlike) use Firebase transactions (`runTransaction`) to prevent race conditions and duplicate counts under concurrent usage
+- **Transaction Safety**: 
+  - Streak updates check `lastCompletedDate` inside transaction to prevent duplicate increments
+  - Like toggles use transaction on like entry node to atomically create/delete, then update counters
 - Schema-first design ensures type safety across the entire stack
 - Shared schemas between frontend/backend eliminate type mismatches
 
@@ -127,9 +134,12 @@ server/
 ## External Dependencies
 
 ### Authentication & Database
-- **Firebase**: Provides authentication (email/password) and Firestore database
-  - Configuration: Environment variables for API key, project ID, app ID
-  - Used for user management and real-time data storage
+- **Firebase**: Provides authentication (email/password) and Realtime Database
+  - Configuration: Environment variables for API key, project ID, app ID, and database URL
+  - Authentication: Email/password sign-in method
+  - Database: Firebase Realtime Database (NoSQL tree structure)
+  - Used for user management, streak tracking, motivational posts, and like system
+  - **Important**: Requires database rules set to test mode for development (see README setup instructions)
 
 ### Database (Planned Migration)
 - **Neon Database**: Serverless PostgreSQL (@neondatabase/serverless)
