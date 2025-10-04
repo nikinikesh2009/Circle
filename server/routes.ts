@@ -28,9 +28,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  const isValidFirebaseStorageUrl = (url: string): boolean => {
+    try {
+      const parsedUrl = new URL(url);
+      return parsedUrl.hostname === "firebasestorage.googleapis.com";
+    } catch {
+      return false;
+    }
+  };
+
+  const isValidMimeType = (mimeType: string, fileType: string): boolean => {
+    const validMimeTypes: Record<string, string[]> = {
+      "image": ["image/jpeg", "image/png", "image/gif", "image/webp"],
+      "audio": ["audio/mpeg", "audio/wav", "audio/flac", "audio/ogg"],
+      "document": ["application/pdf"]
+    };
+    
+    return validMimeTypes[fileType]?.includes(mimeType) || false;
+  };
+
   app.post("/api/chat/messages", async (req, res) => {
     try {
       const validatedData = insertChatMessageSchema.parse(req.body);
+      
+      if (validatedData.fileUrl || validatedData.fileType || validatedData.mimeType || validatedData.fileName) {
+        if (!validatedData.fileUrl || !validatedData.fileType || !validatedData.mimeType || !validatedData.fileName) {
+          return res.status(400).json({ 
+            error: "Complete file metadata required: fileUrl, fileType, mimeType, and fileName must all be provided together." 
+          });
+        }
+        
+        if (!isValidFirebaseStorageUrl(validatedData.fileUrl)) {
+          return res.status(400).json({ error: "Invalid file URL. Only Firebase Storage URLs are allowed." });
+        }
+        
+        if (!isValidMimeType(validatedData.mimeType, validatedData.fileType)) {
+          return res.status(400).json({ error: "Invalid file type or MIME type." });
+        }
+      }
+      
       const userMessage = await storage.addChatMessage(validatedData);
 
       const chatHistory = await storage.getChatMessages(validatedData.userId);
@@ -39,9 +75,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         chatHistory.slice(-10).map(async (msg) => {
           const parts: any[] = [];
           
-          if (msg.fileUrl && msg.mimeType) {
+          if (msg.fileUrl && msg.mimeType && msg.fileType) {
+            if (!isValidFirebaseStorageUrl(msg.fileUrl)) {
+              console.error("Skipping invalid file URL:", msg.fileUrl);
+              parts.push({ text: msg.content || "Invalid file attachment." });
+              return {
+                role: msg.role === "assistant" ? "model" : "user",
+                parts
+              };
+            }
+            
+            if (!isValidMimeType(msg.mimeType, msg.fileType)) {
+              console.error("Skipping invalid MIME type:", msg.mimeType, msg.fileType);
+              parts.push({ text: msg.content || "Unsupported file type." });
+              return {
+                role: msg.role === "assistant" ? "model" : "user",
+                parts
+              };
+            }
+            
             try {
               const fileResponse = await fetch(msg.fileUrl);
+              if (!fileResponse.ok) {
+                throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+              }
+              
               const arrayBuffer = await fileResponse.arrayBuffer();
               const base64Data = Buffer.from(arrayBuffer).toString('base64');
               
