@@ -2,13 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { ref as dbRef, get, set, push, runTransaction, query, orderByChild } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { Post, Comment, User } from '@shared/schema';
-import { Heart, MessageCircle, Image as ImageIcon, Send, User as UserIcon, Loader2, X } from 'lucide-react';
+import { Heart, MessageCircle, Image as ImageIcon, Send, User as UserIcon, Loader2, X, Search, SlidersHorizontal } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
 
 interface PostWithUser extends Post {
@@ -34,6 +36,9 @@ export default function Feed() {
   const [loadingComments, setLoadingComments] = useState<Set<string>>(new Set());
   const [postComments, setPostComments] = useState<Record<string, CommentWithUser[]>>({});
   const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'comments'>('recent');
+  const [showFilters, setShowFilters] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -416,6 +421,30 @@ export default function Feed() {
     return String.fromCodePoint(...code.split('').map(c => 127397 + c.charCodeAt(0)));
   };
 
+  const filteredPosts = posts
+    .filter(post => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const content = post.content?.toLowerCase() || '';
+        const authorName = post.user ? getDisplayName(post.user.email).toLowerCase() : '';
+        const authorEmail = post.user?.email.toLowerCase() || '';
+        return content.includes(query) || authorName.includes(query) || authorEmail.includes(query);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'recent':
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        case 'popular':
+          return b.likes - a.likes;
+        case 'comments':
+          return b.commentCount - a.commentCount;
+        default:
+          return 0;
+      }
+    });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
@@ -519,9 +548,59 @@ export default function Feed() {
           </CardContent>
         </Card>
 
+        {/* Search and Filters */}
+        <div className="animate-fade-in-up space-y-4" style={{ animationDelay: '0.15s' }}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search posts by content or author..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 border-border/50 focus:border-primary/50"
+                data-testid="input-search-posts"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+              data-testid="button-toggle-post-filters"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+            </Button>
+          </div>
+
+          {showFilters && (
+            <Card className="border-border/50 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Sort by:</span>
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-[140px] h-9 border-border/50" data-testid="select-sort-posts">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="recent">Most Recent</SelectItem>
+                        <SelectItem value="popular">Most Liked</SelectItem>
+                        <SelectItem value="comments">Most Commented</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Showing {filteredPosts.length} of {posts.length} posts
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {/* Posts List */}
         <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          {posts.length === 0 ? (
+          {filteredPosts.length === 0 ? (
             <Card className="border-border/50 shadow-xl rounded-3xl overflow-hidden">
               <CardContent className="p-12 text-center">
                 <MessageCircle className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
@@ -530,7 +609,7 @@ export default function Feed() {
               </CardContent>
             </Card>
           ) : (
-            posts.map((post) => (
+            filteredPosts.map((post) => (
               <Card 
                 key={post.id} 
                 className="border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
