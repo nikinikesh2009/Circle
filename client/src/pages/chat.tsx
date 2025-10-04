@@ -98,14 +98,14 @@ export default function Chat() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)]">
+      <div className="flex-shrink-0 border-b border-border bg-card/50 backdrop-blur-lg px-4 py-3">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               AI Problem Solver
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
               Get actionable solutions and step-by-step guidance
             </p>
           </div>
@@ -116,13 +116,13 @@ export default function Chat() {
             disabled={clearMutation.isPending || messages.length === 0}
             data-testid="button-clear-chat"
           >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear Chat
+            <Trash2 className="w-4 h-4 md:mr-2" />
+            <span className="hidden md:inline">Clear Chat</span>
           </Button>
         </div>
-
+        
         {messages.length === 0 && (
-          <div className="mb-6 flex gap-3 flex-wrap">
+          <div className="mt-3 flex gap-2 flex-wrap">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
@@ -134,16 +134,17 @@ export default function Chat() {
                   className="gap-2"
                   data-testid={action.testId}
                 >
-                  <Icon className="w-4 h-4" />
-                  {action.label}
+                  <Icon className="w-3 h-3" />
+                  <span className="text-xs">{action.label}</span>
                 </Button>
               );
             })}
           </div>
         )}
+      </div>
 
-        <Card className="flex flex-col h-[calc(100vh-16rem)] bg-card/50 backdrop-blur-sm border-border">
-          <div className="flex-1 overflow-y-auto p-6 space-y-4" data-testid="chat-messages-container">
+      <div className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-muted/20">
+        <div className="max-w-4xl mx-auto px-4 py-4 space-y-4" data-testid="chat-messages-container">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -203,34 +204,35 @@ export default function Chat() {
             )}
             <div ref={messagesEndRef} />
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-4 border-t border-border">
-            <div className="flex gap-2">
-              <Textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-                className="min-h-[60px] max-h-[200px] resize-none"
-                disabled={sendMutation.isPending}
-                data-testid="input-message"
-              />
-              <Button
-                type="submit"
-                size="icon"
-                className="h-[60px] w-[60px] flex-shrink-0"
-                disabled={!message.trim() || sendMutation.isPending}
-                data-testid="button-send"
-              >
-                {sendMutation.isPending ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <Send className="w-5 h-5" />
-                )}
-              </Button>
-            </div>
-          </form>
-        </Card>
+      <div className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-lg">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4">
+          <div className="flex gap-2">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+              className="min-h-[60px] max-h-[200px] resize-none"
+              disabled={sendMutation.isPending}
+              data-testid="input-message"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="h-[60px] w-[60px] flex-shrink-0"
+              disabled={!message.trim() || sendMutation.isPending}
+              data-testid="button-send"
+            >
+              {sendMutation.isPending ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <Send className="w-5 h-5" />
+              )}
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );

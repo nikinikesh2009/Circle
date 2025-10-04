@@ -256,28 +256,28 @@ export default function Planner() {
     <div className="min-h-screen bg-gradient-to-b from-background via-background/95 to-muted/20">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
             <div className="flex items-center gap-3">
               <Calendar className="w-8 h-8 text-primary" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
                 Daily Planner
               </h1>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-auto"
+                className="w-full sm:w-auto"
                 data-testid="input-date"
               />
-              <Button onClick={generateSchedule} disabled={generating} className="gap-2" data-testid="button-generate">
+              <Button onClick={generateSchedule} disabled={generating} className="gap-2 w-full sm:w-auto" data-testid="button-generate">
                 <Sparkles className="w-4 h-4" />
                 {generating ? 'Generating...' : 'AI Generate'}
               </Button>
               <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" className="gap-2" data-testid="button-add-task">
+                  <Button variant="outline" className="gap-2 w-full sm:w-auto" data-testid="button-add-task">
                     <Plus className="w-4 h-4" />
                     Add Task
                   </Button>
@@ -413,61 +413,59 @@ export default function Planner() {
             {tasks.map((task) => (
               <Card key={task.id} className="hover:shadow-md transition-shadow" data-testid={`card-task-${task.id}`}>
                 <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3">
                     <div className="flex-shrink-0 mt-1">
                       {getStatusIcon(task.status)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg">{task.title}</h3>
-                            {task.aiGenerated && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Sparkles className="w-3 h-3 mr-1" />
-                                AI
-                              </Badge>
-                            )}
-                          </div>
-                          {task.description && (
-                            <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
-                          )}
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className={categoryColors[task.category]}>
-                              {task.category}
-                            </Badge>
-                            <Badge className={priorityColors[task.priority]}>
-                              {task.priority}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {task.startTime} - {task.endTime}
-                            </span>
-                            <span className="text-sm text-muted-foreground">
-                              {task.duration} min
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          {task.status !== 'completed' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => updateTaskStatus(task.id, 'completed')}
-                              data-testid={`button-complete-${task.id}`}
-                            >
-                              Complete
-                            </Button>
-                          )}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-semibold text-base md:text-lg">{task.title}</h3>
+                        {task.aiGenerated && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            AI
+                          </Badge>
+                        )}
+                      </div>
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
+                      )}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <Badge variant="outline" className={categoryColors[task.category]}>
+                          {task.category}
+                        </Badge>
+                        <Badge className={priorityColors[task.priority]}>
+                          {task.priority}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {task.startTime} - {task.endTime}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {task.duration} min
+                        </span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        {task.status !== 'completed' && (
                           <Button
                             size="sm"
-                            variant="ghost"
-                            onClick={() => deleteTask(task.id)}
-                            data-testid={`button-delete-${task.id}`}
+                            variant="outline"
+                            onClick={() => updateTaskStatus(task.id, 'completed')}
+                            data-testid={`button-complete-${task.id}`}
+                            className="w-full sm:w-auto"
                           >
-                            Delete
+                            Complete
                           </Button>
-                        </div>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => deleteTask(task.id)}
+                          data-testid={`button-delete-${task.id}`}
+                          className="w-full sm:w-auto"
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </div>
                   </div>
