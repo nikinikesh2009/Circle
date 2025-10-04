@@ -1,12 +1,27 @@
-# The Circle - Daily Motivation and Habit Tracking Application
+# The Circle - Comprehensive Productivity Platform
 
 ## Overview
 
-The Circle is a full-stack web application designed to help users build better habits through daily motivation, streak tracking, and community engagement. The platform provides inspirational content, gamifies habit formation through streak counters, and connects users with a supportive community.
+The Circle is a full-stack web application that combines AI-powered productivity tools with habit tracking, motivation, and community engagement. The platform features intelligent daily planning, multimodal AI chat assistance, focus mode, and gamified habit formation to help users achieve their goals.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+## Recent Changes
+
+### October 2025: Multimodal AI Chat Implementation
+- **Full-Screen Chat Experience**: Transformed AI Chat into an immersive, edge-to-edge interface for distraction-free interaction
+- **Multimodal File Support**: Added ability to upload and analyze images, audio files, and PDF documents
+- **File Upload Integration**: Integrated Firebase Storage for secure file hosting with 10MB size limit
+- **AI Vision & Analysis**: Connected Gemini 2.0 Flash Exp model for multimodal requests (text + files)
+- **CORS-Free File Proxy**: Implemented server-side file proxy (`/api/proxy/file`) to bypass browser CORS restrictions
+- **Security Hardening**: 
+  - Validated all file URLs to only allow Firebase Storage sources (SSRF prevention)
+  - Required complete file metadata (fileUrl, fileType, mimeType, fileName) for all uploads
+  - Server-side MIME type validation against allowed formats
+- **Mobile Navigation**: Streamlined to bottom navigation only, removed hamburger menu
+- **Daily Planner Mobile**: Fixed layout with stacked controls for better mobile experience
 
 ## System Architecture
 
@@ -134,12 +149,24 @@ server/
 ## External Dependencies
 
 ### Authentication & Database
-- **Firebase**: Provides authentication (email/password) and Realtime Database
+- **Firebase**: Provides authentication (email/password), Realtime Database, and Storage
   - Configuration: Environment variables for API key, project ID, app ID, and database URL
   - Authentication: Email/password sign-in method
   - Database: Firebase Realtime Database (NoSQL tree structure)
-  - Used for user management, streak tracking, motivational posts, and like system
+  - Storage: Firebase Storage for file uploads (images, audio, documents)
+  - Used for user management, streak tracking, motivational posts, like system, and chat file attachments
   - **Important**: Requires database rules set to test mode for development (see README setup instructions)
+
+### AI Integration
+- **Google Gemini**: Powers AI features with multimodal capabilities
+  - Model: Gemini 2.0 Flash Exp for multimodal chat (images, audio, PDFs)
+  - Model: Gemini 2.5 Flash for text-only AI features (daily planning, habit nudges)
+  - Features:
+    - Multimodal chat with image analysis, audio transcription, and document understanding
+    - AI-powered daily schedule generation
+    - Smart habit nudges with customizable personality styles
+    - Task optimization and micro-goal generation
+  - Configuration: Requires `GEMINI_API_KEY` environment variable
 
 ### Database (Planned Migration)
 - **Neon Database**: Serverless PostgreSQL (@neondatabase/serverless)
