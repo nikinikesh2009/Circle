@@ -13,6 +13,9 @@ import Register from "@/pages/register";
 import Dashboard from "@/pages/dashboard";
 import Profile from "@/pages/profile";
 import Community from "@/pages/community";
+import Feed from "@/pages/feed";
+import Groups from "@/pages/groups";
+import GroupDetail from "@/pages/group-detail";
 import NotFound from "@/pages/not-found";
 import { Link, useLocation } from 'wouter';
 import { Menu, X } from 'lucide-react';
@@ -31,6 +34,8 @@ function Navigation() {
 
   const navLinks = [
     { path: '/dashboard', label: 'Home', testId: 'nav-home' },
+    { path: '/feed', label: 'Feed', testId: 'nav-feed' },
+    { path: '/groups', label: 'Groups', testId: 'nav-groups' },
     { path: '/community', label: 'Community', testId: 'nav-community' },
     { path: '/profile', label: 'Profile', testId: 'nav-profile' },
   ];
@@ -151,6 +156,11 @@ function AppContent() {
             <Dashboard />
           </ProtectedRoute>
         </Route>
+        <Route path="/feed">
+          <ProtectedRoute>
+            <Feed />
+          </ProtectedRoute>
+        </Route>
         <Route path="/profile">
           <ProtectedRoute>
             <Profile />
@@ -159,6 +169,16 @@ function AppContent() {
         <Route path="/community">
           <ProtectedRoute>
             <Community />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/groups/:id">
+          <ProtectedRoute>
+            <GroupDetail />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/groups">
+          <ProtectedRoute>
+            <Groups />
           </ProtectedRoute>
         </Route>
         <Route component={NotFound} />

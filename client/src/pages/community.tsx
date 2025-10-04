@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ref, get, query, orderByChild, limitToFirst } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { User } from '@shared/schema';
-import { Users, Trophy, Flame, TrendingUp, Crown, Medal, Award, User as UserIcon } from 'lucide-react';
+import { Users, Trophy, Flame, TrendingUp, Crown, Medal, Award, User as UserIcon, Globe } from 'lucide-react';
 
 export default function Community() {
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
@@ -33,6 +33,10 @@ export default function Community() {
             totalDays: data.totalDays || 0,
             lastCompletedDate: data.lastCompletedDate,
             likesGiven: data.likesGiven || 0,
+            country: data.country,
+            bio: data.bio,
+            profilePhoto: data.profilePhoto,
+            autoShareProgress: data.autoShareProgress || false,
           };
         });
 
@@ -72,6 +76,11 @@ export default function Community() {
       const months = Math.floor(diffDays / 30);
       return `Joined ${months} month${months === 1 ? '' : 's'} ago`;
     }
+  };
+
+  const truncateBio = (bio: string, maxLength: number = 100) => {
+    if (bio.length <= maxLength) return bio;
+    return bio.substring(0, maxLength).trim() + '...';
   };
 
   const getRankBadge = (index: number) => {
@@ -188,15 +197,20 @@ export default function Community() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="relative">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                          {index < 3 ? (
-                            <div className="text-xl font-bold text-primary-foreground">
+                        {user.profilePhoto ? (
+                          <img 
+                            src={user.profilePhoto} 
+                            alt={getDisplayName(user.email)}
+                            className="w-20 h-20 rounded-full object-cover shadow-lg group-hover:scale-110 transition-transform duration-300 border-2 border-primary/20"
+                            data-testid={`img-profile-photo-${index}`}
+                          />
+                        ) : (
+                          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            <div className="text-2xl font-bold text-primary-foreground">
                               {getInitials(user.email)}
                             </div>
-                          ) : (
-                            <UserIcon className="w-8 h-8 text-primary-foreground" />
-                          )}
-                        </div>
+                          </div>
+                        )}
                         {getRankBadge(index) && (
                           <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-background/90 backdrop-blur-sm flex items-center justify-center border-2 border-background shadow-lg">
                             {getRankBadge(index)}
@@ -210,13 +224,24 @@ export default function Community() {
                       )}
                     </div>
 
-                    <div className="mb-4">
-                      <h3 className="text-xl font-bold mb-1" data-testid={`text-user-name-${index}`}>
+                    <div className="mb-4 space-y-2">
+                      <h3 className="text-xl font-bold" data-testid={`text-user-name-${index}`}>
                         {getDisplayName(user.email)}
                       </h3>
                       <p className="text-sm text-muted-foreground" data-testid={`text-user-joined-${index}`}>
                         {getJoinedText(user.createdAt)}
                       </p>
+                      {user.country && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid={`text-user-country-${index}`}>
+                          <Globe className="w-4 h-4" />
+                          <span>{user.country}</span>
+                        </div>
+                      )}
+                      {user.bio && (
+                        <p className="text-sm text-muted-foreground mt-2 line-clamp-2" data-testid={`text-user-bio-${index}`}>
+                          {truncateBio(user.bio, 100)}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-4 border-t border-border/50">

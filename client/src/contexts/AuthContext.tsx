@@ -58,6 +58,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           totalDays: data.totalDays || 0,
           lastCompletedDate: data.lastCompletedDate,
           likesGiven: data.likesGiven || 0,
+          country: data.country,
+          bio: data.bio,
+          profilePhoto: data.profilePhoto,
+          autoShareProgress: data.autoShareProgress || false,
         };
         setUserData(user);
       }
@@ -83,6 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         bestStreak: 0,
         totalDays: 0,
         likesGiven: 0,
+        autoShareProgress: false,
       };
 
       await set(ref(db, `users/${user.uid}`), {
