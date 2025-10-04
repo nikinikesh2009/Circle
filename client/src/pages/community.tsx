@@ -1,13 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ref, get, query, orderByChild, limitToFirst } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { User } from '@shared/schema';
-import { Users, Trophy, Flame, TrendingUp, Crown, Medal, Award, User as UserIcon, Globe } from 'lucide-react';
+import { Users, Trophy, Flame, TrendingUp, Crown, Medal, Award, User as UserIcon, Globe, Search, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Community() {
   const [activeUsers, setActiveUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'streak' | 'recent' | 'name'>('streak');
+  const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 12;
 
   useEffect(() => {
     const loadActiveUsers = async () => {
@@ -41,7 +49,7 @@ export default function Community() {
         });
 
         users.sort((a, b) => b.streak - a.streak);
-        setActiveUsers(users.slice(0, 10));
+        setActiveUsers(users);
       } catch (error) {
         console.error('Error loading users:', error);
         setActiveUsers([]);
@@ -104,6 +112,36 @@ export default function Community() {
     }
     return 'from-card to-primary/5 border-border/50 hover:border-primary/30';
   };
+
+  const filteredUsers = activeUsers
+    .filter(user => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const displayName = getDisplayName(user.email).toLowerCase();
+        const email = user.email.toLowerCase();
+        const bio = user.bio?.toLowerCase() || '';
+        const country = user.country?.toLowerCase() || '';
+        return displayName.includes(query) || email.includes(query) || 
+               bio.includes(query) || country.includes(query);
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'streak':
+          return b.streak - a.streak;
+        case 'recent':
+          return b.createdAt.getTime() - a.createdAt.getTime();
+        case 'name':
+          return getDisplayName(a.email).localeCompare(getDisplayName(b.email));
+        default:
+          return 0;
+      }
+    });
+
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
   const totalMembers = activeUsers.length;
   const onlineNow = Math.max(1, Math.floor(activeUsers.length * 0.3));
@@ -171,14 +209,67 @@ export default function Community() {
           </Card>
         </div>
 
-        {/* Active Members Section */}
-        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3">
-            <Trophy className="w-6 h-6 text-primary" />
-            <h2 className="text-3xl font-bold">Top Streakers</h2>
+        {/* Search and Filters */}
+        <div className="animate-fade-in-up space-y-4" style={{ animationDelay: '0.2s' }}>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search members by name, email, country, or bio..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="pl-10 border-border/50 focus:border-primary/50"
+                data-testid="input-search-users"
+              />
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowFilters(!showFilters)}
+              className="gap-2"
+              data-testid="button-toggle-user-filters"
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              Filters
+            </Button>
           </div>
 
-          {activeUsers.length === 0 ? (
+          {showFilters && (
+            <Card className="border-border/50 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex flex-wrap gap-3 items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Sort by:</span>
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-[140px] h-9 border-border/50" data-testid="select-sort-users">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="streak">Top Streakers</SelectItem>
+                        <SelectItem value="recent">Recently Joined</SelectItem>
+                        <SelectItem value="name">Alphabetical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Showing {paginatedUsers.length} of {filteredUsers.length} members
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Active Members Section */}
+        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-3">
+            <Trophy className="w-6 h-6 text-primary" />
+            <h2 className="text-3xl font-bold">Community Members</h2>
+          </div>
+
+          {paginatedUsers.length === 0 ? (
             <Card className="border-border/50 shadow-xl rounded-3xl overflow-hidden">
               <CardContent className="p-12 text-center">
                 <Users className="w-20 h-20 mx-auto mb-6 text-muted-foreground opacity-50" />
@@ -187,8 +278,11 @@ export default function Community() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {activeUsers.map((user, index) => (
+            <>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {paginatedUsers.map((user, index) => {
+                  const globalIndex = startIndex + index;
+                  return (
                 <Card 
                   key={user.id} 
                   className={`group relative overflow-hidden bg-gradient-to-br ${getCardGradient(index)} shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 hover:scale-105 rounded-3xl border-2`}
@@ -257,8 +351,62 @@ export default function Community() {
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
+              );
+            })}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-8">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    data-testid="button-prev-page"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={currentPage === pageNum ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''}
+                          data-testid={`button-page-${pageNum}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    data-testid="button-next-page"
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
