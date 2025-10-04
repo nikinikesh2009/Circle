@@ -282,7 +282,7 @@ export default function Chat() {
                       <div className="mb-2">
                         {msg.fileType === "image" && (
                           <img 
-                            src={msg.fileUrl} 
+                            src={`/api/proxy/file?url=${encodeURIComponent(msg.fileUrl)}`} 
                             alt={msg.fileName || "Uploaded image"} 
                             className="max-w-full rounded max-h-64 object-contain"
                           />
@@ -292,13 +292,13 @@ export default function Chat() {
                             <Music className="w-5 h-5" />
                             <div className="flex-1">
                               <p className="text-xs font-medium">{msg.fileName}</p>
-                              <audio controls src={msg.fileUrl} className="w-full mt-1" />
+                              <audio controls src={`/api/proxy/file?url=${encodeURIComponent(msg.fileUrl)}`} className="w-full mt-1" />
                             </div>
                           </div>
                         )}
                         {msg.fileType === "document" && (
                           <a 
-                            href={msg.fileUrl} 
+                            href={`/api/proxy/file?url=${encodeURIComponent(msg.fileUrl)}`} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 p-2 bg-background/20 rounded hover:bg-background/30 transition"

@@ -163,6 +163,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/proxy/file", async (req, res) => {
+    try {
+      const fileUrl = req.query.url as string;
+      if (!fileUrl) {
+        return res.status(400).json({ error: "url parameter is required" });
+      }
+
+      if (!isValidFirebaseStorageUrl(fileUrl)) {
+        return res.status(400).json({ error: "Invalid file URL. Only Firebase Storage URLs are allowed." });
+      }
+
+      const fileResponse = await fetch(fileUrl);
+      if (!fileResponse.ok) {
+        return res.status(fileResponse.status).json({ error: "Failed to fetch file" });
+      }
+
+      const contentType = fileResponse.headers.get("content-type") || "application/octet-stream";
+      const buffer = await fileResponse.arrayBuffer();
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=31536000");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error("File proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy file" });
+    }
+  });
+
   // ============ FEATURE 1: AI-POWERED DAILY PLANNER ============
   
   // Generate daily schedule with AI
