@@ -16,6 +16,7 @@ import Community from "@/pages/community";
 import Feed from "@/pages/feed";
 import Groups from "@/pages/groups";
 import GroupDetail from "@/pages/group-detail";
+import Chat from "@/pages/chat";
 import NotFound from "@/pages/not-found";
 import { Link, useLocation } from 'wouter';
 import { Menu, X } from 'lucide-react';
@@ -34,6 +35,7 @@ function Navigation() {
 
   const navLinks = [
     { path: '/dashboard', label: 'Home', testId: 'nav-home' },
+    { path: '/chat', label: 'AI Chat', testId: 'nav-chat' },
     { path: '/feed', label: 'Feed', testId: 'nav-feed' },
     { path: '/groups', label: 'Groups', testId: 'nav-groups' },
     { path: '/community', label: 'Community', testId: 'nav-community' },
@@ -154,6 +156,11 @@ function AppContent() {
         <Route path="/dashboard">
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/chat">
+          <ProtectedRoute>
+            <Chat />
           </ProtectedRoute>
         </Route>
         <Route path="/feed">

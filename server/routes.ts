@@ -32,9 +32,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contents: geminiMessages,
       });
 
+      const aiContent = response.text || "I'm sorry, I couldn't generate a response.";
+
       const assistantMessage = await storage.addChatMessage({
         role: "assistant",
-        content: response.text || "I'm sorry, I couldn't generate a response.",
+        content: aiContent,
       });
 
       res.json({ userMessage, assistantMessage });
