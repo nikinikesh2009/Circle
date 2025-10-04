@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 2025: PWA (Progressive Web App) Implementation
+- **Cross-Platform Installation**: Converted The Circle into an installable PWA that works on all devices (iOS, Android, Windows, Mac, Linux)
+- **App Manifest**: Created manifest.json with app metadata, theme colors (#7c3aed purple), and proper icon configuration
+- **Service Worker**: Implemented offline support with runtime caching strategy for assets and pages
+- **App Icons**: Generated PNG icons (192×192, 512×512) and Apple touch icon (180×180) using Sharp
+- **Install Experience**: Users can now install the app from their browser and use it like a native application
+- **Offline Capability**: App caches resources for offline access with intelligent fallback strategies
+
+### October 2025: Enhanced Daily Planner & AI Features
+- **Day Description Input**: Added textarea for users to describe their day before AI generates schedule
+- **Task Editing**: Added Edit button to all tasks with full dialog for modifying title, description, category, priority, and times
+- **Markdown Rendering**: Fixed AI chat responses to properly render markdown formatting (bold, italic, lists) with DOMPurify sanitization
+- **AI Attribution**: Updated system prompt to identify as created by ACO Network, by Nikil Nikesh (Splash Pro)
+
 ### October 2025: Multimodal AI Chat Implementation
 - **Full-Screen Chat Experience**: Transformed AI Chat into an immersive, edge-to-edge interface for distraction-free interaction
 - **Multimodal File Support**: Added ability to upload and analyze images, audio files, and PDF documents
@@ -20,6 +34,7 @@ Preferred communication style: Simple, everyday language.
   - Validated all file URLs to only allow Firebase Storage sources (SSRF prevention)
   - Required complete file metadata (fileUrl, fileType, mimeType, fileName) for all uploads
   - Server-side MIME type validation against allowed formats
+  - Added DOMPurify for sanitizing markdown HTML to prevent XSS attacks
 - **Mobile Navigation**: Streamlined to bottom navigation only, removed hamburger menu
 - **Daily Planner Mobile**: Fixed layout with stacked controls for better mobile experience
 
