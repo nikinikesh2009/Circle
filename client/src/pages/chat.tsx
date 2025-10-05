@@ -277,7 +277,7 @@ export default function Chat() {
                     className={`max-w-[80%] rounded-xl px-3 py-2 ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
+                        : "bg-card border border-border text-foreground"
                     }`}
                   >
                     {msg.fileUrl && (
@@ -339,7 +339,7 @@ export default function Chat() {
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-primary" />
                 </div>
-                <div className="bg-muted rounded-xl px-3 py-2">
+                <div className="bg-card border border-border rounded-xl px-3 py-2">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 </div>
               </div>

@@ -84,12 +84,13 @@ export default function Dashboard() {
         const today = new Date().toISOString().split('T')[0];
         const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         
-        const response = await apiRequest<{ message: string }>("POST", "/api/ai/generate-popup", {
+        const response = await apiRequest("POST", "/api/ai/generate-popup", {
           type: "motivation",
           context: `User has ${userData.streak} day streak, ${userData.totalDays} total days completed. Current time: ${currentTime}. Generate a brief, personalized daily insight and encouragement.`
         });
         
-        setAiInsight(response.message);
+        const data = await response.json() as { message: string };
+        setAiInsight(data.message);
       } catch (error) {
         console.error('Error generating AI insight:', error);
         setAiInsight("Keep pushing forward! Your AI manager is here to help you succeed.");
