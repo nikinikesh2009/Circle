@@ -31,7 +31,7 @@ export default function Login() {
     } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: "Invalid email or password. Please check your credentials and try again.",
         variant: "destructive",
       });
     } finally {

@@ -51,7 +51,7 @@ export default function Register() {
     } catch (error: any) {
       toast({
         title: "Registration Failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: "Unable to create account. Please try again with a different email or check your connection.",
         variant: "destructive",
       });
     } finally {
