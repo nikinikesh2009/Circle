@@ -1,18 +1,17 @@
 import { Request, Response, NextFunction } from "express";
-import { auth as firebaseAdmin } from "firebase-admin";
-import { initializeApp, cert, getApps } from "firebase-admin/app";
+import admin from "firebase-admin";
 
 // Initialize Firebase Admin SDK if not already initialized
-if (!getApps().length) {
-  // For Replit environment, we use the Firebase client config but on server side
-  // In production, you should use Firebase Admin SDK with service account
-  try {
-    initializeApp({
+try {
+  if (admin.apps.length === 0) {
+    // For Replit environment, we use the Firebase client config but on server side
+    // In production, you should use Firebase Admin SDK with service account
+    admin.initializeApp({
       projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
     });
-  } catch (error) {
-    console.error("Firebase Admin initialization error:", error);
   }
+} catch (error) {
+  console.error("Firebase Admin initialization error:", error);
 }
 
 export interface AuthRequest extends Request {
@@ -37,7 +36,7 @@ export async function authenticateUser(
     const token = authHeader.split("Bearer ")[1];
     
     try {
-      const decodedToken = await firebaseAdmin().verifyIdToken(token);
+      const decodedToken = await admin.auth().verifyIdToken(token);
       req.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,

@@ -695,6 +695,10 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
     }
   });
 
+  // Register admin routes
+  const { registerAdminRoutes } = await import("./admin-routes");
+  registerAdminRoutes(app);
+
   const httpServer = createServer(app);
 
   return httpServer;

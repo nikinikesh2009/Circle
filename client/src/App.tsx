@@ -21,6 +21,8 @@ import Habits from "@/pages/habits";
 import Focus from "@/pages/focus";
 import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
+import AdminLogin from "@/pages/admin-login";
+import AdminDashboard from "@/pages/admin-dashboard";
 import BottomNav from "@/components/BottomNav";
 import { Link, useLocation } from 'wouter';
 import { User, Settings as SettingsIcon } from 'lucide-react';
@@ -183,6 +185,8 @@ function AppContent() {
               <Settings />
             </ProtectedRoute>
           </Route>
+          <Route path="/admin/login" component={AdminLogin} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
       </div>
