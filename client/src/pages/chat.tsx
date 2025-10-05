@@ -277,7 +277,7 @@ export default function Chat() {
                     className={`max-w-[80%] rounded-xl px-3 py-2 ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
+                        : "bg-card border border-border text-white dark:text-white"
                     }`}
                   >
                     {msg.fileUrl && (
