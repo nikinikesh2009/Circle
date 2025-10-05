@@ -6,8 +6,11 @@ import { useToast } from '@/hooks/use-toast';
 import { ref, get, set, update, remove, push, query as dbQuery, orderByChild, limitToFirst, runTransaction } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { MotivationalPost } from '@shared/schema';
-import { Heart, Flame, TrendingUp, Award, Sparkles, CheckCircle } from 'lucide-react';
+import { Heart, Flame, TrendingUp, Award, Sparkles, CheckCircle, Bot, Calendar, Target, Brain, Zap, MessageSquare } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Link } from 'wouter';
 
 export default function Dashboard() {
   const { userData, refreshUserData } = useAuth();
@@ -17,6 +20,8 @@ export default function Dashboard() {
   const [markingDone, setMarkingDone] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string>("");
+  const [generatingInsight, setGeneratingInsight] = useState(false);
 
   useEffect(() => {
     const loadTodaysPost = async () => {
@@ -68,6 +73,32 @@ export default function Dashboard() {
     };
 
     loadTodaysPost();
+  }, [userData]);
+
+  useEffect(() => {
+    const generateDailyInsight = async () => {
+      if (!userData) return;
+      
+      setGeneratingInsight(true);
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        const response = await apiRequest<{ message: string }>("POST", "/api/ai/generate-popup", {
+          type: "motivation",
+          context: `User has ${userData.streak} day streak, ${userData.totalDays} total days completed. Current time: ${currentTime}. Generate a brief, personalized daily insight and encouragement.`
+        });
+        
+        setAiInsight(response.message);
+      } catch (error) {
+        console.error('Error generating AI insight:', error);
+        setAiInsight("Keep pushing forward! Your AI manager is here to help you succeed.");
+      } finally {
+        setGeneratingInsight(false);
+      }
+    };
+
+    generateDailyInsight();
   }, [userData]);
 
   const celebrateStreak = (streakCount: number) => {
@@ -266,6 +297,87 @@ export default function Dashboard() {
             Welcome back, <span data-testid="text-user-email">{userData.email.split('@')[0]}</span>
           </h1>
           <p className="text-sm text-muted-foreground">Keep the momentum going! You're doing great. ✨</p>
+        </div>
+
+        {/* AI Manager Control Panel */}
+        <div className="animate-fade-in-up space-y-3" style={{ animationDelay: '0.05s' }}>
+          <div className="flex items-center gap-2">
+            <Bot className="w-5 h-5 text-primary animate-pulse" />
+            <h2 className="text-xl font-bold">AI Manager</h2>
+            <span className="px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full border border-primary/30 font-semibold">Active</span>
+          </div>
+          
+          <Card className="relative overflow-hidden border-primary/30 bg-gradient-to-br from-primary/10 via-card to-secondary/5 shadow-lg rounded-2xl">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-accent"></div>
+            <CardContent className="p-4">
+              {/* AI Daily Insight */}
+              <div className="mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="flex items-start gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-primary mt-0.5" />
+                  <h3 className="text-sm font-semibold text-foreground">Daily AI Insight</h3>
+                </div>
+                {generatingInsight ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <span>Generating personalized insight...</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-ai-insight">{aiInsight}</p>
+                )}
+              </div>
+
+              {/* Quick AI Actions */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Link href="/chat">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-auto flex flex-col items-center gap-1.5 py-3 hover:bg-primary/10 hover:border-primary/50"
+                    data-testid="button-ai-chat"
+                  >
+                    <MessageSquare className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium">AI Chat</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/chat">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-auto flex flex-col items-center gap-1.5 py-3 hover:bg-secondary/10 hover:border-secondary/50"
+                    data-testid="button-daily-planner"
+                  >
+                    <Calendar className="w-5 h-5 text-secondary" />
+                    <span className="text-xs font-medium">Daily Plan</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/chat">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-auto flex flex-col items-center gap-1.5 py-3 hover:bg-accent/10 hover:border-accent/50"
+                    data-testid="button-goal-tracker"
+                  >
+                    <Target className="w-5 h-5 text-accent" />
+                    <span className="text-xs font-medium">Goals</span>
+                  </Button>
+                </Link>
+                
+                <Link href="/chat">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full h-auto flex flex-col items-center gap-1.5 py-3 hover:bg-primary/10 hover:border-primary/50"
+                    data-testid="button-ai-solver"
+                  >
+                    <Brain className="w-5 h-5 text-primary" />
+                    <span className="text-xs font-medium">Solve</span>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Streak Display */}
