@@ -24,8 +24,8 @@ export default function About() {
               </svg>
             </div>
             <div>
-              <h1 className="text-3xl font-bold">About The Circle</h1>
-              <p className="text-muted-foreground mt-1">Productivity reimagined with AI</p>
+              <h1 className="text-3xl font-bold" data-testid="heading-about">About The Circle</h1>
+              <p className="text-muted-foreground mt-1" data-testid="text-about-subtitle">Productivity reimagined with AI</p>
             </div>
           </div>
         </div>
@@ -33,8 +33,8 @@ export default function About() {
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-3">Our Mission</h2>
-              <p className="text-muted-foreground leading-relaxed">
+              <h2 className="text-xl font-semibold mb-3" data-testid="heading-mission">Our Mission</h2>
+              <p className="text-muted-foreground leading-relaxed" data-testid="text-mission">
                 The Circle is designed to help you achieve your goals through intelligent planning, 
                 habit formation, and community support. We believe that productivity isn't just about 
                 doing more—it's about doing what matters with intention and focus.
@@ -50,8 +50,8 @@ export default function About() {
                     <Target className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">AI-Powered Planning</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold mb-2" data-testid="heading-feature-planning">AI-Powered Planning</h3>
+                    <p className="text-sm text-muted-foreground" data-testid="text-feature-planning">
                       Smart daily schedules that adapt to your goals and priorities, powered by advanced AI.
                     </p>
                   </div>
@@ -66,8 +66,8 @@ export default function About() {
                     <Users className="w-5 h-5 text-secondary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">Community Support</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold mb-2" data-testid="heading-feature-community">Community Support</h3>
+                    <p className="text-sm text-muted-foreground" data-testid="text-feature-community">
                       Connect with others, share motivation, and grow together in a supportive environment.
                     </p>
                   </div>
@@ -82,8 +82,8 @@ export default function About() {
                     <Sparkles className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">Habit Formation</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold mb-2" data-testid="heading-feature-habits">Habit Formation</h3>
+                    <p className="text-sm text-muted-foreground" data-testid="text-feature-habits">
                       Build lasting habits with streak tracking, AI nudges, and gamification features.
                     </p>
                   </div>
@@ -98,8 +98,8 @@ export default function About() {
                     <Shield className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-2">Privacy First</h3>
-                    <p className="text-sm text-muted-foreground">
+                    <h3 className="font-semibold mb-2" data-testid="heading-feature-privacy">Privacy First</h3>
+                    <p className="text-sm text-muted-foreground" data-testid="text-feature-privacy">
                       Your data is encrypted and secure. We never share your information with third parties.
                     </p>
                   </div>
@@ -110,8 +110,8 @@ export default function About() {
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-3">Created By</h2>
-              <p className="text-muted-foreground leading-relaxed">
+              <h2 className="text-xl font-semibold mb-3" data-testid="heading-created-by">Created By</h2>
+              <p className="text-muted-foreground leading-relaxed" data-testid="text-created-by">
                 The Circle is created by <strong>ACO Network</strong>, developed by <strong>Nikil Nikesh (Splash Pro)</strong>. 
                 Our goal is to empower individuals to reach their full potential through technology and community.
               </p>
@@ -120,8 +120,8 @@ export default function About() {
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-3">Key Features</h2>
-              <ul className="space-y-2 text-muted-foreground">
+              <h2 className="text-xl font-semibold mb-3" data-testid="heading-key-features">Key Features</h2>
+              <ul className="space-y-2 text-muted-foreground" data-testid="list-key-features">
                 <li className="flex items-start gap-2">
                   <span className="text-primary mt-1">•</span>
                   <span>AI-powered daily planner with intelligent scheduling</span>

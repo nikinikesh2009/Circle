@@ -21,6 +21,9 @@ import Planner from "@/pages/planner";
 import Habits from "@/pages/habits";
 import Focus from "@/pages/focus";
 import Settings from "@/pages/settings";
+import FAQ from "@/pages/faq";
+import About from "@/pages/about";
+import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -186,6 +189,21 @@ function AppContent() {
           <Route path="/settings">
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/faq">
+            <ProtectedRoute>
+              <FAQ />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/about">
+            <ProtectedRoute>
+              <About />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/privacy">
+            <ProtectedRoute>
+              <Privacy />
             </ProtectedRoute>
           </Route>
           <Route path="/admin/login" component={AdminLogin} />

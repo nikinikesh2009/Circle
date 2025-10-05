@@ -74,8 +74,8 @@ export default function FAQ() {
               <HelpCircle className="w-8 h-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Frequently Asked Questions</h1>
-              <p className="text-muted-foreground mt-1">Find answers to common questions</p>
+              <h1 className="text-3xl font-bold" data-testid="heading-faq">Frequently Asked Questions</h1>
+              <p className="text-muted-foreground mt-1" data-testid="text-faq-subtitle">Find answers to common questions</p>
             </div>
           </div>
         </div>
@@ -99,8 +99,8 @@ export default function FAQ() {
 
         <Card className="mt-6">
           <CardContent className="p-6">
-            <h3 className="font-semibold mb-2">Still have questions?</h3>
-            <p className="text-sm text-muted-foreground">
+            <h3 className="font-semibold mb-2" data-testid="heading-still-questions">Still have questions?</h3>
+            <p className="text-sm text-muted-foreground" data-testid="text-contact-info">
               Can't find the answer you're looking for? Use the AI Chat to ask your questions or reach out through the community.
             </p>
           </CardContent>

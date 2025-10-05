@@ -8,7 +8,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Bell, Brain, Clock, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight } from 'lucide-react';
+import { Link } from 'wouter';
 import { type UserPreferences } from '@shared/schema';
 
 export default function Settings() {
@@ -451,6 +452,61 @@ export default function Settings() {
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>
+
+        <Card className="mt-6">
+          <CardHeader className="p-4">
+            <CardTitle className="text-lg">More Information</CardTitle>
+            <CardDescription className="text-xs">
+              Learn more about The Circle
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-0 space-y-2">
+            <Link href="/faq">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-faq">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <HelpCircle className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">FAQ</div>
+                    <div className="text-xs text-muted-foreground">Frequently asked questions</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+
+            <Link href="/about">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-about">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-secondary/10 rounded-lg">
+                    <Info className="w-4 h-4 text-secondary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">About</div>
+                    <div className="text-xs text-muted-foreground">Learn about The Circle</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+
+            <Link href="/privacy">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-privacy">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <Shield className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Privacy Policy</div>
+                    <div className="text-xs text-muted-foreground">How we protect your data</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
