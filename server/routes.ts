@@ -37,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const isValidFirebaseStorageUrl = (url: string): boolean => {
+  const isValidStorageUrl = (url: string): boolean => {
     try {
       const parsedUrl = new URL(url);
       return parsedUrl.hostname === "firebasestorage.googleapis.com";
@@ -77,8 +77,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        if (!isValidFirebaseStorageUrl(validatedData.fileUrl)) {
-          return res.status(400).json({ error: "Invalid file URL. Only Firebase Storage URLs are allowed." });
+        if (!isValidStorageUrl(validatedData.fileUrl)) {
+          return res.status(400).json({ error: "Invalid file URL. Only authorized storage URLs are allowed." });
         }
         
         if (!isValidMimeType(validatedData.mimeType, validatedData.fileType)) {
@@ -99,7 +99,7 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
           const parts: any[] = [];
           
           if (msg.fileUrl && msg.mimeType && msg.fileType) {
-            if (!isValidFirebaseStorageUrl(msg.fileUrl)) {
+            if (!isValidStorageUrl(msg.fileUrl)) {
               console.error("Skipping invalid file URL:", msg.fileUrl);
               parts.push({ text: msg.content || "Invalid file attachment." });
               return {
@@ -196,8 +196,8 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
         return res.status(400).json({ error: "url parameter is required" });
       }
 
-      if (!isValidFirebaseStorageUrl(fileUrl)) {
-        return res.status(400).json({ error: "Invalid file URL. Only Firebase Storage URLs are allowed." });
+      if (!isValidStorageUrl(fileUrl)) {
+        return res.status(400).json({ error: "Invalid file URL. Only authorized storage URLs are allowed." });
       }
 
       const fileResponse = await fetch(fileUrl);
