@@ -88,89 +88,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userMessage = await storage.addChatMessage(validatedData);
 
-      const chatHistory = await storage.getChatMessages(validatedData.userId);
+      let assistantMessage = null;
       
-      const systemPrompt = `You are a helpful AI assistant created by ACO Network, developed by Nikil Nikesh (Splash Pro). 
+      try {
+        const chatHistory = await storage.getChatMessages(validatedData.userId);
+        
+        const systemPrompt = `You are a helpful AI assistant created by ACO Network, developed by Nikil Nikesh (Splash Pro). 
 When asked about who made you or who created you, respond that you were made by ACO Network, by Nikil Nikesh (Splash Pro).
 Be helpful, friendly, and provide accurate information. Use clear formatting in your responses.`;
 
-      const geminiMessages = await Promise.all(
-        chatHistory.slice(-10).map(async (msg) => {
-          const parts: any[] = [];
-          
-          if (msg.fileUrl && msg.mimeType && msg.fileType) {
-            if (!isValidStorageUrl(msg.fileUrl)) {
-              console.error("Skipping invalid file URL:", msg.fileUrl);
-              parts.push({ text: msg.content || "Invalid file attachment." });
-              return {
-                role: msg.role === "assistant" ? "model" : "user",
-                parts
-              };
-            }
+        const geminiMessages = await Promise.all(
+          chatHistory.slice(-10).map(async (msg) => {
+            const parts: any[] = [];
             
-            if (!isValidMimeType(msg.mimeType, msg.fileType)) {
-              console.error("Skipping invalid MIME type:", msg.mimeType, msg.fileType);
-              parts.push({ text: msg.content || "Unsupported file type." });
-              return {
-                role: msg.role === "assistant" ? "model" : "user",
-                parts
-              };
-            }
-            
-            try {
-              const fileResponse = await fetch(msg.fileUrl);
-              if (!fileResponse.ok) {
-                throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
+            if (msg.fileUrl && msg.mimeType && msg.fileType) {
+              if (!isValidStorageUrl(msg.fileUrl)) {
+                console.error("Skipping invalid file URL:", msg.fileUrl);
+                parts.push({ text: msg.content || "Invalid file attachment." });
+                return {
+                  role: msg.role === "assistant" ? "model" : "user",
+                  parts
+                };
               }
               
-              const arrayBuffer = await fileResponse.arrayBuffer();
-              const base64Data = Buffer.from(arrayBuffer).toString('base64');
+              if (!isValidMimeType(msg.mimeType, msg.fileType)) {
+                console.error("Skipping invalid MIME type:", msg.mimeType, msg.fileType);
+                parts.push({ text: msg.content || "Unsupported file type." });
+                return {
+                  role: msg.role === "assistant" ? "model" : "user",
+                  parts
+                };
+              }
               
-              parts.push({
-                inlineData: {
-                  data: base64Data,
-                  mimeType: msg.mimeType
+              try {
+                const fileResponse = await fetch(msg.fileUrl);
+                if (!fileResponse.ok) {
+                  throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
                 }
-              });
-              
-              if (msg.content && msg.content !== `[Uploaded ${msg.fileType}]`) {
-                parts.push({ text: msg.content });
-              } else {
-                parts.push({ text: "Please analyze this file." });
+                
+                const arrayBuffer = await fileResponse.arrayBuffer();
+                const base64Data = Buffer.from(arrayBuffer).toString('base64');
+                
+                parts.push({
+                  inlineData: {
+                    data: base64Data,
+                    mimeType: msg.mimeType
+                  }
+                });
+                
+                if (msg.content && msg.content !== `[Uploaded ${msg.fileType}]`) {
+                  parts.push({ text: msg.content });
+                } else {
+                  parts.push({ text: "Please analyze this file." });
+                }
+              } catch (fileError) {
+                console.error("Error fetching file:", fileError);
+                parts.push({ text: msg.content || "File upload failed." });
               }
-            } catch (fileError) {
-              console.error("Error fetching file:", fileError);
-              parts.push({ text: msg.content || "File upload failed." });
+            } else {
+              parts.push({ text: msg.content });
             }
-          } else {
-            parts.push({ text: msg.content });
-          }
-          
-          return {
-            role: msg.role === "assistant" ? "model" : "user",
-            parts
-          };
-        })
-      );
+            
+            return {
+              role: msg.role === "assistant" ? "model" : "user",
+              parts
+            };
+          })
+        );
 
-      const messagesWithSystem = [
-        { role: "user", parts: [{ text: systemPrompt }] },
-        { role: "model", parts: [{ text: "Understood. I am an AI assistant created by ACO Network, by Nikil Nikesh (Splash Pro). How can I help you today?" }] },
-        ...geminiMessages
-      ];
+        const messagesWithSystem = [
+          { role: "user", parts: [{ text: systemPrompt }] },
+          { role: "model", parts: [{ text: "Understood. I am an AI assistant created by ACO Network, by Nikil Nikesh (Splash Pro). How can I help you today?" }] },
+          ...geminiMessages
+        ];
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-exp",
-        contents: messagesWithSystem,
-      });
+        const response = await ai.models.generateContent({
+          model: "gemini-2.0-flash-exp",
+          contents: messagesWithSystem,
+        });
 
-      const aiContent = response.text || "I'm sorry, I couldn't generate a response.";
+        const aiContent = response.text || "I'm sorry, I couldn't generate a response.";
 
-      const assistantMessage = await storage.addChatMessage({
-        userId: validatedData.userId,
-        role: "assistant",
-        content: aiContent,
-      });
+        assistantMessage = await storage.addChatMessage({
+          userId: validatedData.userId,
+          role: "assistant",
+          content: aiContent,
+        });
+      } catch (aiError) {
+        console.error("AI generation error:", aiError);
+        assistantMessage = await storage.addChatMessage({
+          userId: validatedData.userId,
+          role: "assistant",
+          content: "I'm experiencing technical difficulties right now. Please try again in a moment.",
+        });
+      }
 
       res.json({ userMessage, assistantMessage });
     } catch (error) {
