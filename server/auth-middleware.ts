@@ -4,14 +4,13 @@ import admin from "firebase-admin";
 // Initialize Firebase Admin SDK if not already initialized
 try {
   if (admin.apps.length === 0) {
-    // For Replit environment, we use the Firebase client config but on server side
-    // In production, you should use Firebase Admin SDK with service account
     admin.initializeApp({
       projectId: "circle-classroom",
+      databaseURL: "https://circle-classroom-default-rtdb.firebaseio.com",
     });
   }
 } catch (error) {
-  console.error("Firebase Admin initialization error:", error);
+  console.error("Authentication service initialization error:", error);
 }
 
 export interface AuthRequest extends Request {
