@@ -11,16 +11,24 @@ import {
   type UserPreferences
 } from "@shared/schema";
 import { GoogleGenAI } from "@google/genai";
+import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
+import { apiLimiter, aiLimiter, uploadLimiter } from "./rate-limit";
+import DOMPurify from "isomorphic-dompurify";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+// Sanitize user input to prevent XSS
+function sanitizeInput(input: string): string {
+  return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  app.get("/api/chat/messages", async (req, res) => {
+  // Apply rate limiting to all API routes
+  app.use("/api", apiLimiter);
+  
+  app.get("/api/chat/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
+      const userId = req.user!.uid;
       const messages = await storage.getChatMessages(userId);
       res.json(messages);
     } catch (error) {
@@ -47,9 +55,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return validMimeTypes[fileType]?.includes(mimeType) || false;
   };
 
-  app.post("/api/chat/messages", async (req, res) => {
+  app.post("/api/chat/messages", authenticateUser, validateUserId, aiLimiter, uploadLimiter, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertChatMessageSchema.parse(req.body);
+      
+      // Ensure userId matches authenticated user
+      if (validatedData.userId !== req.user!.uid) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      // Sanitize content to prevent XSS
+      if (validatedData.content) {
+        validatedData.content = sanitizeInput(validatedData.content);
+      }
       
       if (validatedData.fileUrl || validatedData.fileType || validatedData.mimeType || validatedData.fileName) {
         if (!validatedData.fileUrl || !validatedData.fileType || !validatedData.mimeType || !validatedData.fileName) {
@@ -160,12 +178,9 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
     }
   });
 
-  app.delete("/api/chat/messages", async (req, res) => {
+  app.delete("/api/chat/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
+      const userId = req.user!.uid;
       await storage.clearChatMessages(userId);
       res.json({ success: true });
     } catch (error) {
@@ -173,7 +188,7 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
     }
   });
 
-  app.get("/api/proxy/file", async (req, res) => {
+  app.get("/api/proxy/file", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const fileUrl = req.query.url as string;
       if (!fileUrl) {
@@ -205,13 +220,16 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
   // ============ FEATURE 1: AI-POWERED DAILY PLANNER ============
   
   // Generate daily schedule with AI
-  app.post("/api/ai/generate-schedule", async (req, res) => {
+  app.post("/api/ai/generate-schedule", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, date, preferences, existingTasks, dayDescription } = req.body;
+      const userId = req.user!.uid;
+      const { date, preferences, existingTasks, dayDescription } = req.body;
       
-      if (!userId || !date) {
-        return res.status(400).json({ error: "userId and date are required" });
+      if (!date) {
+        return res.status(400).json({ error: "date is required" });
       }
+      
+      const sanitizedDayDescription = dayDescription ? sanitizeInput(dayDescription) : undefined;
 
       // Get user preferences for schedule generation
       const userPrefs = await storage.getUserPreferences(userId);
@@ -237,7 +255,7 @@ Be helpful, friendly, and provide accurate information. Use clear formatting in 
 User Context:
 ${contextSummary || "No additional context available"}
 
-${dayDescription ? `User's Day Description:\n${dayDescription}\n` : ''}
+${sanitizedDayDescription ? `User's Day Description:\n${sanitizedDayDescription}\n` : ''}
 
 Schedule Preferences:
 - Wake up time: ${schedulePrefs.wakeUpTime}
@@ -298,13 +316,16 @@ Only return the JSON array, no other text.`;
   });
 
   // Get AI suggestions for task adjustments
-  app.post("/api/ai/adjust-schedule", async (req, res) => {
+  app.post("/api/ai/adjust-schedule", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, currentTasks, reason } = req.body;
+      const userId = req.user!.uid;
+      const { currentTasks, reason } = req.body;
+      
+      const sanitizedReason = reason ? sanitizeInput(reason) : "";
       
       const prompt = `The user needs to adjust their schedule. 
 Current tasks: ${JSON.stringify(currentTasks, null, 2)}
-Reason: ${reason}
+Reason: ${sanitizedReason}
 
 Suggest how to reorganize the remaining tasks for the day. Provide suggestions as JSON array with same format as tasks.`;
 
@@ -323,9 +344,12 @@ Suggest how to reorganize the remaining tasks for the day. Provide suggestions a
   // ============ FEATURE 2: ENHANCED HABIT TRACKER ============
   
   // Generate AI nudge for missed habit
-  app.post("/api/ai/habit-nudge", async (req, res) => {
+  app.post("/api/ai/habit-nudge", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, habitName, missedDays, lastCompletion } = req.body;
+      const userId = req.user!.uid;
+      const { habitName, missedDays, lastCompletion } = req.body;
+      
+      const sanitizedHabitName = habitName ? sanitizeInput(habitName) : "";
       
       const userPrefs = await storage.getUserPreferences(userId);
       const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
@@ -337,7 +361,7 @@ Suggest how to reorganize the remaining tasks for the day. Provide suggestions a
         friendly: "Be casual and friendly, like a good friend checking in"
       };
 
-      const prompt = `${personalityPrompts[personality]}. Generate a short motivational message (2-3 sentences) to nudge the user to complete their habit: "${habitName}". They've missed ${missedDays} days. Last completion: ${lastCompletion}. Make it personal and actionable.`;
+      const prompt = `${personalityPrompts[personality]}. Generate a short motivational message (2-3 sentences) to nudge the user to complete their habit: "${sanitizedHabitName}". They've missed ${missedDays} days. Last completion: ${lastCompletion}. Make it personal and actionable.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -352,13 +376,17 @@ Suggest how to reorganize the remaining tasks for the day. Provide suggestions a
   });
 
   // Generate AI micro-steps for a goal
-  app.post("/api/ai/generate-micro-steps", async (req, res) => {
+  app.post("/api/ai/generate-micro-steps", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, goalTitle, targetValue, unit, deadline } = req.body;
+      const userId = req.user!.uid;
+      const { goalTitle, targetValue, unit, deadline } = req.body;
+      
+      const sanitizedGoalTitle = goalTitle ? sanitizeInput(goalTitle) : "";
+      const sanitizedUnit = unit ? sanitizeInput(unit) : "";
       
       const prompt = `Break down this goal into 5-7 actionable micro-steps:
-Goal: ${goalTitle}
-Target: ${targetValue} ${unit}
+Goal: ${sanitizedGoalTitle}
+Target: ${targetValue} ${sanitizedUnit}
 ${deadline ? `Deadline: ${deadline}` : ''}
 
 Provide specific, measurable actions as a JSON array of strings.`;
@@ -391,9 +419,14 @@ Provide specific, measurable actions as a JSON array of strings.`;
   // ============ FEATURE 3: WEB PUSH NOTIFICATIONS ============
   
   // Subscribe to push notifications
-  app.post("/api/push/subscribe", async (req, res) => {
+  app.post("/api/push/subscribe", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertPushSubscriptionSchema.parse(req.body);
+      
+      if (validatedData.userId !== req.user!.uid) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
       const subscription = await storage.addPushSubscription(validatedData);
       res.json(subscription);
     } catch (error) {
@@ -403,13 +436,14 @@ Provide specific, measurable actions as a JSON array of strings.`;
   });
 
   // Unsubscribe from push notifications
-  app.delete("/api/push/subscribe", async (req, res) => {
+  app.delete("/api/push/subscribe", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const { userId, endpoint } = req.query;
-      if (!userId || !endpoint) {
-        return res.status(400).json({ error: "userId and endpoint are required" });
+      const userId = req.user!.uid;
+      const endpoint = req.query.endpoint as string;
+      if (!endpoint) {
+        return res.status(400).json({ error: "endpoint is required" });
       }
-      await storage.removePushSubscription(userId as string, endpoint as string);
+      await storage.removePushSubscription(userId, endpoint);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to unsubscribe" });
@@ -417,9 +451,21 @@ Provide specific, measurable actions as a JSON array of strings.`;
   });
 
   // Schedule a notification
-  app.post("/api/notifications/schedule", async (req, res) => {
+  app.post("/api/notifications/schedule", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertScheduledNotificationSchema.parse(req.body);
+      
+      if (validatedData.userId !== req.user!.uid) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      if (validatedData.title) {
+        validatedData.title = sanitizeInput(validatedData.title);
+      }
+      if (validatedData.body) {
+        validatedData.body = sanitizeInput(validatedData.body);
+      }
+      
       const notification = await storage.addScheduledNotification(validatedData);
       res.json(notification);
     } catch (error) {
@@ -429,12 +475,9 @@ Provide specific, measurable actions as a JSON array of strings.`;
   });
 
   // Get user's scheduled notifications
-  app.get("/api/notifications/scheduled", async (req, res) => {
+  app.get("/api/notifications/scheduled", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
+      const userId = req.user!.uid;
       const notifications = await storage.getScheduledNotifications(userId);
       res.json(notifications);
     } catch (error) {
@@ -443,7 +486,7 @@ Provide specific, measurable actions as a JSON array of strings.`;
   });
 
   // Delete scheduled notification
-  app.delete("/api/notifications/scheduled/:id", async (req, res) => {
+  app.delete("/api/notifications/scheduled/:id", authenticateUser, async (req: AuthRequest, res) => {
     try {
       await storage.deleteScheduledNotification(req.params.id);
       res.json({ success: true });
@@ -455,9 +498,10 @@ Provide specific, measurable actions as a JSON array of strings.`;
   // ============ FEATURE 4: IN-APP POPUPS & FOCUS MODE ============
   
   // Generate AI focus session suggestion
-  app.post("/api/ai/suggest-focus-session", async (req, res) => {
+  app.post("/api/ai/suggest-focus-session", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, currentTime, upcomingTasks } = req.body;
+      const userId = req.user!.uid;
+      const { currentTime, upcomingTasks } = req.body;
       
       const userPrefs = await storage.getUserPreferences(userId);
       const focusDuration = userPrefs?.schedulePreferences.preferredFocusDuration || 25;
@@ -487,19 +531,22 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Generate motivational popup message
-  app.post("/api/ai/generate-popup", async (req, res) => {
+  app.post("/api/ai/generate-popup", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, type, context } = req.body;
+      const userId = req.user!.uid;
+      const { type, context } = req.body;
+      
+      const sanitizedContext = context ? sanitizeInput(context) : "";
       
       const userPrefs = await storage.getUserPreferences(userId);
       const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
 
       const prompts: Record<string, string> = {
-        motivation: `Generate an inspiring motivational message for the user. ${context || ''}`,
-        reminder: `Generate a friendly reminder message. ${context || ''}`,
-        warning: `Generate a gentle warning about distraction. ${context || ''}`,
-        achievement: `Generate a celebration message for achievement. ${context || ''}`,
-        tip: `Generate a helpful productivity tip. ${context || ''}`
+        motivation: `Generate an inspiring motivational message for the user. ${sanitizedContext}`,
+        reminder: `Generate a friendly reminder message. ${sanitizedContext}`,
+        warning: `Generate a gentle warning about distraction. ${sanitizedContext}`,
+        achievement: `Generate a celebration message for achievement. ${sanitizedContext}`,
+        tip: `Generate a helpful productivity tip. ${sanitizedContext}`
       };
 
       const prompt = `${prompts[type]} Keep it brief (1-2 sentences). Personality style: ${personality}`;
@@ -519,12 +566,9 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   // ============ FEATURE 5: AI PROBLEM SOLVER & ASSISTANT ============
   
   // Get user preferences
-  app.get("/api/preferences", async (req, res) => {
+  app.get("/api/preferences", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
+      const userId = req.user!.uid;
       const preferences = await storage.getUserPreferences(userId);
       res.json(preferences);
     } catch (error) {
@@ -533,9 +577,14 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Save user preferences
-  app.post("/api/preferences", async (req, res) => {
+  app.post("/api/preferences", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertUserPreferencesSchema.parse(req.body);
+      
+      if (validatedData.userId !== req.user!.uid) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
       const preferences = await storage.saveUserPreferences(validatedData);
       res.json(preferences);
     } catch (error) {
@@ -545,12 +594,9 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Get AI context/memory
-  app.get("/api/ai/context", async (req, res) => {
+  app.get("/api/ai/context", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
-      const userId = req.query.userId as string;
-      if (!userId) {
-        return res.status(400).json({ error: "userId is required" });
-      }
+      const userId = req.user!.uid;
       const context = await storage.getAiContext(userId);
       res.json(context);
     } catch (error) {
@@ -559,9 +605,21 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Add AI context/memory
-  app.post("/api/ai/context", async (req, res) => {
+  app.post("/api/ai/context", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
       const validatedData = insertAiContextSchema.parse(req.body);
+      
+      if (validatedData.userId !== req.user!.uid) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      if (validatedData.topic) {
+        validatedData.topic = sanitizeInput(validatedData.topic);
+      }
+      if (validatedData.content) {
+        validatedData.content = sanitizeInput(validatedData.content);
+      }
+      
       const context = await storage.addAiContext(validatedData);
       res.json(context);
     } catch (error) {
@@ -571,9 +629,13 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Enhanced AI chat with problem-solving
-  app.post("/api/ai/solve-problem", async (req, res) => {
+  app.post("/api/ai/solve-problem", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
     try {
-      const { userId, problem, category } = req.body;
+      const userId = req.user!.uid;
+      const { problem, category } = req.body;
+      
+      const sanitizedProblem = problem ? sanitizeInput(problem) : "";
+      const sanitizedCategory = category ? sanitizeInput(category) : "";
       
       const userPrefs = await storage.getUserPreferences(userId);
       const aiContext = await storage.getAiContext(userId);
@@ -592,7 +654,7 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
 
       const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
 
-      const prompt = `You are an AI life assistant helping with ${category || 'a'} problem.
+      const prompt = `You are an AI life assistant helping with ${sanitizedCategory || 'a'} problem.
 
 User Context:
 ${contextSummary || 'No previous context'}
@@ -600,7 +662,7 @@ ${contextSummary || 'No previous context'}
 Recent conversation:
 ${recentChat || 'No recent conversation'}
 
-Problem: ${problem}
+Problem: ${sanitizedProblem}
 
 Provide:
 1. A clear analysis of the problem
@@ -621,8 +683,8 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
       await storage.addAiContext({
         userId,
         contextType: "problem",
-        topic: category || "general",
-        content: `Problem: ${problem.substring(0, 100)}... Solution provided.`,
+        topic: sanitizedCategory || "general",
+        content: `Problem: ${sanitizedProblem.substring(0, 100)}... Solution provided.`,
         relevanceScore: 1.0
       });
 
