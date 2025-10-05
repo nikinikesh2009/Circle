@@ -113,46 +113,46 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background/95 to-muted/20">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <SettingsIcon className="w-8 h-8 text-primary" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+      <div className="max-w-4xl mx-auto px-3 py-4">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <SettingsIcon className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Settings
             </h1>
           </div>
-          <p className="text-muted-foreground">Customize your AI discipline platform</p>
+          <p className="text-sm text-muted-foreground">Customize your AI discipline platform</p>
         </div>
 
-        <Tabs defaultValue="notifications" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="notifications" data-testid="tab-notifications">
-              <Bell className="w-4 h-4 mr-2" />
+        <Tabs defaultValue="notifications" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 h-9">
+            <TabsTrigger value="notifications" data-testid="tab-notifications" className="text-xs">
+              <Bell className="w-3.5 h-3.5 mr-1.5" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="ai" data-testid="tab-ai">
-              <Brain className="w-4 h-4 mr-2" />
+            <TabsTrigger value="ai" data-testid="tab-ai" className="text-xs">
+              <Brain className="w-3.5 h-3.5 mr-1.5" />
               AI Settings
             </TabsTrigger>
-            <TabsTrigger value="schedule" data-testid="tab-schedule">
-              <Clock className="w-4 h-4 mr-2" />
+            <TabsTrigger value="schedule" data-testid="tab-schedule" className="text-xs">
+              <Clock className="w-3.5 h-3.5 mr-1.5" />
               Schedule
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="notifications" data-testid="content-notifications">
             <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
+              <CardHeader className="p-4">
+                <CardTitle className="text-lg">Notification Preferences</CardTitle>
+                <CardDescription className="text-xs">
                   Control how and when you receive notifications
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 p-4 pt-0">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="enablePush">Push Notifications</Label>
-                    <p className="text-sm text-muted-foreground">Receive notifications even when app is closed</p>
+                    <Label htmlFor="enablePush" className="text-sm">Push Notifications</Label>
+                    <p className="text-xs text-muted-foreground">Receive notifications even when app is closed</p>
                   </div>
                   <Switch
                     id="enablePush"
@@ -167,8 +167,8 @@ export default function Settings() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label htmlFor="enablePopups">In-App Popups</Label>
-                    <p className="text-sm text-muted-foreground">Show motivational popups and reminders</p>
+                    <Label htmlFor="enablePopups" className="text-sm">In-App Popups</Label>
+                    <p className="text-xs text-muted-foreground">Show motivational popups and reminders</p>
                   </div>
                   <Switch
                     id="enablePopups"
@@ -181,11 +181,11 @@ export default function Settings() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Quiet Hours</Label>
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Quiet Hours</Label>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor="quietHoursStart" className="text-sm text-muted-foreground">Start</Label>
+                      <Label htmlFor="quietHoursStart" className="text-xs text-muted-foreground">Start</Label>
                       <Input
                         id="quietHoursStart"
                         type="time"
@@ -194,11 +194,12 @@ export default function Settings() {
                           ...formData,
                           notificationPreferences: { ...formData.notificationPreferences, quietHoursStart: e.target.value }
                         })}
+                        className="h-8 text-sm"
                         data-testid="input-quietHoursStart"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="quietHoursEnd" className="text-sm text-muted-foreground">End</Label>
+                      <Label htmlFor="quietHoursEnd" className="text-xs text-muted-foreground">End</Label>
                       <Input
                         id="quietHoursEnd"
                         type="time"
@@ -207,14 +208,15 @@ export default function Settings() {
                           ...formData,
                           notificationPreferences: { ...formData.notificationPreferences, quietHoursEnd: e.target.value }
                         })}
+                        className="h-8 text-sm"
                         data-testid="input-quietHoursEnd"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="motivationFrequency">Motivation Message Frequency</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="motivationFrequency" className="text-sm">Motivation Message Frequency</Label>
                   <Select
                     value={formData.notificationPreferences.motivationFrequency}
                     onValueChange={(value: 'low' | 'medium' | 'high') => setFormData({
@@ -437,15 +439,15 @@ export default function Settings() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-4 flex justify-end">
           <Button 
             onClick={handleSave} 
             disabled={saving}
-            size="lg"
-            className="gap-2"
+            size="sm"
+            className="gap-1.5"
             data-testid="button-save"
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-3.5 h-3.5" />
             {saving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>

@@ -258,40 +258,40 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10">
+      <div className="max-w-6xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 space-y-6">
         
         {/* Welcome Header */}
-        <div className="animate-fade-in-up mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-3 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+        <div className="animate-fade-in-up mb-4">
+          <h1 className="text-2xl md:text-3xl font-bold mb-1.5 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
             Welcome back, <span data-testid="text-user-email">{userData.email.split('@')[0]}</span>
           </h1>
-          <p className="text-lg text-muted-foreground">Keep the momentum going! You're doing great. ✨</p>
+          <p className="text-sm text-muted-foreground">Keep the momentum going! You're doing great. ✨</p>
         </div>
 
         {/* Streak Display */}
         <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <Card className="group relative overflow-hidden border-2 border-primary/30 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/20 shadow-2xl hover:shadow-primary/20 transition-all duration-300 rounded-3xl animate-pulse-glow">
+          <Card className="group relative overflow-hidden border border-primary/30 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/20 shadow-lg hover:shadow-primary/20 transition-all duration-300 rounded-2xl">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-secondary/10 animate-pulse"></div>
-            <CardContent className="relative p-8 md:p-10">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <CardContent className="relative p-4 md:p-5">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="text-center md:text-left flex-1">
-                  <div className="flex items-center gap-2 mb-3 justify-center md:justify-start">
-                    <Flame className="w-5 h-5 text-accent" />
-                    <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Current Streak</p>
+                  <div className="flex items-center gap-1.5 mb-2 justify-center md:justify-start">
+                    <Flame className="w-4 h-4 text-accent" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Current Streak</p>
                   </div>
-                  <div className="flex items-center gap-6 justify-center md:justify-start">
-                    <span className="text-7xl md:text-8xl font-black text-accent streak-glow" data-testid="text-current-streak">
+                  <div className="flex items-center gap-3 justify-center md:justify-start">
+                    <span className="text-4xl md:text-5xl font-black text-accent" data-testid="text-current-streak">
                       {userData.streak}
                     </span>
                     <div>
-                      <p className="text-3xl font-bold text-foreground">Days</p>
-                      <p className="text-sm text-muted-foreground mt-1">Keep burning! 🔥</p>
+                      <p className="text-xl font-bold text-foreground">Days</p>
+                      <p className="text-xs text-muted-foreground">Keep burning! 🔥</p>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-center gap-3">
-                  <Flame className="w-28 h-28 text-accent group-hover:animate-flame-flicker drop-shadow-2xl" />
-                  <p className="text-sm font-medium text-accent/90">You're on fire!</p>
+                <div className="flex flex-col items-center gap-2">
+                  <Flame className="w-16 h-16 text-accent group-hover:animate-flame-flicker" />
+                  <p className="text-xs font-medium text-accent/90">You're on fire!</p>
                 </div>
               </div>
             </CardContent>
@@ -299,16 +299,16 @@ export default function Dashboard() {
         </div>
 
         {/* Daily Motivation Post */}
-        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-primary" />
-            <h2 className="text-3xl font-bold">Today's Motivation</h2>
+        <div className="animate-fade-in-up space-y-3" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold">Today's Motivation</h2>
           </div>
           
           {todaysPost && (
-            <Card className="group relative overflow-hidden border-border/50 shadow-2xl hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-1 rounded-3xl">
+            <Card className="group relative overflow-hidden border-border/50 shadow-lg hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-0.5 rounded-2xl">
               {/* Post Image */}
-              <div className="relative h-72 md:h-96 bg-gradient-to-br from-primary/30 to-secondary/30 overflow-hidden">
+              <div className="relative h-48 md:h-60 bg-gradient-to-br from-primary/30 to-secondary/30 overflow-hidden">
                 <img 
                   src={todaysPost.imageUrl}
                   alt="Daily motivation"
@@ -318,49 +318,49 @@ export default function Dashboard() {
               </div>
 
               {/* Post Content */}
-              <CardContent className="p-8 md:p-10">
-                <div className="mb-6">
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary text-sm font-semibold rounded-full border border-primary/30">
-                    <Sparkles className="w-4 h-4" />
+              <CardContent className="p-4 md:p-5">
+                <div className="mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-primary/20 to-secondary/20 text-primary text-xs font-semibold rounded-full border border-primary/30">
+                    <Sparkles className="w-3 h-3" />
                     {todaysPost.category}
                   </span>
                 </div>
                 
-                <blockquote className="text-2xl md:text-3xl font-semibold mb-8 leading-relaxed text-foreground" data-testid="text-motivation-content">
+                <blockquote className="text-base md:text-lg font-semibold mb-4 leading-relaxed text-foreground" data-testid="text-motivation-content">
                   "{todaysPost.content}"
                 </blockquote>
 
-                <div className="flex items-center justify-between pt-6 border-t border-border/50">
+                <div className="flex items-center justify-between pt-3 border-t border-border/50">
                   <Button 
                     variant="outline"
-                    size="lg"
+                    size="sm"
                     onClick={handleLikePost}
-                    className={`group/like flex items-center gap-3 transition-all duration-300 hover:scale-105 hover:border-red-500/50 ${
+                    className={`group/like flex items-center gap-2 transition-all duration-300 hover:border-red-500/50 ${
                       liked ? 'bg-red-500/10 border-red-500/50' : ''
                     } ${likeAnimating ? 'animate-heart-beat' : ''}`}
                     data-testid="button-like-post"
                   >
                     <Heart 
-                      className={`w-6 h-6 transition-all duration-300 ${
+                      className={`w-4 h-4 transition-all duration-300 ${
                         liked 
-                          ? 'fill-red-500 text-red-500 scale-110' 
+                          ? 'fill-red-500 text-red-500' 
                           : 'text-muted-foreground group-hover/like:text-red-500'
                       }`}
                     />
-                    <span className="text-base font-semibold" data-testid="text-likes-count">{todaysPost.likes}</span>
+                    <span className="text-sm font-semibold" data-testid="text-likes-count">{todaysPost.likes}</span>
                   </Button>
 
                   <Button 
                     onClick={handleMarkAsDone}
                     disabled={markingDone || isCompletedToday}
-                    size="lg"
+                    size="sm"
                     className={`
-                      relative overflow-hidden font-bold text-lg px-8 py-6
-                      transition-all duration-300 hover:scale-105
+                      relative overflow-hidden font-semibold text-sm px-4 py-2
+                      transition-all duration-300
                       ${isCompletedToday 
                         ? 'bg-gradient-to-r from-green-600 to-emerald-600 cursor-not-allowed' 
                         : !markingDone 
-                          ? 'bg-gradient-to-r from-primary via-secondary to-accent hover:shadow-2xl hover:shadow-primary/50 animate-pulse-glow' 
+                          ? 'bg-gradient-to-r from-primary via-secondary to-accent' 
                           : 'bg-gradient-to-r from-primary to-secondary opacity-80'
                       }
                     `}
@@ -368,13 +368,13 @@ export default function Dashboard() {
                   >
                     {markingDone ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5"></div>
                         Marking...
                       </>
                     ) : isCompletedToday ? (
                       <>
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Completed Today!
+                        <CheckCircle className="w-4 h-4 mr-1.5" />
+                        Completed!
                       </>
                     ) : (
                       'Mark as Done'
@@ -387,46 +387,46 @@ export default function Dashboard() {
         </div>
 
         {/* Progress Stats */}
-        <div className="animate-fade-in-up space-y-6" style={{ animationDelay: '0.3s' }}>
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-6 h-6 text-secondary" />
-            <h2 className="text-3xl font-bold">Your Progress</h2>
+        <div className="animate-fade-in-up space-y-3" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-secondary" />
+            <h2 className="text-xl font-bold">Your Progress</h2>
           </div>
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-primary/5 hover:from-primary/10 hover:to-card transition-all duration-500 hover:-translate-y-1 shadow-xl hover:shadow-2xl hover:shadow-primary/20 rounded-2xl">
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <CheckCircle className="w-8 h-8 text-primary" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-primary/5 hover:from-primary/10 hover:to-card transition-all duration-500 hover:-translate-y-0.5 shadow-md hover:shadow-lg rounded-xl">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <CheckCircle className="w-5 h-5 text-primary" />
                   </div>
-                  <span className="text-4xl font-black text-foreground" data-testid="text-total-days">{userData.totalDays}</span>
+                  <span className="text-2xl font-black text-foreground" data-testid="text-total-days">{userData.totalDays}</span>
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Days Completed</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Days Completed</p>
               </CardContent>
             </Card>
 
-            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-secondary/5 hover:from-secondary/10 hover:to-card transition-all duration-500 hover:-translate-y-1 shadow-xl hover:shadow-2xl hover:shadow-secondary/20 rounded-2xl">
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Award className="w-8 h-8 text-secondary" />
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-secondary/5 hover:from-secondary/10 hover:to-card transition-all duration-500 hover:-translate-y-0.5 shadow-md hover:shadow-lg rounded-xl">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-secondary/20 to-secondary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Award className="w-5 h-5 text-secondary" />
                   </div>
-                  <span className="text-4xl font-black text-foreground" data-testid="text-best-streak">{userData.bestStreak}</span>
+                  <span className="text-2xl font-black text-foreground" data-testid="text-best-streak">{userData.bestStreak}</span>
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Best Streak</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Best Streak</p>
               </CardContent>
             </Card>
 
-            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-accent/5 hover:from-accent/10 hover:to-card transition-all duration-500 hover:-translate-y-1 shadow-xl hover:shadow-2xl hover:shadow-accent/20 rounded-2xl sm:col-span-2 lg:col-span-1">
-              <CardContent className="p-8">
-                <div className="flex items-start justify-between mb-6">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Heart className="w-8 h-8 text-accent" />
+            <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card to-accent/5 hover:from-accent/10 hover:to-card transition-all duration-500 hover:-translate-y-0.5 shadow-md hover:shadow-lg rounded-xl sm:col-span-2 lg:col-span-1">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                    <Heart className="w-5 h-5 text-accent" />
                   </div>
-                  <span className="text-4xl font-black text-foreground" data-testid="text-likes-given">{userData.likesGiven}</span>
+                  <span className="text-2xl font-black text-foreground" data-testid="text-likes-given">{userData.likesGiven}</span>
                 </div>
-                <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Total Likes Given</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Total Likes Given</p>
               </CardContent>
             </Card>
           </div>

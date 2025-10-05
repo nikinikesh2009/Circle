@@ -199,14 +199,14 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-4rem)]">
-      <div className="flex-shrink-0 border-b border-border bg-card/50 backdrop-blur-lg px-4 py-3">
+      <div className="flex-shrink-0 border-b border-border bg-card/50 backdrop-blur-lg px-3 py-2">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-lg md:text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               AI Problem Solver
             </h1>
-            <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-              Get actionable solutions and step-by-step guidance
+            <p className="text-xs text-muted-foreground">
+              Get actionable solutions and guidance
             </p>
           </div>
           <Button
@@ -216,13 +216,13 @@ export default function Chat() {
             disabled={clearMutation.isPending || messages.length === 0}
             data-testid="button-clear-chat"
           >
-            <Trash2 className="w-4 h-4 md:mr-2" />
-            <span className="hidden md:inline">Clear Chat</span>
+            <Trash2 className="w-3.5 h-3.5 md:mr-1.5" />
+            <span className="hidden md:inline text-xs">Clear</span>
           </Button>
         </div>
         
         {messages.length === 0 && (
-          <div className="mt-3 flex gap-2 flex-wrap">
+          <div className="mt-2 flex gap-1.5 flex-wrap">
             {quickActions.map((action) => {
               const Icon = action.icon;
               return (
@@ -231,11 +231,11 @@ export default function Chat() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleQuickAction(action.prompt)}
-                  className="gap-2"
+                  className="gap-1.5 h-7 text-xs px-2"
                   data-testid={action.testId}
                 >
                   <Icon className="w-3 h-3" />
-                  <span className="text-xs">{action.label}</span>
+                  <span>{action.label}</span>
                 </Button>
               );
             })}
@@ -244,19 +244,19 @@ export default function Chat() {
       </div>
 
       <div className="flex-1 overflow-y-auto bg-gradient-to-br from-background via-background to-muted/20">
-        <div className="max-w-4xl mx-auto px-4 py-4 space-y-4" data-testid="chat-messages-container">
+        <div className="max-w-4xl mx-auto px-3 py-3 space-y-3" data-testid="chat-messages-container">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Bot className="w-8 h-8 text-primary" />
+              <div className="flex flex-col items-center justify-center h-full text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bot className="w-6 h-6 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-foreground">Start a conversation</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <h3 className="text-base font-semibold text-foreground">Start a conversation</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
                     Ask me anything! I'm here to help.
                   </p>
                 </div>
@@ -265,16 +265,16 @@ export default function Chat() {
               messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   data-testid={`message-${msg.role}-${msg.id}`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-5 h-5 text-primary" />
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-4 h-4 text-primary" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                    className={`max-w-[80%] rounded-xl px-3 py-2 ${
                       msg.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted text-foreground"
@@ -327,20 +327,20 @@ export default function Chat() {
                     )}
                   </div>
                   {msg.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
-                      <User className="w-5 h-5 text-secondary" />
+                    <div className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-secondary" />
                     </div>
                   )}
                 </div>
               ))
             )}
             {sendMutation.isPending && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-primary" />
+              <div className="flex gap-2 justify-start">
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-primary" />
                 </div>
-                <div className="bg-muted rounded-2xl px-4 py-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <div className="bg-muted rounded-xl px-3 py-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 </div>
               </div>
             )}
@@ -349,32 +349,33 @@ export default function Chat() {
         </div>
 
       <div className="flex-shrink-0 border-t border-border bg-card/95 backdrop-blur-lg">
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-4 space-y-3">
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-2.5 space-y-2">
           {selectedFile && (
-            <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
               {filePreview ? (
-                <img src={filePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
+                <img src={filePreview} alt="Preview" className="w-10 h-10 object-cover rounded" />
               ) : (
-                <div className="w-16 h-16 bg-primary/10 rounded flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center">
                   {selectedFile.type.startsWith("audio/") ? (
-                    <Music className="w-8 h-8 text-primary" />
+                    <Music className="w-5 h-5 text-primary" />
                   ) : (
-                    <FileText className="w-8 h-8 text-primary" />
+                    <FileText className="w-5 h-5 text-primary" />
                   )}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                <p className="text-xs font-medium truncate">{selectedFile.name}</p>
                 <p className="text-xs text-muted-foreground">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
               </div>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="h-7 w-7"
                 onClick={removeFile}
                 data-testid="button-remove-file"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </Button>
             </div>
           )}
@@ -393,31 +394,31 @@ export default function Chat() {
               size="icon"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading || sendMutation.isPending}
-              className="h-[60px] w-[60px] flex-shrink-0"
+              className="h-9 w-9 flex-shrink-0"
               data-testid="button-attach-file"
             >
-              <Paperclip className="w-5 h-5" />
+              <Paperclip className="w-4 h-4" />
             </Button>
             <Textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
-              className="min-h-[60px] max-h-[200px] resize-none"
+              placeholder="Type your message..."
+              className="min-h-[36px] max-h-[120px] resize-none text-sm"
               disabled={sendMutation.isPending || uploading}
               data-testid="input-message"
             />
             <Button
               type="submit"
               size="icon"
-              className="h-[60px] w-[60px] flex-shrink-0"
+              className="h-9 w-9 flex-shrink-0"
               disabled={(!message.trim() && !selectedFile) || sendMutation.isPending || uploading}
               data-testid="button-send"
             >
               {sendMutation.isPending || uploading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4" />
               )}
             </Button>
           </div>
