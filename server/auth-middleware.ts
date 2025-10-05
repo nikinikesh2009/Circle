@@ -7,7 +7,7 @@ try {
     // For Replit environment, we use the Firebase client config but on server side
     // In production, you should use Firebase Admin SDK with service account
     admin.initializeApp({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID,
+      projectId: "circle-classroom",
     });
   }
 } catch (error) {
