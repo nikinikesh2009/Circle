@@ -16,6 +16,7 @@ import Feed from "@/pages/feed";
 import Groups from "@/pages/groups";
 import GroupDetail from "@/pages/group-detail";
 import Chat from "@/pages/chat";
+import Messages from "@/pages/messages";
 import Planner from "@/pages/planner";
 import Habits from "@/pages/habits";
 import Focus from "@/pages/focus";
@@ -43,6 +44,7 @@ function Navigation() {
     { path: '/habits', label: 'Habits', testId: 'nav-habits' },
     { path: '/focus', label: 'Focus', testId: 'nav-focus' },
     { path: '/chat', label: 'AI Chat', testId: 'nav-chat' },
+    { path: '/messages', label: 'Messages', testId: 'nav-messages' },
     { path: '/feed', label: 'Feed', testId: 'nav-feed' },
     { path: '/groups', label: 'Groups', testId: 'nav-groups' },
     { path: '/community', label: 'Community', testId: 'nav-community' },
@@ -138,6 +140,11 @@ function AppContent() {
           <Route path="/chat">
             <ProtectedRoute>
               <Chat />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/messages">
+            <ProtectedRoute>
+              <Messages />
             </ProtectedRoute>
           </Route>
           <Route path="/feed">

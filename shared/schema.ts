@@ -85,6 +85,16 @@ export const aiContextsTable = pgTable("ai_contexts", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const privateMessagesTable = pgTable("private_messages", {
+  id: varchar("id").primaryKey().notNull(),
+  senderId: varchar("sender_id").notNull(),
+  receiverId: varchar("receiver_id").notNull(),
+  content: text("content").notNull(),
+  read: boolean("read").notNull().default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Drizzle Zod Insert Schemas for Admin
 export const insertAdminSchema = createInsertSchema(admins).omit({ id: true, createdAt: true, updatedAt: true, lastLogin: true });
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, createdAt: true });
@@ -570,3 +580,26 @@ export const insertAiContextSchema = aiContextSchema.omit({
 
 export type AiContext = z.infer<typeof aiContextSchema>;
 export type InsertAiContext = z.infer<typeof insertAiContextSchema>;
+
+// ============ PRIVATE MESSAGING ============
+
+// Private Message Schema
+export const privateMessageSchema = z.object({
+  id: z.string(),
+  senderId: z.string(),
+  receiverId: z.string(),
+  content: z.string(),
+  read: z.boolean().default(false),
+  readAt: z.date().optional(),
+  createdAt: z.date(),
+});
+
+export const insertPrivateMessageSchema = privateMessageSchema.omit({ 
+  id: true, 
+  createdAt: true,
+  read: true,
+  readAt: true
+});
+
+export type PrivateMessage = z.infer<typeof privateMessageSchema>;
+export type InsertPrivateMessage = z.infer<typeof insertPrivateMessageSchema>;

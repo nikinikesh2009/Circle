@@ -8,7 +8,9 @@ import {
   type UserPreferences,
   type InsertUserPreferences,
   type AiContext,
-  type InsertAiContext
+  type InsertAiContext,
+  type PrivateMessage,
+  type InsertPrivateMessage
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -38,6 +40,12 @@ export interface IStorage {
   getAiContext(userId: string): Promise<AiContext[]>;
   addAiContext(context: InsertAiContext): Promise<AiContext>;
   updateAiContextLastUsed(contextId: string): Promise<void>;
+  
+  // Private Messages
+  getConversation(userId1: string, userId2: string): Promise<PrivateMessage[]>;
+  sendPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage>;
+  markMessageAsRead(messageId: string): Promise<void>;
+  getRecentConversations(userId: string): Promise<Array<{otherUserId: string, lastMessage: PrivateMessage, unreadCount: number}>>;
 }
 
 export class MemStorage implements IStorage {
@@ -178,6 +186,66 @@ export class MemStorage implements IStorage {
         return;
       }
     }
+  }
+
+  // Private Messages
+  private privateMessages: PrivateMessage[] = [];
+
+  async getConversation(userId1: string, userId2: string): Promise<PrivateMessage[]> {
+    return this.privateMessages
+      .filter(msg => 
+        (msg.senderId === userId1 && msg.receiverId === userId2) ||
+        (msg.senderId === userId2 && msg.receiverId === userId1)
+      )
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async sendPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage> {
+    const newMessage: PrivateMessage = {
+      ...message,
+      id: randomUUID(),
+      read: false,
+      createdAt: new Date(),
+    };
+    this.privateMessages.push(newMessage);
+    return newMessage;
+  }
+
+  async markMessageAsRead(messageId: string): Promise<void> {
+    const message = this.privateMessages.find(m => m.id === messageId);
+    if (message) {
+      message.read = true;
+      message.readAt = new Date();
+    }
+  }
+
+  async getRecentConversations(userId: string): Promise<Array<{otherUserId: string, lastMessage: PrivateMessage, unreadCount: number}>> {
+    const conversations = new Map<string, {lastMessage: PrivateMessage, unreadCount: number}>();
+    
+    for (const msg of this.privateMessages) {
+      let otherUserId: string | null = null;
+      
+      if (msg.senderId === userId) {
+        otherUserId = msg.receiverId;
+      } else if (msg.receiverId === userId) {
+        otherUserId = msg.senderId;
+      }
+      
+      if (otherUserId) {
+        const existing = conversations.get(otherUserId);
+        if (!existing || msg.createdAt > existing.lastMessage.createdAt) {
+          const unreadCount = this.privateMessages.filter(
+            m => m.senderId === otherUserId && m.receiverId === userId && !m.read
+          ).length;
+          conversations.set(otherUserId, { lastMessage: msg, unreadCount });
+        }
+      }
+    }
+    
+    return Array.from(conversations.entries()).map(([otherUserId, data]) => ({
+      otherUserId,
+      ...data
+    })).sort((a, b) => b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime());
   }
 }
 

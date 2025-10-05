@@ -9,14 +9,17 @@ import {
   type InsertUserPreferences,
   type AiContext,
   type InsertAiContext,
+  type PrivateMessage,
+  type InsertPrivateMessage,
   chatMessagesTable,
   pushSubscriptionsTable,
   scheduledNotificationsTable,
   userPreferencesTable,
-  aiContextsTable
+  aiContextsTable,
+  privateMessagesTable
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, or, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type { IStorage } from "./storage";
 
@@ -299,6 +302,112 @@ export class PgStorage implements IStorage {
         lastUsed: new Date(),
       })
       .where(eq(aiContextsTable.id, contextId));
+  }
+
+  // Private Messages
+  async getConversation(userId1: string, userId2: string): Promise<PrivateMessage[]> {
+    const messages = await db
+      .select()
+      .from(privateMessagesTable)
+      .where(
+        or(
+          and(
+            eq(privateMessagesTable.senderId, userId1),
+            eq(privateMessagesTable.receiverId, userId2)
+          ),
+          and(
+            eq(privateMessagesTable.senderId, userId2),
+            eq(privateMessagesTable.receiverId, userId1)
+          )
+        )
+      )
+      .orderBy(privateMessagesTable.createdAt);
+    
+    return messages.map(msg => ({
+      ...msg,
+      readAt: msg.readAt ? new Date(msg.readAt) : undefined,
+      createdAt: new Date(msg.createdAt),
+    }));
+  }
+
+  async sendPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage> {
+    const id = randomUUID();
+    const [newMessage] = await db
+      .insert(privateMessagesTable)
+      .values({
+        id,
+        ...message,
+      })
+      .returning();
+    
+    return {
+      ...newMessage,
+      readAt: newMessage.readAt ? new Date(newMessage.readAt) : undefined,
+      createdAt: new Date(newMessage.createdAt),
+    };
+  }
+
+  async markMessageAsRead(messageId: string): Promise<void> {
+    await db
+      .update(privateMessagesTable)
+      .set({
+        read: true,
+        readAt: new Date(),
+      })
+      .where(eq(privateMessagesTable.id, messageId));
+  }
+
+  async getRecentConversations(userId: string): Promise<Array<{otherUserId: string, lastMessage: PrivateMessage, unreadCount: number}>> {
+    const messages = await db
+      .select()
+      .from(privateMessagesTable)
+      .where(
+        or(
+          eq(privateMessagesTable.senderId, userId),
+          eq(privateMessagesTable.receiverId, userId)
+        )
+      )
+      .orderBy(desc(privateMessagesTable.createdAt));
+    
+    const conversations = new Map<string, {lastMessage: PrivateMessage, unreadCount: number}>();
+    
+    for (const msg of messages) {
+      let otherUserId: string | null = null;
+      
+      if (msg.senderId === userId) {
+        otherUserId = msg.receiverId;
+      } else if (msg.receiverId === userId) {
+        otherUserId = msg.senderId;
+      }
+      
+      if (otherUserId && !conversations.has(otherUserId)) {
+        const unreadCount = await db
+          .select()
+          .from(privateMessagesTable)
+          .where(
+            and(
+              eq(privateMessagesTable.senderId, otherUserId),
+              eq(privateMessagesTable.receiverId, userId),
+              eq(privateMessagesTable.read, false)
+            )
+          )
+          .then(rows => rows.length);
+        
+        conversations.set(otherUserId, {
+          lastMessage: {
+            ...msg,
+            readAt: msg.readAt ? new Date(msg.readAt) : undefined,
+            createdAt: new Date(msg.createdAt),
+          },
+          unreadCount
+        });
+      }
+    }
+    
+    return Array.from(conversations.entries()).map(([otherUserId, data]) => ({
+      otherUserId,
+      ...data
+    }));
   }
 }
 
