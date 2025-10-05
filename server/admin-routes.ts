@@ -51,6 +51,58 @@ async function createAuditLog(
 }
 
 export function registerAdminRoutes(app: Express) {
+  // Initialize first admin (only works when no admins exist)
+  app.post("/api/admin/initialize", authLimiter, async (req, res) => {
+    try {
+      // Check if any admins exist
+      const existingAdmins = await db.select().from(admins);
+      if (existingAdmins.length > 0) {
+        return res.status(400).json({ error: "Admin accounts already exist" });
+      }
+
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      // Validate password
+      const passwordValidation = validate32DigitPassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 12);
+
+      // Create first admin as super_admin
+      const id = randomUUID();
+      const [newAdmin] = await db
+        .insert(admins)
+        .values({
+          id,
+          email: DOMPurify.sanitize(email),
+          passwordHash,
+          role: "super_admin",
+          isActive: true,
+        })
+        .returning();
+
+      res.json({ 
+        success: true,
+        message: "First admin created successfully",
+        admin: { 
+          id: newAdmin.id,
+          email: newAdmin.email,
+          role: newAdmin.role,
+        }
+      });
+    } catch (error) {
+      console.error("Failed to initialize admin:", error);
+      res.status(500).json({ error: "Failed to initialize admin" });
+    }
+  });
+
   // Admin registration (create new admin) - only existing admins can create new admins
   app.post("/api/admin/create", authenticateAdmin, authLimiter, async (req: AdminAuthRequest, res) => {
     try {
