@@ -6,13 +6,17 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
-**October 6, 2025** - Fixed AI Authentication Issues & Security
-- Fixed all frontend pages to use authenticated `apiRequest` helper instead of plain fetch
-- Removed insecure AI Configuration tab from admin dashboard (API keys should only be managed through Replit secrets)
-- Fixed rate limiter configuration (Express trust proxy set to `1` for proper IP detection)
-- Added SSL configuration for development environment (`NODE_TLS_REJECT_UNAUTHORIZED = "0"`)
-- All AI endpoints now properly authenticated with Firebase tokens
-- Pages fixed: Planner, Settings, Habits, Messages
+**October 6, 2025** - Fixed AI Authentication Issues & Mobile Connectivity
+- **Fixed mobile authentication errors**: "Failed to generate schedule", "Failed to save preferences", "Failed to send message"
+- Improved authentication token handling:
+  - Uses cached tokens first for faster requests (especially on slow mobile connections)
+  - Automatically refreshes expired tokens when server returns 401
+  - Better error messages: "Not authenticated. Please log in." instead of generic errors
+- Added explicit Firebase persistence configuration for reliable mobile login
+- Fixed all frontend pages to use authenticated `apiRequest` helper
+- Removed insecure AI Configuration tab from admin dashboard
+- Fixed rate limiter configuration and added SSL for development
+- **Solution for users**: If you see auth errors, simply log out and log back in to refresh your session
 
 ## User Preferences
 
