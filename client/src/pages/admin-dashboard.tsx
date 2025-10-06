@@ -13,9 +13,7 @@ import {
   Plus,
   Ban,
   Eye,
-  EyeOff,
-  Brain,
-  Save
+  EyeOff
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -52,10 +50,6 @@ export default function AdminDashboard() {
   const [newAdminEmail, setNewAdminEmail] = useState("");
   const [newAdminPassword, setNewAdminPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [geminiApiKey, setGeminiApiKey] = useState("");
-  const [chatModel, setChatModel] = useState("gemini-2.0-flash-exp");
-  const [plannerModel, setPlannerModel] = useState("gemini-2.5-flash");
-  const [savingAiConfig, setSavingAiConfig] = useState(false);
 
   useEffect(() => {
     // Check admin auth
@@ -258,10 +252,6 @@ export default function AdminDashboard() {
               <FileText className="h-4 w-4 mr-2" />
               Audit Logs
             </TabsTrigger>
-            <TabsTrigger value="ai" data-testid="tab-ai">
-              <Brain className="h-4 w-4 mr-2" />
-              AI Configuration
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="admins" className="space-y-4">
@@ -394,96 +384,6 @@ export default function AdminDashboard() {
                 </Card>
               ))}
             </div>
-          </TabsContent>
-
-          <TabsContent value="ai" className="space-y-4">
-            <h2 className="text-2xl font-bold">AI Configuration</h2>
-            <p className="text-slate-400">Manage AI models and API keys for the platform</p>
-            
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-white">Google Gemini API</CardTitle>
-                <CardDescription className="text-slate-400">
-                  Configure the Gemini API key and model settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Gemini API Key</label>
-                  <Input
-                    type="password"
-                    value={geminiApiKey}
-                    onChange={(e) => setGeminiApiKey(e.target.value)}
-                    placeholder="Enter your Gemini API key"
-                    className="bg-slate-700 border-slate-600 text-white"
-                    data-testid="input-gemini-api-key"
-                  />
-                  <p className="text-xs text-slate-400">
-                    Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">Google AI Studio</a>
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Chat Model</label>
-                  <Input
-                    value={chatModel}
-                    onChange={(e) => setChatModel(e.target.value)}
-                    placeholder="gemini-2.0-flash-exp"
-                    className="bg-slate-700 border-slate-600 text-white"
-                    data-testid="input-chat-model"
-                  />
-                  <p className="text-xs text-slate-400">
-                    Model used for multimodal chat (supports images, audio, PDFs)
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300">Planner Model</label>
-                  <Input
-                    value={plannerModel}
-                    onChange={(e) => setPlannerModel(e.target.value)}
-                    placeholder="gemini-2.5-flash"
-                    className="bg-slate-700 border-slate-600 text-white"
-                    data-testid="input-planner-model"
-                  />
-                  <p className="text-xs text-slate-400">
-                    Model used for daily planning and text-only AI features
-                  </p>
-                </div>
-
-                <Button
-                  onClick={() => {
-                    setSavingAiConfig(true);
-                    toast({
-                      title: "Configuration Saved",
-                      description: "AI configuration has been updated. Note: You need to restart the server for changes to take effect in production.",
-                    });
-                    setSavingAiConfig(false);
-                  }}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                  disabled={savingAiConfig}
-                  data-testid="button-save-ai-config"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Save AI Configuration
-                </Button>
-
-                <div className="mt-6 p-4 bg-slate-700/50 rounded-lg">
-                  <h4 className="font-medium text-white mb-2">Current Configuration</h4>
-                  <div className="space-y-1 text-sm text-slate-400">
-                    <p>• API Key: {geminiApiKey ? "●●●●●●●●" + geminiApiKey.slice(-4) : "Not set"}</p>
-                    <p>• Chat Model: {chatModel}</p>
-                    <p>• Planner Model: {plannerModel}</p>
-                  </div>
-                </div>
-
-                <div className="mt-4 p-4 bg-amber-900/20 border border-amber-600/50 rounded-lg">
-                  <p className="text-sm text-amber-400">
-                    <strong>Note:</strong> AI configuration changes require a server restart to take effect. In development, the server will auto-restart. For production deployment, you need to redeploy with the new environment variables.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
