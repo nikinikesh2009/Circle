@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { type Battle } from '@shared/schema';
 import { format, differenceInDays } from 'date-fns';
+import BadgeShowcase from '@/components/BadgeShowcase';
 
 export default function Battles() {
   const { currentUser } = useAuthContext();
@@ -346,7 +347,7 @@ export default function Battles() {
         </Dialog>
 
         <Tabs defaultValue="active" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="active" className="gap-2" data-testid="tab-active">
               <Sword className="w-4 h-4" />
               Active ({activeBattles.length})
@@ -354,6 +355,10 @@ export default function Battles() {
             <TabsTrigger value="completed" className="gap-2" data-testid="tab-completed">
               <Trophy className="w-4 h-4" />
               Completed ({completedBattles.length})
+            </TabsTrigger>
+            <TabsTrigger value="badges" className="gap-2" data-testid="tab-badges">
+              <Award className="w-4 h-4" />
+              Badges
             </TabsTrigger>
           </TabsList>
 
@@ -392,6 +397,10 @@ export default function Battles() {
                 <BattleCard key={battle.id} battle={battle} currentUserId={currentUser!.uid} />
               ))
             )}
+          </TabsContent>
+
+          <TabsContent value="badges">
+            <BadgeShowcase />
           </TabsContent>
         </Tabs>
       </div>
