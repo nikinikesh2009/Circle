@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle2, Circle, Flame, TrendingUp, Plus, Target, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Flame, TrendingUp, Plus, Target } from 'lucide-react';
 import { ref, get, set, update } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import confetti from 'canvas-confetti';
-import { apiRequest } from '@/lib/queryClient';
 
 type Habit = {
   id: string;
@@ -24,7 +23,6 @@ type Habit = {
   currentStreak: number;
   bestStreak: number;
   totalCompletions: number;
-  aiNudgesEnabled: boolean;
   isActive: boolean;
 };
 
@@ -46,7 +44,6 @@ export default function Habits() {
     description: '',
     category: 'Health',
     frequency: 'daily' as 'daily' | 'weekly',
-    aiNudgesEnabled: true,
   });
   const today = new Date().toISOString().split('T')[0];
 
@@ -97,7 +94,6 @@ export default function Habits() {
         currentStreak: 0,
         bestStreak: 0,
         totalCompletions: 0,
-        aiNudgesEnabled: newHabit.aiNudgesEnabled,
         isActive: true,
       };
 
@@ -111,7 +107,6 @@ export default function Habits() {
         description: '',
         category: 'Health',
         frequency: 'daily',
-        aiNudgesEnabled: true,
       });
       
       toast({
@@ -177,30 +172,6 @@ export default function Habits() {
         description: "Failed to update habit.",
         variant: "destructive",
       });
-    }
-  };
-
-  const getAINudge = async (habit: Habit) => {
-    if (!currentUser) return;
-    
-    try {
-      const response = await apiRequest('POST', '/api/ai/habit-nudge', {
-        userId: currentUser.uid,
-        habitName: habit.name,
-        missedDays: habit.bestStreak - habit.currentStreak,
-        lastCompletion: today
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        toast({
-          title: "AI Motivation",
-          description: data.nudge,
-          duration: 5000,
-        });
-      }
-    } catch (error) {
-      console.error('Failed to get AI nudge:', error);
     }
   };
 
@@ -357,21 +328,6 @@ export default function Habits() {
                           {habit.totalCompletions} total
                         </div>
                       </div>
-                      {habit.aiNudgesEnabled && !completions[habit.id] && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="mt-2 gap-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            getAINudge(habit);
-                          }}
-                          data-testid={`button-nudge-${habit.id}`}
-                        >
-                          <Sparkles className="w-3 h-3" />
-                          Get AI Motivation
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
