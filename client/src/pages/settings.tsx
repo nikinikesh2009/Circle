@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle } from 'lucide-react';
 import { Link } from 'wouter';
 import { type UserPreferences } from '@shared/schema';
 
@@ -461,15 +461,45 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0 space-y-2">
+            <Link href="/documentation">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-documentation">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <BookOpen className="w-4 h-4 text-primary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Documentation</div>
+                    <div className="text-xs text-muted-foreground">Complete guides and tutorials</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+
+            <Link href="/help">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-help">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-secondary/10 rounded-lg">
+                    <MessageCircle className="w-4 h-4 text-secondary" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Help & Support</div>
+                    <div className="text-xs text-muted-foreground">FAQ and contact support</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+
             <Link href="/faq">
               <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-faq">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <HelpCircle className="w-4 h-4 text-primary" />
+                  <div className="p-2 bg-accent/10 rounded-lg">
+                    <HelpCircle className="w-4 h-4 text-accent" />
                   </div>
                   <div>
                     <div className="font-medium text-sm">FAQ</div>
-                    <div className="text-xs text-muted-foreground">Frequently asked questions</div>
+                    <div className="text-xs text-muted-foreground">Quick answers to common questions</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
