@@ -6,26 +6,29 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
+**October 6, 2025** - Battle Invitation Notification System
+- **Complete battle invitation flow with real-time notifications**
+- New features:
+  - NotificationBell component in top navigation with unread count badge
+  - Real-time notification dropdown showing battle invitations
+  - Accept/Decline buttons for pending battle invites
+  - Automatic notification creation when battles are created
+  - Creator notifications when battles are accepted/declined
+  - Battle Participants section in Messages page for easy communication
+- **Backend implementation**:
+  - Notification schema added to shared/schema.ts
+  - New endpoints: GET /api/notifications, PATCH /api/notifications/:id/read
+  - New endpoints: PATCH /api/battles/:battleId/accept, PATCH /api/battles/:battleId/decline
+  - Secure authorization checks (only invited participants can accept/decline)
+  - Battle status validation (only pending battles can be accepted/declined)
+- **Frontend implementation**:
+  - NotificationBell auto-refreshes every 30 seconds
+  - Messages page displays active battle participants at top
+  - Proper loading states and error handling
+  - Clean, intuitive UI with sword icons for battle-related items
+
 **October 6, 2025** - Complete AI Feature Removal
 - **All AI features have been permanently removed** at user request
-- Removed features:
-  - AI Chat assistant page (deleted entirely)
-  - AI schedule generation in Planner (users now create schedules manually)
-  - AI habit nudges (removed from habits page)
-  - AI-powered settings and preferences (removed from settings)
-  - AI matchmaking for battles (replaced with simple similarity-based matching)
-  - AI Manager Control Panel from dashboard
-  - AI daily insights
-- **Backend cleanup**:
-  - Removed all AI endpoints from server/routes.ts
-  - Removed AI schemas from shared/schema.ts
-  - Removed AI storage methods from server/storage.ts
-  - Uninstalled openai, marked, and isomorphic-dompurify packages
-- **Frontend cleanup**:
-  - Removed chat route and navigation from App.tsx and BottomNav.tsx
-  - Updated all help documentation to remove AI references
-  - Replaced AI Chat with Messages in bottom navigation
-- **Simple fallback algorithms**: Battle matchmaking now uses stat similarity instead of AI
 - Platform is fully functional without any AI dependencies
 
 ## User Preferences
@@ -50,7 +53,7 @@ Firebase Authentication handles user authentication via email/password. JWT toke
 
 ### Data Storage
 
-The primary database is Firebase Realtime Database, a NoSQL key-value store. Drizzle ORM is configured for a future PostgreSQL migration path. Zod schemas (`shared/schema.ts`) provide runtime validation and TypeScript typing for data models including User, MotivationalPost, PostLikes, and UserStreak. Critical operations like streak updates and like toggles use Firebase transactions (`runTransaction`) for atomic operations and to prevent race conditions.
+The primary database is Firebase Realtime Database, a NoSQL key-value store. Drizzle ORM is configured for a future PostgreSQL migration path. Zod schemas (`shared/schema.ts`) provide runtime validation and TypeScript typing for data models including User, MotivationalPost, PostLikes, UserStreak, Battle, and Notification. Critical operations like streak updates and like toggles use Firebase transactions (`runTransaction`) for atomic operations and to prevent race conditions.
 
 ### Build & Deployment
 
@@ -63,9 +66,21 @@ The platform features a bottom navigation for mobile, and a clear, modern aesthe
 ### Feature Specifications
 
 - **Manual Productivity Tools**: Daily planning with manual task creation, habit tracking, and focus mode with customizable timers.
-- **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, similarity-based matchmaking, and a rarity-based badge system for achievements.
-- **Community & Motivation**: Motivational posts with like functionality, user streaks, community engagement features, and private messaging.
+- **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, similarity-based matchmaking, real-time notification system for battle invitations, and a rarity-based badge system for achievements.
+- **Community & Motivation**: Motivational posts with like functionality, user streaks, community engagement features, and private messaging with battle participant shortcuts.
 - **Documentation & Support**: Comprehensive in-app documentation, searchable FAQ, and a support ticket system.
+
+### Battle Invitation Flow
+
+1. **Create Battle**: User creates a battle and invites another user → battle status set to "pending"
+2. **Notification Sent**: Invited user receives real-time notification in NotificationBell
+3. **Accept/Decline**: Invited user can accept or decline from notification dropdown
+4. **Status Update**: 
+   - Accept → battle becomes "active", creator receives notification
+   - Decline → battle becomes "cancelled", creator receives notification
+5. **Messaging**: Active battle participants appear in Messages "Battle Participants" section for easy communication
+
+**Security**: Only invited participants (not creators) can accept/decline battles. All endpoints validate user authorization and battle status.
 
 ## External Dependencies
 
