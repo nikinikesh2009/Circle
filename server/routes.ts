@@ -2,11 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
-  insertChatMessageSchema,
   insertPushSubscriptionSchema,
   insertScheduledNotificationSchema,
   insertUserPreferencesSchema,
-  insertAiContextSchema,
   insertSupportTicketSchema,
   insertBattleSchema,
   insertUserBadgeSchema,
@@ -16,445 +14,19 @@ import {
   type Badge,
   type UserBadge
 } from "@shared/schema";
-import OpenAI from "openai";
 import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
-import { apiLimiter, aiLimiter, uploadLimiter } from "./rate-limit";
-import DOMPurify from "isomorphic-dompurify";
+import { apiLimiter } from "./rate-limit";
 import admin from "firebase-admin";
 
-const ai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: process.env.DEEPSEEK_API_KEY || "",
-  timeout: 30000,
-  maxRetries: 3
-});
-
-// Sanitize user input to prevent XSS
+// Simple input sanitization (trim whitespace)
 function sanitizeInput(input: string): string {
-  return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] });
+  return input.trim();
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply rate limiting to all API routes
   app.use("/api", apiLimiter);
   
-  app.get("/api/chat/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const messages = await storage.getChatMessages(userId);
-      res.json(messages);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch messages" });
-    }
-  });
-
-  const isValidStorageUrl = (url: string): boolean => {
-    try {
-      const parsedUrl = new URL(url);
-      return parsedUrl.hostname === "firebasestorage.googleapis.com";
-    } catch {
-      return false;
-    }
-  };
-
-  const isValidMimeType = (mimeType: string, fileType: string): boolean => {
-    const validMimeTypes: Record<string, string[]> = {
-      "image": ["image/jpeg", "image/png", "image/gif", "image/webp"],
-      "audio": ["audio/mpeg", "audio/wav", "audio/flac", "audio/ogg"],
-      "document": ["application/pdf"]
-    };
-    
-    return validMimeTypes[fileType]?.includes(mimeType) || false;
-  };
-
-  app.post("/api/chat/messages", authenticateUser, validateUserId, aiLimiter, uploadLimiter, async (req: AuthRequest, res) => {
-    try {
-      const validatedData = insertChatMessageSchema.parse(req.body);
-      
-      // Ensure userId matches authenticated user
-      if (validatedData.userId !== req.user!.uid) {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      
-      // Sanitize content to prevent XSS
-      if (validatedData.content) {
-        validatedData.content = sanitizeInput(validatedData.content);
-      }
-      
-      if (validatedData.fileUrl || validatedData.fileType || validatedData.mimeType || validatedData.fileName) {
-        if (!validatedData.fileUrl || !validatedData.fileType || !validatedData.mimeType || !validatedData.fileName) {
-          return res.status(400).json({ 
-            error: "Complete file metadata required: fileUrl, fileType, mimeType, and fileName must all be provided together." 
-          });
-        }
-        
-        if (!isValidStorageUrl(validatedData.fileUrl)) {
-          return res.status(400).json({ error: "Invalid file URL. Only authorized storage URLs are allowed." });
-        }
-        
-        if (!isValidMimeType(validatedData.mimeType, validatedData.fileType)) {
-          return res.status(400).json({ error: "Invalid file type or MIME type." });
-        }
-      }
-      
-      const userMessage = await storage.addChatMessage(validatedData);
-
-      let assistantMessage = null;
-      
-      try {
-        const chatHistory = await storage.getChatMessages(validatedData.userId);
-        
-        const systemPrompt = `You are a helpful AI assistant created by ACO Network, developed by Nikil Nikesh (Splash Pro). 
-When asked about who made you or who created you, respond that you were made by ACO Network, by Nikil Nikesh (Splash Pro).
-Be helpful, friendly, and provide accurate information. Use clear formatting in your responses.`;
-
-        const openaiMessages = chatHistory.slice(-10).map((msg) => {
-          if (msg.role === "assistant") {
-            return {
-              role: "assistant" as const,
-              content: msg.content || ""
-            };
-          } else {
-            return {
-              role: "user" as const,
-              content: msg.content || ""
-            };
-          }
-        });
-
-        const messagesWithSystem: OpenAI.Chat.ChatCompletionMessageParam[] = [
-          { role: "system", content: systemPrompt },
-          ...openaiMessages
-        ];
-
-        const response = await ai.chat.completions.create({
-          model: "deepseek-chat",
-          messages: messagesWithSystem,
-          temperature: 0.7,
-          max_tokens: 2000
-        });
-
-        const aiContent = response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
-
-        assistantMessage = await storage.addChatMessage({
-          userId: validatedData.userId,
-          role: "assistant",
-          content: aiContent,
-        });
-      } catch (aiError) {
-        console.error("AI generation error:", aiError);
-        assistantMessage = await storage.addChatMessage({
-          userId: validatedData.userId,
-          role: "assistant",
-          content: "I'm experiencing technical difficulties right now. Please try again in a moment.",
-        });
-      }
-
-      res.json({ userMessage, assistantMessage });
-    } catch (error) {
-      console.error("Chat error:", error);
-      res.status(500).json({ error: "Failed to send message" });
-    }
-  });
-
-  app.delete("/api/chat/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      await storage.clearChatMessages(userId);
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to clear messages" });
-    }
-  });
-
-  app.get("/api/proxy/file", authenticateUser, async (req: AuthRequest, res) => {
-    try {
-      const fileUrl = req.query.url as string;
-      if (!fileUrl) {
-        return res.status(400).json({ error: "url parameter is required" });
-      }
-
-      if (!isValidStorageUrl(fileUrl)) {
-        return res.status(400).json({ error: "Invalid file URL. Only authorized storage URLs are allowed." });
-      }
-
-      const fileResponse = await fetch(fileUrl);
-      if (!fileResponse.ok) {
-        return res.status(fileResponse.status).json({ error: "Failed to fetch file" });
-      }
-
-      const contentType = fileResponse.headers.get("content-type") || "application/octet-stream";
-      const buffer = await fileResponse.arrayBuffer();
-
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=31536000");
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.send(Buffer.from(buffer));
-    } catch (error) {
-      console.error("File proxy error:", error);
-      res.status(500).json({ error: "Failed to proxy file" });
-    }
-  });
-
-  // ============ FEATURE 1: AI-POWERED DAILY PLANNER ============
-  
-  // Generate daily schedule with AI
-  app.post("/api/ai/generate-schedule", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { date, preferences, existingTasks, dayDescription } = req.body;
-      
-      if (!date) {
-        return res.status(400).json({ error: "date is required" });
-      }
-      
-      const sanitizedDayDescription = dayDescription ? sanitizeInput(dayDescription) : undefined;
-
-      // Get user preferences for schedule generation
-      const userPrefs = await storage.getUserPreferences(userId);
-      const aiContext = await storage.getAiContext(userId);
-      
-      // Build AI prompt with user context
-      const contextSummary = aiContext
-        .filter(c => c.contextType === "personal_info" || c.contextType === "goal" || c.contextType === "preference")
-        .map(c => `${c.topic}: ${c.content}`)
-        .join("\n");
-
-      const schedulePrefs = userPrefs?.schedulePreferences || {
-        wakeUpTime: "07:00",
-        sleepTime: "23:00",
-        workStartTime: "09:00",
-        workEndTime: "17:00",
-        preferredBreakDuration: 15,
-        preferredFocusDuration: 25
-      };
-
-      const prompt = `You are a productivity AI assistant helping create an optimal daily schedule.
-
-User Context:
-${contextSummary || "No additional context available"}
-
-${sanitizedDayDescription ? `User's Day Description:\n${sanitizedDayDescription}\n` : ''}
-
-Schedule Preferences:
-- Wake up time: ${schedulePrefs.wakeUpTime}
-- Sleep time: ${schedulePrefs.sleepTime}
-- Work hours: ${schedulePrefs.workStartTime} - ${schedulePrefs.workEndTime}
-- Preferred break duration: ${schedulePrefs.preferredBreakDuration} minutes
-- Preferred focus session: ${schedulePrefs.preferredFocusDuration} minutes
-
-${existingTasks ? `Existing tasks to incorporate:\n${JSON.stringify(existingTasks, null, 2)}` : ''}
-
-Generate a comprehensive daily schedule for ${date} that includes:
-1. Morning routine (personal time, breakfast)
-2. Work/study blocks with breaks
-3. Gym/exercise time
-4. Meal times
-5. Personal time/social activities
-6. Evening wind-down
-
-Provide the schedule as a JSON array of tasks with this exact format:
-[
-  {
-    "title": "Task name",
-    "category": "study|work|gym|meal|break|personal|social|other",
-    "startTime": "HH:MM",
-    "endTime": "HH:MM",
-    "duration": minutes,
-    "priority": "low|medium|high|urgent",
-    "description": "Brief description"
-  }
-]
-
-Only return the JSON array, no other text.`;
-
-      try {
-        const response = await ai.chat.completions.create({
-          model: "deepseek-chat",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          max_tokens: 2000
-        });
-
-        const aiContent = response.choices[0]?.message?.content || "";
-        
-        // Parse AI response to extract JSON
-        let tasks: InsertTask[] = [];
-        try {
-          const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            tasks = JSON.parse(jsonMatch[0]);
-          }
-        } catch (parseError) {
-          console.error("Failed to parse AI schedule:", parseError);
-          return res.status(500).json({ error: "Failed to parse AI schedule" });
-        }
-
-        res.json({ tasks, rawResponse: aiContent });
-      } catch (aiError: any) {
-        const fallbackTasks = [
-          {
-            title: "Morning Routine",
-            category: "personal" as const,
-            startTime: schedulePrefs.wakeUpTime,
-            endTime: "08:00",
-            duration: 60,
-            priority: "medium" as const,
-            description: "Wake up, exercise, breakfast"
-          },
-          {
-            title: "Work Session",
-            category: "work" as const,
-            startTime: schedulePrefs.workStartTime,
-            endTime: "12:00",
-            duration: 180,
-            priority: "high" as const,
-            description: "Focus on priority tasks"
-          },
-          {
-            title: "Lunch Break",
-            category: "meal" as const,
-            startTime: "12:00",
-            endTime: "13:00",
-            duration: 60,
-            priority: "medium" as const,
-            description: "Healthy lunch"
-          },
-          {
-            title: "Afternoon Work",
-            category: "work" as const,
-            startTime: "13:00",
-            endTime: schedulePrefs.workEndTime,
-            duration: 240,
-            priority: "high" as const,
-            description: "Continue with tasks"
-          },
-          {
-            title: "Evening Wind Down",
-            category: "personal" as const,
-            startTime: "20:00",
-            endTime: schedulePrefs.sleepTime,
-            duration: 180,
-            priority: "low" as const,
-            description: "Relax and prepare for bed"
-          }
-        ];
-        
-        res.json({ 
-          tasks: fallbackTasks, 
-          rawResponse: "AI temporarily unavailable - using default schedule" 
-        });
-      }
-    } catch (error) {
-      console.error("Schedule generation error:", error);
-      res.status(500).json({ error: "Failed to generate schedule" });
-    }
-  });
-
-  // Get AI suggestions for task adjustments
-  app.post("/api/ai/adjust-schedule", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { currentTasks, reason } = req.body;
-      
-      const sanitizedReason = reason ? sanitizeInput(reason) : "";
-      
-      const prompt = `The user needs to adjust their schedule. 
-Current tasks: ${JSON.stringify(currentTasks, null, 2)}
-Reason: ${sanitizedReason}
-
-Suggest how to reorganize the remaining tasks for the day. Provide suggestions as JSON array with same format as tasks.`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-
-      res.json({ suggestion: response.choices[0]?.message?.content });
-    } catch (error) {
-      console.error("Schedule adjustment error:", error);
-      res.status(500).json({ error: "Failed to adjust schedule" });
-    }
-  });
-
-  // ============ FEATURE 2: ENHANCED HABIT TRACKER ============
-  
-  // Generate AI nudge for missed habit
-  app.post("/api/ai/habit-nudge", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { habitName, missedDays, lastCompletion } = req.body;
-      
-      const sanitizedHabitName = habitName ? sanitizeInput(habitName) : "";
-      
-      const userPrefs = await storage.getUserPreferences(userId);
-      const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
-
-      const personalityPrompts = {
-        supportive: "Be encouraging and understanding",
-        strict: "Be firm but motivating, emphasize commitment",
-        balanced: "Be supportive but also remind about goals",
-        friendly: "Be casual and friendly, like a good friend checking in"
-      };
-
-      const prompt = `${personalityPrompts[personality]}. Generate a short motivational message (2-3 sentences) to nudge the user to complete their habit: "${sanitizedHabitName}". They've missed ${missedDays} days. Last completion: ${lastCompletion}. Make it personal and actionable.`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-
-      res.json({ nudge: response.choices[0]?.message?.content });
-    } catch (error) {
-      console.error("Habit nudge error:", error);
-      res.status(500).json({ error: "Failed to generate habit nudge" });
-    }
-  });
-
-  // Generate AI micro-steps for a goal
-  app.post("/api/ai/generate-micro-steps", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { goalTitle, targetValue, unit, deadline } = req.body;
-      
-      const sanitizedGoalTitle = goalTitle ? sanitizeInput(goalTitle) : "";
-      const sanitizedUnit = unit ? sanitizeInput(unit) : "";
-      
-      const prompt = `Break down this goal into 5-7 actionable micro-steps:
-Goal: ${sanitizedGoalTitle}
-Target: ${targetValue} ${sanitizedUnit}
-${deadline ? `Deadline: ${deadline}` : ''}
-
-Provide specific, measurable actions as a JSON array of strings.`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-
-      const content = response.choices[0]?.message?.content || "";
-      let microSteps: string[] = [];
-      
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          microSteps = JSON.parse(jsonMatch[0]);
-        }
-      } catch {
-        // Fallback: split by newlines
-        microSteps = content.split('\n').filter(line => line.trim().length > 0);
-      }
-
-      res.json({ microSteps });
-    } catch (error) {
-      console.error("Micro-steps generation error:", error);
-      res.status(500).json({ error: "Failed to generate micro-steps" });
-    }
-  });
-
   // ============ FEATURE 3: WEB PUSH NOTIFICATIONS ============
   
   // Subscribe to push notifications
@@ -531,224 +103,6 @@ Provide specific, measurable actions as a JSON array of strings.`;
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete notification" });
-    }
-  });
-
-  // ============ FEATURE 4: IN-APP POPUPS & FOCUS MODE ============
-  
-  // Generate AI focus session suggestion
-  app.post("/api/ai/suggest-focus-session", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { currentTime, upcomingTasks } = req.body;
-      
-      const userPrefs = await storage.getUserPreferences(userId);
-      const focusDuration = userPrefs?.schedulePreferences.preferredFocusDuration || 25;
-      const breakDuration = userPrefs?.schedulePreferences.preferredBreakDuration || 5;
-
-      const prompt = `Current time: ${currentTime}
-Upcoming tasks: ${JSON.stringify(upcomingTasks)}
-
-Suggest an optimal focus session:
-1. Which task to work on
-2. Duration (default: ${focusDuration} minutes)
-3. Break duration (default: ${breakDuration} minutes)
-4. Motivational message to start
-
-Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "motivation": "..." }`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-
-      res.json({ suggestion: response.choices[0]?.message?.content });
-    } catch (error) {
-      console.error("Focus session suggestion error:", error);
-      res.status(500).json({ error: "Failed to suggest focus session" });
-    }
-  });
-
-  // Generate motivational popup message
-  app.post("/api/ai/generate-popup", authenticateUser, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { type, context } = req.body;
-      
-      const sanitizedContext = context ? sanitizeInput(context) : "";
-      
-      const userPrefs = await storage.getUserPreferences(userId);
-      const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
-
-      const prompts: Record<string, string> = {
-        motivation: `Generate an inspiring motivational message for the user. ${sanitizedContext}`,
-        reminder: `Generate a friendly reminder message. ${sanitizedContext}`,
-        warning: `Generate a gentle warning about distraction. ${sanitizedContext}`,
-        achievement: `Generate a celebration message for achievement. ${sanitizedContext}`,
-        tip: `Generate a helpful productivity tip. ${sanitizedContext}`
-      };
-
-      const prompt = `${prompts[type]} Keep it brief (1-2 sentences). Personality style: ${personality}`;
-
-      try {
-        const response = await ai.chat.completions.create({
-          model: "deepseek-chat",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7
-        });
-
-        res.json({ message: response.choices[0]?.message?.content });
-      } catch (aiError: any) {
-        console.error("DeepSeek API Error:", aiError.message || aiError);
-        console.error("Error details:", JSON.stringify(aiError, null, 2));
-        
-        const fallbackMessages: Record<string, string> = {
-          motivation: "You've got this! Keep pushing forward, one step at a time. 💪",
-          reminder: "Don't forget to stay focused on your goals today!",
-          warning: "Take a moment to refocus. Your goals are waiting!",
-          achievement: "Amazing work! You're making great progress! 🎉",
-          tip: "Break your tasks into smaller steps - it makes everything more manageable!"
-        };
-        
-        res.json({ message: fallbackMessages[type] || "Keep up the great work!" });
-      }
-    } catch (error) {
-      console.error("Popup generation error:", error);
-      res.status(500).json({ error: "Failed to generate popup" });
-    }
-  });
-
-  // ============ FEATURE 5: AI PROBLEM SOLVER & ASSISTANT ============
-  
-  // Get user preferences
-  app.get("/api/preferences", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const preferences = await storage.getUserPreferences(userId);
-      res.json(preferences);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch preferences" });
-    }
-  });
-
-  // Save user preferences
-  app.post("/api/preferences", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const validatedData = insertUserPreferencesSchema.parse(req.body);
-      
-      if (validatedData.userId !== req.user!.uid) {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      
-      const preferences = await storage.saveUserPreferences(validatedData);
-      res.json(preferences);
-    } catch (error) {
-      console.error("Save preferences error:", error);
-      res.status(500).json({ error: "Failed to save preferences" });
-    }
-  });
-
-  // Get AI context/memory
-  app.get("/api/ai/context", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const context = await storage.getAiContext(userId);
-      res.json(context);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to fetch AI context" });
-    }
-  });
-
-  // Add AI context/memory
-  app.post("/api/ai/context", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
-    try {
-      const validatedData = insertAiContextSchema.parse(req.body);
-      
-      if (validatedData.userId !== req.user!.uid) {
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      
-      if (validatedData.topic) {
-        validatedData.topic = sanitizeInput(validatedData.topic);
-      }
-      if (validatedData.content) {
-        validatedData.content = sanitizeInput(validatedData.content);
-      }
-      
-      const context = await storage.addAiContext(validatedData);
-      res.json(context);
-    } catch (error) {
-      console.error("Add context error:", error);
-      res.status(500).json({ error: "Failed to add context" });
-    }
-  });
-
-  // Enhanced AI chat with problem-solving
-  app.post("/api/ai/solve-problem", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
-    try {
-      const userId = req.user!.uid;
-      const { problem, category } = req.body;
-      
-      const sanitizedProblem = problem ? sanitizeInput(problem) : "";
-      const sanitizedCategory = category ? sanitizeInput(category) : "";
-      
-      const userPrefs = await storage.getUserPreferences(userId);
-      const aiContext = await storage.getAiContext(userId);
-      const chatHistory = await storage.getChatMessages(userId);
-      
-      // Build context from user's history
-      const contextSummary = aiContext
-        .slice(-5)
-        .map(c => `${c.topic}: ${c.content}`)
-        .join("\n");
-
-      const recentChat = chatHistory
-        .slice(-6)
-        .map(m => `${m.role}: ${m.content}`)
-        .join("\n");
-
-      const personality = userPrefs?.aiPreferences.personalityStyle || "balanced";
-
-      const prompt = `You are an AI life assistant helping with ${sanitizedCategory || 'a'} problem.
-
-User Context:
-${contextSummary || 'No previous context'}
-
-Recent conversation:
-${recentChat || 'No recent conversation'}
-
-Problem: ${sanitizedProblem}
-
-Provide:
-1. A clear analysis of the problem
-2. 3-5 actionable steps to solve it
-3. Potential obstacles and how to overcome them
-4. Timeline suggestions
-
-Be ${personality} in your approach. Format the response clearly with sections.`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-
-      const solution = response.choices[0]?.message?.content || "";
-
-      // Save this interaction as context
-      await storage.addAiContext({
-        userId,
-        contextType: "problem",
-        topic: sanitizedCategory || "general",
-        content: `Problem: ${sanitizedProblem.substring(0, 100)}... Solution provided.`,
-        relevanceScore: 1.0
-      });
-
-      res.json({ solution });
-    } catch (error) {
-      console.error("Problem solving error:", error);
-      res.status(500).json({ error: "Failed to solve problem" });
     }
   });
 
@@ -1171,8 +525,8 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
     }
   });
 
-  // AI matchmaking - suggest opponents
-  app.post("/api/battles/matchmaking", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
+  // Matchmaking - suggest opponents based on similar stats
+  app.post("/api/battles/matchmaking", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const { battleType } = req.body; // "1v1" or "group"
@@ -1197,13 +551,12 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
       
       const userWins = allBattles.filter((b: any) => b.winnerId === userId).length;
       
-      // Prepare user data for AI
       const userStats = {
         streak: userData?.streak || 0,
         totalDays: userData?.totalDays || 0,
         wins: userWins,
         totalBattles: userBattles.length,
-        winRate: userBattles.length > 0 ? (userWins / userBattles.length * 100).toFixed(0) : 0,
+        winRate: userBattles.length > 0 ? (userWins / userBattles.length * 100) : 0,
       };
       
       // Filter potential opponents (exclude current user)
@@ -1222,70 +575,31 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
             totalDays: data.totalDays || 0,
             wins: opponentWins,
             totalBattles: opponentBattles.length,
-            winRate: opponentBattles.length > 0 ? (opponentWins / opponentBattles.length * 100).toFixed(0) : 0,
+            winRate: opponentBattles.length > 0 ? (opponentWins / opponentBattles.length * 100) : 0,
           };
+        });
+      
+      // Simple matchmaking: find opponents with similar stats
+      const suggestions = potentialOpponents
+        .sort((a, b) => {
+          // Calculate similarity score (lower is better)
+          const aStreakDiff = Math.abs(a.streak - userStats.streak);
+          const bStreakDiff = Math.abs(b.streak - userStats.streak);
+          const aWinRateDiff = Math.abs(a.winRate - userStats.winRate);
+          const bWinRateDiff = Math.abs(b.winRate - userStats.winRate);
+          const aTotalDaysDiff = Math.abs(a.totalDays - userStats.totalDays);
+          const bTotalDaysDiff = Math.abs(b.totalDays - userStats.totalDays);
+          
+          const aScore = aStreakDiff + (aWinRateDiff / 10) + (aTotalDaysDiff / 5);
+          const bScore = bStreakDiff + (bWinRateDiff / 10) + (bTotalDaysDiff / 5);
+          
+          return aScore - bScore;
         })
-        .slice(0, 50); // Limit to 50 for AI processing
-      
-      // Use AI to suggest best matches
-      const prompt = `You are an AI matchmaking assistant for a productivity battle system.
-
-User Stats:
-- Streak: ${userStats.streak} days
-- Total Active Days: ${userStats.totalDays}
-- Battle Wins: ${userStats.wins}
-- Total Battles: ${userStats.totalBattles}
-- Win Rate: ${userStats.winRate}%
-
-Potential Opponents:
-${potentialOpponents.map((opp, idx) => 
-  `${idx + 1}. ${opp.email} - Streak: ${opp.streak}, Days: ${opp.totalDays}, Wins: ${opp.wins}/${opp.totalBattles} (${opp.winRate}% win rate)`
-).join('\n')}
-
-Analyze these opponents and suggest the TOP 5 best matches for a competitive and fair ${battleType} battle. Consider:
-1. Similar skill levels (streak, win rate)
-2. Active users (high totalDays)
-3. Fair competition (not too easy, not too hard)
-4. Engagement potential
-
-Return ONLY a JSON array of 5 opponent IDs in order of best match, like: ["id1", "id2", "id3", "id4", "id5"]`;
-
-      const response = await ai.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7
-      });
-      
-      const aiResponse = response.choices[0]?.message?.content || "";
-      
-      // Parse AI response
-      let suggestedIds: string[] = [];
-      try {
-        const jsonMatch = aiResponse.match(/\[.*\]/);
-        if (jsonMatch) {
-          suggestedIds = JSON.parse(jsonMatch[0]);
-        }
-      } catch (parseError) {
-        console.error("AI response parsing error:", parseError);
-        // Fallback: suggest top 5 by similar stats
-        suggestedIds = potentialOpponents
-          .sort((a, b) => {
-            const aDiff = Math.abs(a.streak - userStats.streak) + Math.abs((a.winRate as number) - (userStats.winRate as number));
-            const bDiff = Math.abs(b.streak - userStats.streak) + Math.abs((b.winRate as number) - (userStats.winRate as number));
-            return aDiff - bDiff;
-          })
-          .slice(0, 5)
-          .map(opp => opp.id);
-      }
-      
-      // Get full user data for suggested opponents
-      const suggestions = suggestedIds
-        .map(id => potentialOpponents.find(opp => opp.id === id))
-        .filter(Boolean);
+        .slice(0, 5); // Top 5 matches
       
       res.json(suggestions);
     } catch (error) {
-      console.error("Error in AI matchmaking:", error);
+      console.error("Error in matchmaking:", error);
       res.status(500).json({ error: "Failed to generate matchmaking suggestions" });
     }
   });
