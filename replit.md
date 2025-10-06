@@ -6,6 +6,15 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
+**October 6, 2025** - Updated Gemini API Key & Fixed AI Features
+- **Fixed all AI feature errors**: Updated GEMINI_API_KEY in Replit Secrets to resolve "Failed to generate schedule", "Failed to send message", and "Failed to save preferences" errors
+- All AI features now working properly:
+  - AI Chat assistant (multimodal support)
+  - AI schedule generation in Planner
+  - AI habit nudges and suggestions
+  - AI-powered settings and preferences
+- API key is securely stored in environment variables
+
 **October 6, 2025** - Fixed AI Authentication Issues & Mobile Connectivity
 - **Fixed mobile authentication errors**: "Failed to generate schedule", "Failed to save preferences", "Failed to send message"
 - Improved authentication token handling:
