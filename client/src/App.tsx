@@ -32,6 +32,7 @@ import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
 import BottomNav from "@/components/BottomNav";
 import VersionFooter from "@/components/VersionFooter";
+import NotificationBell from "@/components/NotificationBell";
 import { Link, useLocation } from 'wouter';
 import { User, Settings as SettingsIcon } from 'lucide-react';
 
@@ -84,6 +85,7 @@ function Navigation() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <NotificationBell />
               <Link href="/profile">
                 <button 
                   className={`p-2 rounded-lg transition-colors hover:bg-muted ${
