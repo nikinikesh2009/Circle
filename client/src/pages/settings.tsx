@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle, GitBranch } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle, GitBranch } from 'lucide-react';
 import { Link } from 'wouter';
 import { type UserPreferences } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
@@ -27,13 +27,6 @@ export default function Settings() {
       quietHoursStart: '22:00',
       quietHoursEnd: '07:00',
       motivationFrequency: 'medium' as 'low' | 'medium' | 'high',
-    },
-    aiPreferences: {
-      personalityStyle: 'balanced' as 'supportive' | 'strict' | 'balanced' | 'friendly',
-      plannerEnabled: true,
-      autoScheduleTasks: true,
-      habitNudgesEnabled: true,
-      focusModeEnabled: true,
     },
     schedulePreferences: {
       wakeUpTime: '07:00',
@@ -60,7 +53,6 @@ export default function Settings() {
           setPreferences(data);
           setFormData({
             notificationPreferences: data.notificationPreferences,
-            aiPreferences: data.aiPreferences,
             schedulePreferences: data.schedulePreferences
           });
         }
@@ -123,14 +115,10 @@ export default function Settings() {
         </div>
 
         <Tabs defaultValue="notifications" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 h-9">
+          <TabsList className="grid w-full grid-cols-2 h-9">
             <TabsTrigger value="notifications" data-testid="tab-notifications" className="text-xs">
               <Bell className="w-3.5 h-3.5 mr-1.5" />
               Notifications
-            </TabsTrigger>
-            <TabsTrigger value="ai" data-testid="tab-ai" className="text-xs">
-              <Brain className="w-3.5 h-3.5 mr-1.5" />
-              AI Settings
             </TabsTrigger>
             <TabsTrigger value="schedule" data-testid="tab-schedule" className="text-xs">
               <Clock className="w-3.5 h-3.5 mr-1.5" />
@@ -231,103 +219,6 @@ export default function Settings() {
                       <SelectItem value="high">High (5+ per day)</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="ai" data-testid="content-ai">
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Behavior</CardTitle>
-                <CardDescription>
-                  Customize how AI assists you
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="personalityStyle">AI Personality Style</Label>
-                  <Select
-                    value={formData.aiPreferences.personalityStyle}
-                    onValueChange={(value: 'supportive' | 'strict' | 'balanced' | 'friendly') => setFormData({
-                      ...formData,
-                      aiPreferences: { ...formData.aiPreferences, personalityStyle: value }
-                    })}
-                  >
-                    <SelectTrigger id="personalityStyle" data-testid="select-personalityStyle">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="supportive">Supportive & Encouraging</SelectItem>
-                      <SelectItem value="strict">Strict & Disciplined</SelectItem>
-                      <SelectItem value="balanced">Balanced</SelectItem>
-                      <SelectItem value="friendly">Friendly & Casual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="plannerEnabled">AI Daily Planner</Label>
-                    <p className="text-sm text-muted-foreground">Let AI generate daily schedules</p>
-                  </div>
-                  <Switch
-                    id="plannerEnabled"
-                    checked={formData.aiPreferences.plannerEnabled}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData,
-                      aiPreferences: { ...formData.aiPreferences, plannerEnabled: checked }
-                    })}
-                    data-testid="switch-plannerEnabled"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="autoScheduleTasks">Auto-Schedule Tasks</Label>
-                    <p className="text-sm text-muted-foreground">Automatically optimize task timing</p>
-                  </div>
-                  <Switch
-                    id="autoScheduleTasks"
-                    checked={formData.aiPreferences.autoScheduleTasks}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData,
-                      aiPreferences: { ...formData.aiPreferences, autoScheduleTasks: checked }
-                    })}
-                    data-testid="switch-autoScheduleTasks"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="habitNudgesEnabled">AI Habit Nudges</Label>
-                    <p className="text-sm text-muted-foreground">Receive AI reminders for habits</p>
-                  </div>
-                  <Switch
-                    id="habitNudgesEnabled"
-                    checked={formData.aiPreferences.habitNudgesEnabled}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData,
-                      aiPreferences: { ...formData.aiPreferences, habitNudgesEnabled: checked }
-                    })}
-                    data-testid="switch-habitNudgesEnabled"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="focusModeEnabled">Focus Mode</Label>
-                    <p className="text-sm text-muted-foreground">Enable AI-powered focus sessions</p>
-                  </div>
-                  <Switch
-                    id="focusModeEnabled"
-                    checked={formData.aiPreferences.focusModeEnabled}
-                    onCheckedChange={(checked) => setFormData({
-                      ...formData,
-                      aiPreferences: { ...formData.aiPreferences, focusModeEnabled: checked }
-                    })}
-                    data-testid="switch-focusModeEnabled"
-                  />
                 </div>
               </CardContent>
             </Card>

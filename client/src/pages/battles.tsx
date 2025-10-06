@@ -20,7 +20,6 @@ export default function Battles() {
   const { currentUser } = useAuthContext();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [matchmakingDialogOpen, setMatchmakingDialogOpen] = useState(false);
   
   const [newBattle, setNewBattle] = useState({
     type: '1v1' as '1v1' | 'group',
@@ -33,11 +32,6 @@ export default function Battles() {
 
   const { data: battles = [], isLoading: battlesLoading } = useQuery<Battle[]>({
     queryKey: ['/api/battles'],
-  });
-
-  const { data: suggestions = [], isLoading: suggestionsLoading } = useQuery({
-    queryKey: ['/api/battles/matchmaking-suggestions'],
-    enabled: false,
   });
 
   const createBattleMutation = useMutation({
@@ -62,26 +56,6 @@ export default function Battles() {
       toast({
         title: 'Error',
         description: 'Failed to create battle. Please try again.',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const getMatchmakingMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/battles/matchmaking', { battleType: newBattle.type });
-      return await response.json();
-    },
-    onSuccess: (data: any[]) => {
-      toast({
-        title: 'AI Suggestions Ready!',
-        description: `Found ${data.length} potential opponents.`,
-      });
-    },
-    onError: () => {
-      toast({
-        title: 'Error',
-        description: 'Failed to get AI suggestions. Please try again.',
         variant: 'destructive',
       });
     },
@@ -242,20 +216,6 @@ export default function Battles() {
                       onChange={(e) => setNewBattle({ ...newBattle, opponentEmail: e.target.value })}
                       data-testid="input-opponent-email"
                     />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-2 gap-2"
-                      onClick={() => {
-                        getMatchmakingMutation.mutate();
-                        setMatchmakingDialogOpen(true);
-                      }}
-                      disabled={getMatchmakingMutation.isPending}
-                      data-testid="button-ai-suggestions"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {getMatchmakingMutation.isPending ? 'Getting AI Suggestions...' : 'Get AI Suggestions'}
-                    </Button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -297,55 +257,6 @@ export default function Battles() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* AI Suggestions Dialog */}
-        <Dialog open={matchmakingDialogOpen} onOpenChange={setMatchmakingDialogOpen}>
-          <DialogContent className="max-w-md" data-testid="dialog-ai-suggestions">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-500" />
-                AI Matchmaking Suggestions
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              {getMatchmakingMutation.isPending ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Analyzing opponents...</p>
-                </div>
-              ) : getMatchmakingMutation.data && getMatchmakingMutation.data.length > 0 ? (
-                getMatchmakingMutation.data.map((opponent: any, idx: number) => (
-                  <Card
-                    key={opponent.id}
-                    className="cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => {
-                      setNewBattle({ ...newBattle, opponentEmail: opponent.email });
-                      setMatchmakingDialogOpen(false);
-                    }}
-                    data-testid={`card-suggestion-${idx}`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{opponent.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Streak: {opponent.streak} • Win Rate: {opponent.winRate}%
-                          </p>
-                        </div>
-                        <Badge variant="outline" className="bg-purple-500/10 text-purple-500">
-                          #{idx + 1}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No suggestions available</p>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
         <Tabs defaultValue="active" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="active" className="gap-2" data-testid="tab-active">
