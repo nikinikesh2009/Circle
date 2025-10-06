@@ -639,9 +639,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const battle = snapshot.val();
       
-      // Check if user is a participant
+      // Security checks:
+      // 1. Check if user is a participant
       if (!battle.participants.includes(userId)) {
         return res.status(403).json({ error: "Not a participant in this battle" });
+      }
+      
+      // 2. Check if battle is in pending status
+      if (battle.status !== 'pending') {
+        return res.status(400).json({ error: "Battle is not pending" });
+      }
+      
+      // 3. Check if user is NOT the creator (can't accept your own battle)
+      if (battle.createdBy === userId) {
+        return res.status(403).json({ error: "Cannot accept your own battle invitation" });
       }
       
       // Update battle status to active
@@ -701,9 +712,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const battle = snapshot.val();
       
-      // Check if user is a participant
+      // Security checks:
+      // 1. Check if user is a participant
       if (!battle.participants.includes(userId)) {
         return res.status(403).json({ error: "Not a participant in this battle" });
+      }
+      
+      // 2. Check if battle is in pending status
+      if (battle.status !== 'pending') {
+        return res.status(400).json({ error: "Battle is not pending" });
+      }
+      
+      // 3. Check if user is NOT the creator (can't decline your own battle)
+      if (battle.createdBy === userId) {
+        return res.status(403).json({ error: "Cannot decline your own battle invitation" });
       }
       
       // Update battle status to cancelled

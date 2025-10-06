@@ -95,7 +95,7 @@ export default function Battles() {
         [currentUser!.uid]: currentUser!.email || 'You',
         [opponent.id]: opponent.email,
       },
-      status: 'active',
+      status: 'pending',
       startDate: newBattle.startDate,
       endDate: newBattle.endDate,
       createdBy: currentUser!.uid,
