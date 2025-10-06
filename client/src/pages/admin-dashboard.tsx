@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { adminApiRequest } from "@/lib/adminApiRequest";
 
 interface Admin {
   id: string;
@@ -66,28 +67,16 @@ export default function AdminDashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Get admin JWT token
-      const token = localStorage.getItem("adminToken");
-      if (!token) return;
 
       // Load admins
-      const adminsRes = await fetch("/api/admin/list", {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      const adminsRes = await adminApiRequest("GET", "/api/admin/list");
       if (adminsRes.ok) {
         const adminsData = await adminsRes.json();
         setAdmins(adminsData);
       }
 
       // Load audit logs
-      const logsRes = await fetch("/api/admin/audit-logs", {
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
+      const logsRes = await adminApiRequest("GET", "/api/admin/audit-logs");
       if (logsRes.ok) {
         const logsData = await logsRes.json();
         setAuditLogs(logsData);
@@ -129,19 +118,9 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = localStorage.getItem("adminToken");
-      if (!token) return;
-
-      const response = await fetch("/api/admin/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          email: newAdminEmail,
-          password: newAdminPassword,
-        }),
+      const response = await adminApiRequest("POST", "/api/admin/create", {
+        email: newAdminEmail,
+        password: newAdminPassword,
       });
 
       const data = await response.json();
@@ -174,15 +153,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      const token = localStorage.getItem("adminToken");
-      if (!token) return;
-
-      const response = await fetch(`/api/admin/deactivate/${adminId}`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        },
-      });
+      const response = await adminApiRequest("POST", `/api/admin/deactivate/${adminId}`);
 
       if (!response.ok) {
         const data = await response.json();
