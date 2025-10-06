@@ -32,7 +32,7 @@ const faqItems = [
       {
         id: 'q1',
         question: 'How do I get started with The Circle?',
-        answer: 'Simply create an account with your email and password. Once logged in, you can explore the dashboard, set up your first habit, create a daily plan, or start chatting with our AI assistant.',
+        answer: 'Simply create an account with your email and password. Once logged in, you can explore the dashboard, set up your first habit, or create a daily plan.',
       },
       {
         id: 'q2',
@@ -43,26 +43,6 @@ const faqItems = [
         id: 'q3',
         question: 'Can I use The Circle on my phone?',
         answer: 'Absolutely! The Circle is a Progressive Web App (PWA) that works on any device. You can install it on your phone for a native app experience.',
-      },
-    ],
-  },
-  {
-    category: 'AI Features',
-    questions: [
-      {
-        id: 'q4',
-        question: 'What can the AI assistant help me with?',
-        answer: 'Our AI assistant can help with productivity advice, analyze images and documents, transcribe audio, create daily schedules, and provide personalized motivation and guidance.',
-      },
-      {
-        id: 'q5',
-        question: 'What file types can I upload to AI Chat?',
-        answer: 'You can upload images (JPG, PNG, GIF), audio files (MP3, WAV), and PDF documents up to 10MB in size.',
-      },
-      {
-        id: 'q6',
-        question: 'How does AI-powered daily planning work?',
-        answer: 'Describe your day and goals, and our AI will generate an optimized schedule with tasks, time slots, and priorities based on your input.',
       },
     ],
   },
@@ -78,11 +58,6 @@ const faqItems = [
         id: 'q8',
         question: 'Can I edit or delete habits?',
         answer: 'Yes, you can edit habit details, change frequencies, or mark habits as inactive from the Habits page.',
-      },
-      {
-        id: 'q9',
-        question: 'What are AI habit nudges?',
-        answer: 'AI habit nudges are personalized motivational messages that adapt to your progress. Enable them in your habit settings to receive timely encouragement.',
       },
     ],
   },
@@ -304,7 +279,7 @@ export default function Help() {
                     </h3>
                     <p className="text-muted-foreground mb-4" data-testid="text-docs-intro">
                       Access detailed guides, tutorials, and API documentation for all features of The Circle. 
-                      Learn how to make the most of AI chat, daily planner, habits, focus mode, and community features.
+                      Learn how to make the most of daily planner, habits, focus mode, and community features.
                     </p>
                     <Link href="/documentation">
                       <Button className="gap-2" data-testid="button-view-docs">
@@ -326,9 +301,8 @@ export default function Help() {
                   </h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
                     <li data-testid="text-guide-1">• Getting Started with The Circle</li>
-                    <li data-testid="text-guide-2">• Using the AI Chat Assistant</li>
-                    <li data-testid="text-guide-3">• Creating Your First Daily Plan</li>
-                    <li data-testid="text-guide-4">• Building Effective Habits</li>
+                    <li data-testid="text-guide-2">• Creating Your First Daily Plan</li>
+                    <li data-testid="text-guide-3">• Building Effective Habits</li>
                   </ul>
                 </CardContent>
               </Card>
@@ -340,10 +314,9 @@ export default function Help() {
                     Advanced Features
                   </h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li data-testid="text-advanced-1">• Multimodal AI File Analysis</li>
-                    <li data-testid="text-advanced-2">• Focus Mode & Distraction Tracking</li>
-                    <li data-testid="text-advanced-3">• Community Groups & Messaging</li>
-                    <li data-testid="text-advanced-4">• PWA Installation Guide</li>
+                    <li data-testid="text-advanced-1">• Focus Mode & Distraction Tracking</li>
+                    <li data-testid="text-advanced-2">• Community Groups & Messaging</li>
+                    <li data-testid="text-advanced-3">• PWA Installation Guide</li>
                   </ul>
                 </CardContent>
               </Card>
