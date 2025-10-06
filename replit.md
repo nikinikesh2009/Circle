@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 2025: Documentation & Help/Support System
+- **Documentation Page**: Created comprehensive documentation with searchable sidebar navigation covering all platform features
+  - Sections: Getting Started, AI Chat Assistant, Daily Planner, Habits & Goals, Focus Mode, Community Features, PWA
+  - Expandable content items with detailed explanations for each feature
+  - Search functionality to find specific topics quickly
+- **Help & Support Center**: Built tabbed help center with FAQ, documentation links, and contact support
+  - Searchable FAQ organized by categories (Getting Started, AI Features, Habits, Focus, Community, Account)
+  - Support ticket submission form with validation
+  - Backend endpoint `/api/support/ticket` to handle support requests
+  - Tickets stored in Firebase Realtime Database with sanitized inputs
+- **Settings Integration**: Added quick links to Documentation and Help pages from Settings screen
+- **Schema Updates**: Added SupportTicket schema to `shared/schema.ts` for type-safe ticket handling
+
 ### October 2025: PWA (Progressive Web App) Implementation
 - **Cross-Platform Installation**: Converted The Circle into an installable PWA that works on all devices (iOS, Android, Windows, Mac, Linux)
 - **App Manifest**: Created manifest.json with app metadata, theme colors (#7c3aed purple), and proper icon configuration
