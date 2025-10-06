@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Sparkles, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { ref, get, set, update, remove } from 'firebase/database';
 import { db } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
@@ -26,7 +26,6 @@ type Task = {
   duration: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'pending' | 'in_progress' | 'completed' | 'skipped' | 'postponed';
-  aiGenerated: boolean;
 };
 
 const categoryColors = {
@@ -51,13 +50,11 @@ export default function Planner() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [generating, setGenerating] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [dayDescription, setDayDescription] = useState('');
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
@@ -91,64 +88,6 @@ export default function Planner() {
       console.error('Failed to load tasks:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const generateSchedule = async () => {
-    if (!currentUser) return;
-    setGenerating(true);
-    try {
-      const response = await apiRequest('POST', '/api/ai/generate-schedule', {
-        userId: currentUser.uid,
-        date: selectedDate,
-        dayDescription: dayDescription.trim() || undefined,
-        existingTasks: tasks.length > 0 ? tasks : null
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.tasks && data.tasks.length > 0) {
-          const planId = `plan_${Date.now()}`;
-          const tasksRef = ref(db, `tasks/${currentUser.uid}/${selectedDate}`);
-          const tasksToSave: Record<string, any> = {};
-          
-          data.tasks.forEach((task: any, index: number) => {
-            const taskId = `task_${Date.now()}_${index}`;
-            tasksToSave[taskId] = {
-              userId: currentUser.uid,
-              planId,
-              title: task.title,
-              description: task.description || '',
-              category: task.category,
-              startTime: task.startTime,
-              endTime: task.endTime,
-              duration: task.duration,
-              priority: task.priority,
-              status: 'pending',
-              aiGenerated: true,
-            };
-          });
-
-          await set(tasksRef, tasksToSave);
-          await loadTasks();
-          
-          toast({
-            title: "Schedule generated!",
-            description: `AI created ${data.tasks.length} tasks for your day.`,
-          });
-          setDayDescription('');
-        }
-      } else {
-        throw new Error('Failed to generate schedule');
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate schedule. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setGenerating(false);
     }
   };
 
@@ -213,7 +152,6 @@ export default function Planner() {
         duration,
         priority: newTask.priority,
         status: 'pending',
-        aiGenerated: false,
       };
 
       const taskRef = ref(db, `tasks/${currentUser.uid}/${selectedDate}/${taskId}`);
@@ -310,17 +248,6 @@ export default function Planner() {
 
           <Card className="mb-4 border-primary/20">
             <CardContent className="pt-6">
-              <Label htmlFor="dayDescription" className="text-base font-semibold mb-2 block">
-                Describe Your Day (Optional)
-              </Label>
-              <Textarea
-                id="dayDescription"
-                value={dayDescription}
-                onChange={(e) => setDayDescription(e.target.value)}
-                placeholder="Example: I have a meeting at 2 PM, need to go to the gym, and want to study for 2 hours. I prefer morning workouts..."
-                className="min-h-[100px] resize-none mb-4"
-                data-testid="input-day-description"
-              />
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   type="date"
@@ -329,10 +256,6 @@ export default function Planner() {
                   className="w-full sm:w-auto"
                   data-testid="input-date"
                 />
-                <Button onClick={generateSchedule} disabled={generating} className="gap-2 w-full sm:w-auto" data-testid="button-generate">
-                  <Sparkles className="w-4 h-4" />
-                  {generating ? 'Generating...' : 'AI Generate'}
-                </Button>
                 <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="gap-2 w-full sm:w-auto" data-testid="button-add-task">
@@ -459,12 +382,8 @@ export default function Planner() {
               <Calendar className="w-16 h-16 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No tasks scheduled</h3>
               <p className="text-muted-foreground mb-4 text-center">
-                Generate an AI schedule or add tasks manually
+                Add tasks to start planning your day
               </p>
-              <Button onClick={generateSchedule} disabled={generating} className="gap-2" data-testid="button-generate-empty">
-                <Sparkles className="w-4 h-4" />
-                {generating ? 'Generating...' : 'Generate with AI'}
-              </Button>
             </CardContent>
           </Card>
         ) : (
@@ -479,12 +398,6 @@ export default function Planner() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3 className="font-semibold text-base md:text-lg">{task.title}</h3>
-                        {task.aiGenerated && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            AI
-                          </Badge>
-                        )}
                       </div>
                       {task.description && (
                         <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
