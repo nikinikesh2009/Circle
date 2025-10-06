@@ -2,257 +2,68 @@
 
 ## Overview
 
-The Circle is a full-stack web application that combines AI-powered productivity tools with habit tracking, motivation, and community engagement. The platform features intelligent daily planning, multimodal AI chat assistance, focus mode, and gamified habit formation to help users achieve their goals.
+The Circle is a full-stack web application designed to be a comprehensive productivity platform. It integrates AI-powered tools with habit tracking, motivational features, and community engagement to help users achieve their goals. Key capabilities include intelligent daily planning, a multimodal AI chat assistant, a focus mode, gamified habit formation, and a competitive battle system for user challenges. The platform aims to provide an immersive, supportive environment for personal growth and productivity.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### October 2025: Head-to-Head Battle System
-- **Battle System**: Complete competitive battle feature with 1v1 and group battles
-  - Challenge types: Habit Streak, Focus Time, Task Completion, Custom Challenges
-  - Real-time score tracking and winner determination
-  - Battle status management (pending, active, completed)
-- **AI Matchmaking**: Intelligent opponent suggestions powered by Gemini AI
-  - Analyzes user stats (streaks, win rate, total battles)
-  - Suggests top 5 best-matched opponents for fair competition
-  - Skill-based matchmaking for balanced battles
-- **Badge System**: Achievement tracking with rarity-based badges
-  - Badge categories: battle, habit, focus, streak, community, special
-  - Rarity levels: common, rare, epic, legendary
-  - Automatic badge awards on battle completion
-  - Badge showcase with earned and locked badges display
-- **Navigation**: Added Battles to middle menu in bottom navigation
-- **Database**: Firebase Realtime Database integration for battles, badges, and user badges
-
-### October 2025: Version Control & Changelog System
-- **Version Footer**: Added version footer component displaying on every page (except chat)
-  - Shows current version (v1.0.0) from package.json
-  - Build date display
-  - Quick link to changelog page
-  - Branding with ACO Network attribution
-- **Changelog Page**: Created comprehensive version history page
-  - Visual changelog with version badges (major, minor, patch)
-  - Categorized changes with icons (features, improvements, bugs, security)
-  - Full version history from v0.1.0 to v1.0.0
-  - Roadmap section for upcoming features
-- **Settings Integration**: Added changelog link in Settings for easy access
-
-### October 2025: Documentation & Help/Support System
-- **Documentation Page**: Created comprehensive documentation with searchable sidebar navigation covering all platform features
-  - Sections: Getting Started, AI Chat Assistant, Daily Planner, Habits & Goals, Focus Mode, Community Features, PWA
-  - Expandable content items with detailed explanations for each feature
-  - Search functionality to find specific topics quickly
-- **Help & Support Center**: Built tabbed help center with FAQ, documentation links, and contact support
-  - Searchable FAQ organized by categories (Getting Started, AI Features, Habits, Focus, Community, Account)
-  - Support ticket submission form with validation
-  - Backend endpoint `/api/support/ticket` to handle support requests
-  - Tickets stored in Firebase Realtime Database with sanitized inputs
-- **Settings Integration**: Added quick links to Documentation and Help pages from Settings screen
-- **Schema Updates**: Added SupportTicket schema to `shared/schema.ts` for type-safe ticket handling
-
-### October 2025: PWA (Progressive Web App) Implementation
-- **Cross-Platform Installation**: Converted The Circle into an installable PWA that works on all devices (iOS, Android, Windows, Mac, Linux)
-- **App Manifest**: Created manifest.json with app metadata, theme colors (#7c3aed purple), and proper icon configuration
-- **Service Worker**: Implemented offline support with runtime caching strategy for assets and pages
-- **App Icons**: Generated PNG icons (192×192, 512×512) and Apple touch icon (180×180) using Sharp
-- **Install Experience**: Users can now install the app from their browser and use it like a native application
-- **Offline Capability**: App caches resources for offline access with intelligent fallback strategies
-
-### October 2025: Enhanced Daily Planner & AI Features
-- **Day Description Input**: Added textarea for users to describe their day before AI generates schedule
-- **Task Editing**: Added Edit button to all tasks with full dialog for modifying title, description, category, priority, and times
-- **Markdown Rendering**: Fixed AI chat responses to properly render markdown formatting (bold, italic, lists) with DOMPurify sanitization
-- **AI Attribution**: Updated system prompt to identify as created by ACO Network, by Nikil Nikesh (Splash Pro)
-
-### October 2025: Multimodal AI Chat Implementation
-- **Full-Screen Chat Experience**: Transformed AI Chat into an immersive, edge-to-edge interface for distraction-free interaction
-- **Multimodal File Support**: Added ability to upload and analyze images, audio files, and PDF documents
-- **File Upload Integration**: Integrated Firebase Storage for secure file hosting with 10MB size limit
-- **AI Vision & Analysis**: Connected Gemini 2.0 Flash Exp model for multimodal requests (text + files)
-- **CORS-Free File Proxy**: Implemented server-side file proxy (`/api/proxy/file`) to bypass browser CORS restrictions
-- **Security Hardening**: 
-  - Validated all file URLs to only allow Firebase Storage sources (SSRF prevention)
-  - Required complete file metadata (fileUrl, fileType, mimeType, fileName) for all uploads
-  - Server-side MIME type validation against allowed formats
-  - Added DOMPurify for sanitizing markdown HTML to prevent XSS attacks
-- **Mobile Navigation**: Streamlined to bottom navigation only, removed hamburger menu
-- **Daily Planner Mobile**: Fixed layout with stacked controls for better mobile experience
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Technology Stack:**
-- **Framework**: React 18 with TypeScript
-- **Routing**: Wouter (lightweight React routing)
-- **UI Components**: Radix UI primitives with shadcn/ui component system
-- **Styling**: Tailwind CSS with CSS variables for theming
-- **State Management**: TanStack Query (React Query) for server state
-- **Forms**: React Hook Form with Zod validation
-
-**Design Decisions:**
-- **Component Library Choice**: Uses shadcn/ui (Radix UI + Tailwind) for accessible, customizable components without heavy dependencies. Components are copied into the project rather than imported from a package, allowing full customization.
-- **Routing Strategy**: Wouter chosen over React Router for its minimal footprint (~1.2KB) while providing essential routing capabilities.
-- **Theme System**: Dark-mode-first design with CSS custom properties for colors, enabling easy theme switching. Primary color is purple (#7c3aed), secondary is teal, creating a modern, energetic aesthetic.
-- **Mobile Responsiveness**: Built mobile-first with Tailwind's responsive utilities and custom mobile detection hooks.
-
-**Directory Structure:**
-```
-client/
-├── src/
-│   ├── components/     # Reusable components
-│   │   ├── ui/        # shadcn/ui component library
-│   │   └── ProtectedRoute.tsx
-│   ├── contexts/      # React context providers
-│   ├── hooks/         # Custom React hooks
-│   ├── lib/           # Utility functions and configs
-│   ├── pages/         # Page components
-│   └── App.tsx        # Main application component
-```
+The frontend is built with React 18 and TypeScript, utilizing Wouter for lightweight routing and shadcn/ui (Radix UI primitives + Tailwind CSS) for accessible and customizable UI components. Tailwind CSS with CSS variables manages styling and theming, supporting a dark-mode-first design with a primary purple and secondary teal color scheme. TanStack Query handles server state management, and React Hook Form with Zod provides robust form validation. The architecture emphasizes mobile responsiveness, built with a mobile-first approach.
 
 ### Backend Architecture
 
-**Technology Stack:**
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **Build Tool**: Vite for development, esbuild for production
-- **Type Safety**: Shared TypeScript schemas between frontend and backend
-
-**Design Decisions:**
-- **Minimal Backend Approach**: Currently uses in-memory storage (`MemStorage`) as a placeholder. The architecture is designed to be database-agnostic with a storage interface pattern.
-- **API Design**: RESTful endpoints prefixed with `/api`. Logging middleware captures request/response for debugging.
-- **Development Experience**: Vite's HMR in middleware mode provides instant feedback during development.
-- **Storage Interface Pattern**: `IStorage` interface defines CRUD operations, allowing easy swapping between in-memory, PostgreSQL, or other storage backends without changing business logic.
-
-**Server Structure:**
-```
-server/
-├── index.ts      # Express app setup and middleware
-├── routes.ts     # API route definitions
-├── storage.ts    # Storage interface and implementations
-└── vite.ts       # Vite dev server integration
-```
+The backend uses Node.js with TypeScript and Express.js. It follows a minimal backend approach with an `IStorage` interface for database agnosticism, currently using in-memory storage but configured for PostgreSQL migration via Drizzle ORM. API endpoints are RESTful, prefixed with `/api`. Shared TypeScript schemas between frontend and backend ensure type safety across the full stack.
 
 ### Authentication & Authorization
 
-**Current Implementation:**
-- **Provider**: Firebase Authentication
-- **Strategy**: Email/password authentication
-- **Session Management**: Firebase handles JWT tokens automatically
-- **User Context**: React Context API (`AuthContext`) manages authentication state globally
-- **Protected Routes**: `ProtectedRoute` component wraps authenticated pages, redirecting unauthorized users
-
-**Design Rationale:**
-- Firebase chosen for rapid development and built-in security features
-- Authentication logic separated from business logic through context pattern
-- User data synced between Firebase Auth and Realtime Database for extended profile information
+Firebase Authentication handles user authentication via email/password. JWT tokens are managed automatically by Firebase. A React Context API (`AuthContext`) maintains global authentication state, and `ProtectedRoute` components secure authenticated pages. User data is synced between Firebase Auth and Realtime Database for extended profile information.
 
 ### Data Storage
 
-**Current State:**
-- **Primary Database**: Firebase Realtime Database (NoSQL, key-value tree structure)
-- **Fallback**: In-memory storage for backend operations (placeholder)
-- **ORM Configuration**: Drizzle ORM configured for PostgreSQL migration path
-- **Schema Management**: Zod schemas in `shared/schema.ts` provide runtime validation and TypeScript types
-
-**Data Models:**
-1. **User Schema** (`users/{userId}`):
-   - Core fields: email, createdAt (ISO string)
-   - Gamification: streak, bestStreak, totalDays, lastCompletedDate (YYYY-MM-DD)
-   - Social: likesGiven counter
-
-2. **MotivationalPost Schema** (`motivationalPosts/{postId}`):
-   - Content and optional image URL
-   - Category classification
-   - Like counter and timestamps (ISO strings)
-
-3. **PostLikes Schema** (`postLikes/{userId}_{postId}`):
-   - Tracks individual user likes on posts
-   - userId, postId, createdAt (ISO string)
-
-4. **UserStreak Schema** (`userStreaks/{userId}-{date}`):
-   - Links users to their daily streak records
-   - userId, date, completed boolean, createdAt
-
-**Design Decisions:**
-- **Firebase Realtime Database Migration** (October 2025): Migrated from Firestore to Realtime Database for simpler setup and easier deployment on Replit
-- **Atomic Operations**: All critical operations (streak updates, like/unlike) use Firebase transactions (`runTransaction`) to prevent race conditions and duplicate counts under concurrent usage
-- **Transaction Safety**: 
-  - Streak updates check `lastCompletedDate` inside transaction to prevent duplicate increments
-  - Like toggles use transaction on like entry node to atomically create/delete, then update counters
-- Schema-first design ensures type safety across the entire stack
-- Shared schemas between frontend/backend eliminate type mismatches
+The primary database is Firebase Realtime Database, a NoSQL key-value store. Drizzle ORM is configured for a future PostgreSQL migration path. Zod schemas (`shared/schema.ts`) provide runtime validation and TypeScript typing for data models including User, MotivationalPost, PostLikes, and UserStreak. Critical operations like streak updates and like toggles use Firebase transactions (`runTransaction`) for atomic operations and to prevent race conditions.
 
 ### Build & Deployment
 
-**Development:**
-- Vite dev server with HMR for frontend
-- tsx for running TypeScript server code without compilation
-- Concurrent development: Vite serves React app while Express handles API
+Development uses Vite for the frontend with HMR and `tsx` for the TypeScript server. Production builds optimize the frontend with Vite and bundle the backend with esbuild, resulting in a single Express server serving both the API and static files. The application is implemented as a Progressive Web App (PWA) with a manifest and service worker for cross-platform installation, offline support, and improved user experience.
 
-**Production:**
-- Frontend: Vite builds optimized bundle to `dist/public`
-- Backend: esbuild bundles server to `dist/index.js` with ESM format
-- Single production command runs bundled Express server serving both API and static files
+### UI/UX Decisions
 
-**Scripts:**
-- `dev`: Development mode with hot reload
-- `build`: Production build for both frontend and backend
-- `start`: Production server
-- `db:push`: Drizzle schema migration
+The platform features an immersive, full-screen AI Chat experience, a bottom navigation for mobile, and a clear, modern aesthetic. The design includes a version footer and a comprehensive changelog page. A detailed documentation page with searchable sidebar navigation covers all platform features, complemented by a tabbed help and support center with an FAQ and support ticket submission.
+
+### Feature Specifications
+
+- **AI-Powered Productivity**: Intelligent daily planning, multimodal AI chat (images, audio, PDFs), smart habit nudges, task optimization.
+- **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, AI matchmaking, and a rarity-based badge system for achievements.
+- **Community & Motivation**: Motivational posts with like functionality, user streaks, and community engagement features.
+- **Documentation & Support**: Comprehensive in-app documentation, searchable FAQ, and a support ticket system.
 
 ## External Dependencies
 
 ### Authentication & Database
-- **Firebase**: Provides authentication (email/password), Realtime Database, and Storage
-  - Configuration: Environment variables for API key, project ID, app ID, and database URL
-  - Authentication: Email/password sign-in method
-  - Database: Firebase Realtime Database (NoSQL tree structure)
-  - Storage: Firebase Storage for file uploads (images, audio, documents)
-  - Used for user management, streak tracking, motivational posts, like system, and chat file attachments
-  - **Important**: Requires database rules set to test mode for development (see README setup instructions)
+- **Firebase**: Used for email/password authentication, Realtime Database (NoSQL), and Storage for file uploads (images, audio, documents). Essential for user management, streak tracking, motivational posts, and chat attachments.
+- **Neon Database (@neondatabase/serverless)**: Serverless PostgreSQL, configured with Drizzle ORM for a planned migration.
 
 ### AI Integration
-- **Google Gemini**: Powers AI features with multimodal capabilities
-  - Model: Gemini 2.0 Flash Exp for multimodal chat (images, audio, PDFs)
-  - Model: Gemini 2.5 Flash for text-only AI features (daily planning, habit nudges)
-  - Features:
-    - Multimodal chat with image analysis, audio transcription, and document understanding
-    - AI-powered daily schedule generation
-    - Smart habit nudges with customizable personality styles
-    - Task optimization and micro-goal generation
-  - Configuration: Requires `GEMINI_API_KEY` environment variable
-
-### Database (Planned Migration)
-- **Neon Database**: Serverless PostgreSQL (@neondatabase/serverless)
-  - Drizzle ORM configured to use Neon via `DATABASE_URL` environment variable
-  - Migration files in `/migrations` directory
-  - Suggests future migration from Firestore to relational database
+- **Google Gemini**: Powers AI features.
+  - **Gemini 2.0 Flash Exp**: For multimodal chat (images, audio, PDFs).
+  - **Gemini 2.5 Flash**: For text-only AI features (daily planning, habit nudges, AI matchmaking).
 
 ### UI Component Libraries
-- **Radix UI**: Unstyled, accessible component primitives
-  - ~30 component libraries imported (accordion, dialog, dropdown, etc.)
-  - Provides accessibility, keyboard navigation, and ARIA attributes out-of-box
+- **Radix UI**: Provides unstyled, accessible component primitives for the UI.
+- **shadcn/ui**: Component system built on Radix UI and Tailwind CSS.
 
-### Developer Tools
-- **Replit Plugins**: 
-  - `@replit/vite-plugin-runtime-error-modal`: Error overlay in development
-  - `@replit/vite-plugin-cartographer`: Code mapping
-  - `@replit/vite-plugin-dev-banner`: Development environment indicator
-  - Only loaded in Replit development environment
+### Developer Tools (Replit specific)
+- **Replit Plugins**: `@replit/vite-plugin-runtime-error-modal`, `@replit/vite-plugin-cartographer`, `@replit/vite-plugin-dev-banner` (used in Replit development environment only).
 
 ### Key Packages
-- **TanStack Query**: Server state management and caching
-- **React Hook Form**: Form state management with minimal re-renders
-- **Zod**: Schema validation for forms and API data
-- **date-fns**: Date manipulation and formatting
-- **Tailwind CSS**: Utility-first styling with PostCSS
-- **wouter**: Lightweight routing (~1.2KB alternative to React Router)
-
-### Session Management (Backend Ready)
-- **connect-pg-simple**: PostgreSQL session store for Express
-  - Configured but not actively used (in-memory storage current)
-  - Ready for production session persistence when PostgreSQL is activated
+- **TanStack Query**: Server state management and caching.
+- **React Hook Form**: Form management.
+- **Zod**: Schema validation.
+- **date-fns**: Date manipulation.
+- **Tailwind CSS**: Utility-first styling.
+- **wouter**: Lightweight client-side routing.
+- **connect-pg-simple**: Configured for PostgreSQL session store (for future use).
