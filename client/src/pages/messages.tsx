@@ -5,86 +5,77 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Send, Search, Loader2, User, MessageCircle, Sword } from "lucide-react";
-import { type PrivateMessage, type Battle } from "@shared/schema";
-
-interface UserSearchResult {
-  id: string;
-  email: string;
-}
-
-interface Conversation {
-  otherUserId: string;
-  lastMessage: PrivateMessage;
-  unreadCount: number;
-  otherUser: {
-    id: string;
-    email: string;
-  };
-}
+import { Send, Loader2, Bot, Settings, Sparkles, Trash2 } from "lucide-react";
+import { type AiChatMessage, type AiSettings } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Messages() {
   const { currentUser } = useAuth();
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showSearch, setShowSearch] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const { data: conversations = [] } = useQuery<Conversation[]>({
-    queryKey: ["/api/private-messages/conversations"],
+  const { data: messages = [], isLoading } = useQuery<AiChatMessage[]>({
+    queryKey: ["/api/ai/messages"],
     enabled: !!currentUser,
   });
 
-  const { data: battles = [] } = useQuery<Battle[]>({
-    queryKey: ['/api/battles'],
+  const { data: aiSettings, refetch: refetchSettings } = useQuery<AiSettings>({
+    queryKey: ["/api/ai/settings"],
     enabled: !!currentUser,
-  });
-
-  // Get active battle participants (excluding current user)
-  const battleParticipants = battles
-    .filter(b => b.status === 'active')
-    .flatMap(b => b.participants.filter(id => id !== currentUser?.uid).map(id => ({
-      id,
-      email: b.participantNames[id],
-      battleId: b.id,
-    })))
-    .filter((participant, index, self) => 
-      // Remove duplicates
-      index === self.findIndex(p => p.id === participant.id)
-    );
-
-  const { data: searchResults = [] } = useQuery<UserSearchResult[]>({
-    queryKey: ["/api/users/search", searchQuery],
-    enabled: !!currentUser && searchQuery.length > 0,
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/users/search?query=${encodeURIComponent(searchQuery)}`);
-      if (!response.ok) throw new Error("Failed to search users");
-      return response.json();
-    },
-  });
-
-  const { data: messages = [] } = useQuery<PrivateMessage[]>({
-    queryKey: ["/api/private-messages", selectedUserId],
-    enabled: !!currentUser && !!selectedUserId,
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/private-messages/${selectedUserId}`);
-      if (!response.ok) throw new Error("Failed to fetch messages");
-      return response.json();
-    },
   });
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
-      return apiRequest("POST", "/api/private-messages", {
-        receiverId: selectedUserId,
-        content,
-      });
+      const response = await apiRequest("POST", "/api/ai/chat", { message: content });
+      if (!response.ok) throw new Error("Failed to send message");
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/private-messages", selectedUserId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/private-messages/conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ai/messages"] });
       setMessage("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (settings: Partial<AiSettings>) => {
+      const response = await apiRequest("PUT", "/api/ai/settings", settings);
+      if (!response.ok) throw new Error("Failed to update settings");
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchSettings();
+      setIsSettingsOpen(false);
+      toast({
+        title: "Settings updated",
+        description: "Your AI assistant settings have been saved.",
+      });
     },
   });
 
@@ -98,219 +89,254 @@ export default function Messages() {
     sendMutation.mutate(message.trim());
   };
 
-  const selectedConversation = conversations.find(c => c.otherUserId === selectedUserId);
-  const otherUserEmail = selectedConversation?.otherUser?.email || "User";
-
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      <div className="w-full md:w-80 border-r border-border flex flex-col bg-card/30">
-        <div className="p-3 border-b border-border">
-          <div className="flex items-center gap-2 mb-2">
-            <MessageCircle className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-bold">Messages</h2>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearch(e.target.value.length > 0);
-              }}
-              className="pl-8 h-8 text-sm"
-              data-testid="input-search-users"
-            />
-          </div>
-        </div>
-
-        {showSearch && searchQuery.length > 0 ? (
-          <div className="flex-1 overflow-y-auto">
-            {searchResults.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No users found
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-gradient-to-b from-background to-muted/10">
+      {/* Header */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-lg">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Bot className="w-6 h-6 text-white" />
               </div>
-            ) : (
-              searchResults.map((user) => (
-                <button
-                  key={user.id}
-                  onClick={() => {
-                    setSelectedUserId(user.id);
-                    setShowSearch(false);
-                    setSearchQuery("");
-                  }}
-                  className="w-full p-3 hover:bg-muted/50 transition-colors text-left border-b border-border/50"
-                  data-testid={`user-result-${user.id}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{user.email}</p>
-                    </div>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            {/* Battle Participants Section */}
-            {battleParticipants.length > 0 && (
               <div>
-                <div className="px-3 py-2 bg-muted/30 border-b border-border/50">
-                  <div className="flex items-center gap-1.5">
-                    <Sword className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Battle Participants
-                    </span>
-                  </div>
-                </div>
-                {battleParticipants.map((participant) => (
-                  <button
-                    key={participant.id}
-                    onClick={() => {
-                      setSelectedUserId(participant.id);
-                    }}
-                    className={`w-full p-3 hover:bg-muted/50 transition-colors text-left border-b border-border/50 ${
-                      selectedUserId === participant.id ? "bg-muted" : ""
-                    }`}
-                    data-testid={`battle-participant-${participant.id}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-                        <Sword className="w-4 h-4 text-purple-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{participant.email}</p>
-                        <p className="text-xs text-muted-foreground">Active battle</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Conversations Section */}
-            {conversations.length === 0 && battleParticipants.length === 0 ? (
-              <div className="p-4 text-center text-sm text-muted-foreground">
-                No conversations yet
-              </div>
-            ) : conversations.length > 0 && (
-              <div>
-                {battleParticipants.length > 0 && (
-                  <div className="px-3 py-2 bg-muted/30 border-b border-border/50">
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Recent Conversations
-                    </span>
-                  </div>
-                )}
-                {conversations.map((conv) => (
-                  <button
-                    key={conv.otherUserId}
-                    onClick={() => setSelectedUserId(conv.otherUserId)}
-                    className={`w-full p-3 hover:bg-muted/50 transition-colors text-left border-b border-border/50 ${
-                      selectedUserId === conv.otherUserId ? "bg-muted" : ""
-                    }`}
-                    data-testid={`conversation-${conv.otherUserId}`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center relative">
-                        <User className="w-4 h-4 text-primary" />
-                        {conv.unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                            {conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{conv.otherUser.email}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {conv.lastMessage.content}
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 flex flex-col">
-        {selectedUserId ? (
-          <>
-            <div className="p-3 border-b border-border bg-card/50">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="w-4 h-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold" data-testid="text-chat-header">
-                  {otherUserEmail}
-                </h3>
+                <h2 className="text-lg font-bold">AI Productivity Assistant</h2>
+                <p className="text-xs text-muted-foreground">
+                  Powered by DeepSeek · {aiSettings?.personality || "friendly"} mode
+                </p>
               </div>
             </div>
+            <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" data-testid="button-ai-settings">
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>AI Assistant Settings</DialogTitle>
+                  <DialogDescription>
+                    Customize how your AI assistant behaves and helps you
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label>Personality</Label>
+                    <Select
+                      value={aiSettings?.personality || "friendly"}
+                      onValueChange={(value) => updateSettingsMutation.mutate({ personality: value as any })}
+                    >
+                      <SelectTrigger data-testid="select-personality">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="professional">Professional</SelectItem>
+                        <SelectItem value="friendly">Friendly</SelectItem>
+                        <SelectItem value="motivating">Motivating</SelectItem>
+                        <SelectItem value="coach">Coach</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Choose how your AI assistant communicates with you
+                    </p>
+                  </div>
 
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-background to-muted/10">
+                  <div className="space-y-2">
+                    <Label>Custom System Prompt (Optional)</Label>
+                    <Textarea
+                      placeholder="Add custom instructions for your AI assistant..."
+                      value={aiSettings?.customSystemPrompt || ""}
+                      onChange={(e) => {}}
+                      onBlur={(e) => updateSettingsMutation.mutate({ customSystemPrompt: e.target.value })}
+                      className="min-h-[100px]"
+                      data-testid="textarea-custom-prompt"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Override the default personality with custom instructions
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable Task Suggestions</Label>
+                      <p className="text-xs text-muted-foreground">
+                        AI can suggest and create tasks
+                      </p>
+                    </div>
+                    <Switch
+                      checked={aiSettings?.enableTaskSuggestions ?? true}
+                      onCheckedChange={(checked) => updateSettingsMutation.mutate({ enableTaskSuggestions: checked })}
+                      data-testid="switch-task-suggestions"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Enable Productivity Check-ins</Label>
+                      <p className="text-xs text-muted-foreground">
+                        AI will ask about your progress
+                      </p>
+                    </div>
+                    <Switch
+                      checked={aiSettings?.enableProductivityCheckins ?? true}
+                      onCheckedChange={(checked) => updateSettingsMutation.mutate({ enableProductivityCheckins: checked })}
+                      data-testid="switch-productivity-checkins"
+                    />
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Sparkles className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Welcome to Your AI Assistant!</h3>
+              <p className="text-muted-foreground max-w-md mb-6">
+                I'm here to help you plan your day, create tasks, track your productivity, and stay motivated. 
+                Let's discuss what you want to accomplish today!
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => setMessage("Let's discuss my day and plan some tasks")}
+                  data-testid="button-suggestion-plan"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">Plan My Day</div>
+                    <div className="text-xs text-muted-foreground">Discuss and organize today's tasks</div>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => setMessage("How's my productivity going?")}
+                  data-testid="button-suggestion-productivity"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">Check My Progress</div>
+                    <div className="text-xs text-muted-foreground">Review habits and achievements</div>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => setMessage("I need help staying motivated")}
+                  data-testid="button-suggestion-motivation"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">Get Motivated</div>
+                    <div className="text-xs text-muted-foreground">Boost energy and focus</div>
+                  </div>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3 px-4"
+                  onClick={() => setMessage("What should I focus on right now?")}
+                  data-testid="button-suggestion-focus"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">Find Focus</div>
+                    <div className="text-xs text-muted-foreground">Prioritize what matters most</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex ${msg.senderId === currentUser?.uid ? "justify-end" : "justify-start"}`}
+                  className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   data-testid={`message-${msg.id}`}
                 >
+                  {msg.role === "assistant" && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                      <Bot className="w-5 h-5 text-white" />
+                    </div>
+                  )}
                   <div
-                    className={`max-w-[75%] rounded-xl px-3 py-2 text-sm ${
-                      msg.senderId === currentUser?.uid
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                      msg.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted"
                     }`}
                   >
-                    {msg.content}
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <p className="text-xs opacity-60 mt-1">
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
                   </div>
+                  {msg.role === "user" && (
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-semibold text-primary">
+                        {currentUser?.email?.[0].toUpperCase()}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
+              {sendMutation.isPending && (
+                <div className="flex gap-3 justify-start">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="bg-muted rounded-2xl px-4 py-3">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 rounded-full bg-foreground/40 animate-bounce"></div>
+                      <div className="w-2 h-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div className="w-2 h-2 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
+          )}
+        </div>
+      </div>
 
-            <form onSubmit={handleSend} className="p-2.5 border-t border-border bg-card/50">
-              <div className="flex gap-2">
-                <Input
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1 h-9 text-sm"
-                  disabled={sendMutation.isPending}
-                  data-testid="input-message"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  className="h-9 w-9"
-                  disabled={!message.trim() || sendMutation.isPending}
-                  data-testid="button-send"
-                >
-                  {sendMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-            </form>
-          </>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-center p-4">
-            <div>
-              <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <h3 className="text-lg font-semibold mb-1">Select a conversation</h3>
-              <p className="text-sm text-muted-foreground">
-                Choose a conversation or search for a user to start messaging
-              </p>
-            </div>
-          </div>
-        )}
+      {/* Input */}
+      <div className="border-t border-border bg-card/50 backdrop-blur-lg">
+        <div className="max-w-4xl mx-auto px-4 py-3">
+          <form onSubmit={handleSend} className="flex gap-2">
+            <Input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Ask me anything about your productivity..."
+              className="flex-1"
+              disabled={sendMutation.isPending}
+              data-testid="input-ai-message"
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!message.trim() || sendMutation.isPending}
+              data-testid="button-send-ai"
+            >
+              {sendMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </form>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            AI can make mistakes. Always verify important information.
+          </p>
+        </div>
       </div>
     </div>
   );
