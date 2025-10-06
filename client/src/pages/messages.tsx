@@ -79,6 +79,38 @@ export default function Messages() {
     },
   });
 
+  const createTasksMutation = useMutation({
+    mutationFn: async (tasks: any[]) => {
+      const response = await apiRequest("POST", "/api/ai/create-tasks", { tasks });
+      if (!response.ok) throw new Error("Failed to create tasks");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Tasks created!",
+        description: `Successfully created ${data.tasks.length} task(s).`,
+      });
+      // Send a message to AI confirming task creation
+      const taskTitles = data.tasks.map((t: any) => t.title).join(", ");
+      sendMutation.mutate(`I've confirmed the task creation. Tasks created: ${taskTitles}`);
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create tasks. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleConfirmTasks = (tasks: any[]) => {
+    createTasksMutation.mutate(tasks);
+  };
+
+  const handleDeclineTasks = () => {
+    sendMutation.mutate("I've decided not to create those tasks right now. Let's discuss something else.");
+  };
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -267,17 +299,75 @@ export default function Messages() {
                       <Bot className="w-5 h-5 text-white" />
                     </div>
                   )}
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    <p className="text-xs opacity-60 mt-1">
-                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                  <div className="flex flex-col gap-2 max-w-[80%]">
+                    <div
+                      className={`rounded-2xl px-4 py-3 ${
+                        msg.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <p className="text-xs opacity-60 mt-1">
+                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    
+                    {/* Task Suggestions */}
+                    {msg.role === "assistant" && msg.taskSuggestions && (
+                      <Card className="p-4 bg-card border-primary/20">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          <h4 className="font-semibold text-sm">Task Suggestions</h4>
+                        </div>
+                        <div className="space-y-2 mb-3">
+                          {msg.taskSuggestions.tasks.map((task, idx) => (
+                            <div key={idx} className="flex gap-2 items-start text-sm" data-testid={`task-suggestion-${idx}`}>
+                              <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-xs font-semibold text-primary">{idx + 1}</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="font-medium">{task.title}</div>
+                                {task.description && (
+                                  <div className="text-xs text-muted-foreground">{task.description}</div>
+                                )}
+                                <div className="flex gap-2 mt-1 text-xs text-muted-foreground">
+                                  {task.timeEstimate && <span>⏱️ {task.timeEstimate}</span>}
+                                  {task.category && <span>📂 {task.category}</span>}
+                                  {task.priority && <span>🎯 {task.priority}</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleConfirmTasks(msg.taskSuggestions!.tasks)}
+                            disabled={createTasksMutation.isPending}
+                            data-testid="button-confirm-tasks"
+                          >
+                            {createTasksMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                Creating...
+                              </>
+                            ) : (
+                              "Create These Tasks"
+                            )}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleDeclineTasks}
+                            disabled={createTasksMutation.isPending}
+                            data-testid="button-decline-tasks"
+                          >
+                            Not Now
+                          </Button>
+                        </div>
+                      </Card>
+                    )}
                   </div>
                   {msg.role === "user" && (
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">

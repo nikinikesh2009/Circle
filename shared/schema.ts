@@ -669,12 +669,38 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // ============ AI ASSISTANT SYSTEM ============
 
+// AI Task Suggestion Schema (for validation)
+export const aiTaskSuggestionSchema = z.object({
+  title: z.string().min(1, "Task title is required"),
+  description: z.string().optional(),
+  category: z.enum(["work", "personal", "health", "learning", "other"]).default("other"),
+  priority: z.enum(["low", "medium", "high"]).default("medium"),
+  timeEstimate: z.string().optional(),
+  dueDate: z.string().optional(),
+});
+
+export const aiTaskSuggestionsArraySchema = z.object({
+  tasks: z.array(aiTaskSuggestionSchema).min(1, "At least one task is required"),
+});
+
+export type AiTaskSuggestion = z.infer<typeof aiTaskSuggestionSchema>;
+
 // AI Chat Message Schema
 export const aiChatMessageSchema = z.object({
   id: z.string(),
   userId: z.string(),
   role: z.enum(["user", "assistant"]),
   content: z.string(),
+  taskSuggestions: z.object({
+    tasks: z.array(z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      category: z.string().optional(),
+      priority: z.string().optional(),
+      timeEstimate: z.string().optional(),
+      dueDate: z.string().optional(),
+    }))
+  }).nullable().optional(),
   createdAt: z.date(),
 });
 

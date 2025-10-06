@@ -965,11 +965,17 @@ User Context:
 
 Important Guidelines:
 1. When suggesting tasks, ALWAYS ask for confirmation before creating them
-2. Format task suggestions clearly with: title, time, category, and priority
+2. Format task suggestions using this special format for the system to detect:
+   [TASK_SUGGESTIONS]
+   {"tasks": [{"title": "Task name", "timeEstimate": "30 minutes", "category": "work", "priority": "high", "description": "Optional details"}]}
+   [/TASK_SUGGESTIONS]
+   Then continue with your conversational message asking for confirmation
 3. Be conversational and use natural language
 4. Check on their productivity progress regularly
 5. Provide actionable advice, not just encouragement
-6. When discussing the day, ask about their energy levels, priorities, and available time`;
+6. When discussing the day, ask about their energy levels, priorities, and available time
+7. Categories: work, personal, health, learning, other
+8. Priorities: low, medium, high`;
 
       // Get recent chat history
       const chatHistorySnapshot = await db.ref('aiChatMessages')
@@ -1005,6 +1011,21 @@ Important Guidelines:
       
       const aiResponse = completion.choices[0].message.content;
       
+      // Parse task suggestions if present
+      let taskSuggestions = null;
+      let cleanedResponse = aiResponse;
+      
+      const taskSuggestionsMatch = aiResponse?.match(/\[TASK_SUGGESTIONS\]([\s\S]*?)\[\/TASK_SUGGESTIONS\]/);
+      if (taskSuggestionsMatch) {
+        try {
+          taskSuggestions = JSON.parse(taskSuggestionsMatch[1].trim());
+          // Remove the task suggestions block from the displayed message
+          cleanedResponse = aiResponse.replace(/\[TASK_SUGGESTIONS\][\s\S]*?\[\/TASK_SUGGESTIONS\]/, '').trim();
+        } catch (e) {
+          console.error("Failed to parse task suggestions:", e);
+        }
+      }
+      
       // Save both messages to Firebase
       const userMessageRef = db.ref('aiChatMessages').push();
       await userMessageRef.set({
@@ -1020,11 +1041,15 @@ Important Guidelines:
         id: assistantMessageRef.key,
         userId,
         role: 'assistant',
-        content: aiResponse,
+        content: cleanedResponse,
+        taskSuggestions: taskSuggestions || null,
         createdAt: new Date().toISOString()
       });
       
-      res.json({ message: aiResponse });
+      res.json({ 
+        message: cleanedResponse,
+        taskSuggestions: taskSuggestions
+      });
     } catch (error) {
       console.error("AI chat error:", error);
       res.status(500).json({ error: "Failed to get AI response" });
@@ -1125,6 +1150,55 @@ Important Guidelines:
     } catch (error) {
       console.error("Error updating AI settings:", error);
       res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+  
+  // Create tasks from AI suggestions (after user confirmation)
+  app.post("/api/ai/create-tasks", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      
+      // Validate request body
+      const { aiTaskSuggestionsArraySchema } = await import("@shared/schema");
+      const validation = aiTaskSuggestionsArraySchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid task data", 
+          details: validation.error.errors 
+        });
+      }
+      
+      const { tasks } = validation.data;
+      const db = admin.database();
+      const createdTasks = [];
+      
+      // Create each task
+      for (const task of tasks) {
+        const taskRef = db.ref('tasks').push();
+        const taskData = {
+          id: taskRef.key,
+          userId,
+          title: task.title,
+          description: task.description || '',
+          status: 'pending',
+          category: task.category || 'other',
+          priority: task.priority || 'medium',
+          timeEstimate: task.timeEstimate || null,
+          dueDate: task.dueDate || null,
+          createdAt: new Date().toISOString(),
+          completedAt: null,
+          source: 'ai_assistant'
+        };
+        
+        await taskRef.set(taskData);
+        createdTasks.push(taskData);
+      }
+      
+      res.json({ tasks: createdTasks });
+    } catch (error) {
+      console.error("Error creating tasks:", error);
+      res.status(500).json({ error: "Failed to create tasks" });
     }
   });
 
