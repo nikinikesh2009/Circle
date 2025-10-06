@@ -55,17 +55,22 @@ export default function Messages() {
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
       const response = await apiRequest("POST", "/api/ai/chat", { message: content });
-      if (!response.ok) throw new Error("Failed to send message");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("AI chat error:", errorData);
+        throw new Error(errorData.details || errorData.error || "Failed to send message");
+      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ai/messages"] });
       setMessage("");
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Send mutation error:", error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: error.message || "Failed to send message. Please try again.",
         variant: "destructive",
       });
     },

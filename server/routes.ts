@@ -1024,6 +1024,14 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
         : [];
       
       // Call DeepSeek API
+      if (!process.env.DEEPSEEK_API_KEY) {
+        console.error("DEEPSEEK_API_KEY is not set");
+        return res.status(500).json({ 
+          error: "DeepSeek API is not configured",
+          details: "API key is missing"
+        });
+      }
+
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({
         apiKey: process.env.DEEPSEEK_API_KEY,
@@ -1082,9 +1090,18 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
         message: cleanedResponse,
         taskSuggestions: taskSuggestions
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("AI chat error:", error);
-      res.status(500).json({ error: "Failed to get AI response" });
+      console.error("Error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      res.status(500).json({ 
+        error: "Failed to get AI response",
+        details: error.message || "Unknown error"
+      });
     }
   });
   
