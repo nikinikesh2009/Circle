@@ -8,14 +8,14 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
+async function getAuthHeaders(forceRefresh = false): Promise<Record<string, string>> {
   return new Promise((resolve, reject) => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       unsubscribe();
       
       if (user) {
         try {
-          const token = await user.getIdToken(true);
+          const token = await user.getIdToken(forceRefresh);
           resolve({
             "Authorization": `Bearer ${token}`,
           });
@@ -41,7 +41,7 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
-    const authHeaders = await getAuthHeaders();
+    let authHeaders = await getAuthHeaders(false);
     const headers: Record<string, string> = {
       ...authHeaders,
     };
@@ -50,7 +50,7 @@ export async function apiRequest(
       headers["Content-Type"] = "application/json";
     }
 
-    const res = await fetch(url, {
+    let res = await fetch(url, {
       method,
       headers,
       body: data ? JSON.stringify(data) : undefined,
@@ -58,7 +58,19 @@ export async function apiRequest(
     });
 
     if (res.status === 401) {
-      throw new Error("Session expired. Please log in again.");
+      authHeaders = await getAuthHeaders(true);
+      headers["Authorization"] = authHeaders["Authorization"];
+      
+      res = await fetch(url, {
+        method,
+        headers,
+        body: data ? JSON.stringify(data) : undefined,
+        credentials: "include",
+      });
+      
+      if (res.status === 401) {
+        throw new Error("Session expired. Please log in again.");
+      }
     }
 
     await throwIfResNotOk(res);
