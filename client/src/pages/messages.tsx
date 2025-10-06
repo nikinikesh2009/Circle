@@ -31,6 +31,7 @@ export default function Messages() {
   const { currentUser } = useAuth();
   const [message, setMessage] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -43,6 +44,13 @@ export default function Messages() {
     queryKey: ["/api/ai/settings"],
     enabled: !!currentUser,
   });
+
+  // Sync custom prompt with settings when they load
+  useEffect(() => {
+    if (aiSettings?.customSystemPrompt !== undefined) {
+      setCustomPrompt(aiSettings.customSystemPrompt || "");
+    }
+  }, [aiSettings]);
 
   const sendMutation = useMutation({
     mutationFn: async (content: string) => {
@@ -177,9 +185,14 @@ export default function Messages() {
                     <Label>Custom System Prompt (Optional)</Label>
                     <Textarea
                       placeholder="Add custom instructions for your AI assistant..."
-                      value={aiSettings?.customSystemPrompt || ""}
-                      onChange={(e) => {}}
-                      onBlur={(e) => updateSettingsMutation.mutate({ customSystemPrompt: e.target.value })}
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      onBlur={(e) => {
+                        const newValue = e.target.value;
+                        if (newValue !== (aiSettings?.customSystemPrompt || "")) {
+                          updateSettingsMutation.mutate({ customSystemPrompt: newValue });
+                        }
+                      }}
                       className="min-h-[100px]"
                       data-testid="textarea-custom-prompt"
                     />

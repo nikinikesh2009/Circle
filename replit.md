@@ -6,6 +6,32 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
+**October 6, 2025** - DeepSeek AI Integration & Smart Command Recognition
+- **Integrated DeepSeek AI as productivity assistant**
+- Messages page transformed into dedicated AI chat interface
+- Features:
+  - Full-screen AI chat interface powered by DeepSeek
+  - Smart command recognition for productivity features
+  - Commands: "Discuss the day", "Check my productivity", "Create tasks", "Get motivated"
+  - Proactive AI that asks about progress and obstacles
+  - Task suggestion system with user confirmation
+  - AI personality customization (Professional, Friendly, Motivating, Coach)
+  - Custom system prompt support
+  - Settings toggle for task suggestions and productivity check-ins
+- **Backend implementation**:
+  - DeepSeek API integration via OpenAI-compatible SDK
+  - Enhanced system prompts with command recognition
+  - Context-aware responses based on user streaks, tasks, habits
+  - Task suggestion parsing and creation flow
+  - Secure API key management via Replit Secrets
+- **Frontend implementation**:
+  - Clean, modern chat interface with gradient design
+  - Quick action buttons for common commands
+  - Task suggestion cards with confirm/decline actions
+  - Real-time message updates
+  - Loading states and error handling
+  - Settings dialog for AI customization
+
 **October 6, 2025** - Battle Invitation Notification System
 - **Complete battle invitation flow with real-time notifications**
 - New features:
@@ -26,10 +52,6 @@ The Circle is a full-stack web application designed to be a comprehensive produc
   - Messages page displays active battle participants at top
   - Proper loading states and error handling
   - Clean, intuitive UI with sword icons for battle-related items
-
-**October 6, 2025** - Complete AI Feature Removal
-- **All AI features have been permanently removed** at user request
-- Platform is fully functional without any AI dependencies
 
 ## User Preferences
 
@@ -65,6 +87,7 @@ The platform features a bottom navigation for mobile, and a clear, modern aesthe
 
 ### Feature Specifications
 
+- **AI Productivity Assistant**: DeepSeek-powered chat interface for productivity guidance, smart command recognition, task planning, productivity check-ins, and personalized motivation. Supports multiple personality modes and custom system prompts.
 - **Manual Productivity Tools**: Daily planning with manual task creation, habit tracking, and focus mode with customizable timers.
 - **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, similarity-based matchmaking, real-time notification system for battle invitations, and a rarity-based badge system for achievements.
 - **Community & Motivation**: Motivational posts with like functionality, user streaks, community engagement features, and private messaging with battle participant shortcuts.
@@ -83,6 +106,9 @@ The platform features a bottom navigation for mobile, and a clear, modern aesthe
 **Security**: Only invited participants (not creators) can accept/decline battles. All endpoints validate user authorization and battle status.
 
 ## External Dependencies
+
+### AI Services
+- **DeepSeek AI**: Powers the productivity assistant chat interface. Provides intelligent task planning, productivity insights, and personalized coaching. API key managed via Replit Secrets (DEEPSEEK_API_KEY).
 
 ### Authentication & Database
 - **Firebase**: Used for email/password authentication, Realtime Database (NoSQL), and Storage for file uploads. Essential for user management, streak tracking, motivational posts, and user data.
