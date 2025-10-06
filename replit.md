@@ -10,6 +10,19 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 2025: Version Control & Changelog System
+- **Version Footer**: Added version footer component displaying on every page (except chat)
+  - Shows current version (v1.0.0) from package.json
+  - Build date display
+  - Quick link to changelog page
+  - Branding with ACO Network attribution
+- **Changelog Page**: Created comprehensive version history page
+  - Visual changelog with version badges (major, minor, patch)
+  - Categorized changes with icons (features, improvements, bugs, security)
+  - Full version history from v0.1.0 to v1.0.0
+  - Roadmap section for upcoming features
+- **Settings Integration**: Added changelog link in Settings for easy access
+
 ### October 2025: Documentation & Help/Support System
 - **Documentation Page**: Created comprehensive documentation with searchable sidebar navigation covering all platform features
   - Sections: Getting Started, AI Chat Assistant, Daily Planner, Habits & Goals, Focus Mode, Community Features, PWA
