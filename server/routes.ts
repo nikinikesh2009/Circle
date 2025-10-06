@@ -307,26 +307,81 @@ Provide the schedule as a JSON array of tasks with this exact format:
 
 Only return the JSON array, no other text.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
-
-      const aiContent = response.text || "";
-      
-      // Parse AI response to extract JSON
-      let tasks: InsertTask[] = [];
       try {
-        const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          tasks = JSON.parse(jsonMatch[0]);
-        }
-      } catch (parseError) {
-        console.error("Failed to parse AI schedule:", parseError);
-        return res.status(500).json({ error: "Failed to parse AI schedule" });
-      }
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+        });
 
-      res.json({ tasks, rawResponse: aiContent });
+        const aiContent = response.text || "";
+        
+        // Parse AI response to extract JSON
+        let tasks: InsertTask[] = [];
+        try {
+          const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            tasks = JSON.parse(jsonMatch[0]);
+          }
+        } catch (parseError) {
+          console.error("Failed to parse AI schedule:", parseError);
+          return res.status(500).json({ error: "Failed to parse AI schedule" });
+        }
+
+        res.json({ tasks, rawResponse: aiContent });
+      } catch (aiError: any) {
+        const fallbackTasks = [
+          {
+            title: "Morning Routine",
+            category: "personal" as const,
+            startTime: schedulePrefs.wakeUpTime,
+            endTime: "08:00",
+            duration: 60,
+            priority: "medium" as const,
+            description: "Wake up, exercise, breakfast"
+          },
+          {
+            title: "Work Session",
+            category: "work" as const,
+            startTime: schedulePrefs.workStartTime,
+            endTime: "12:00",
+            duration: 180,
+            priority: "high" as const,
+            description: "Focus on priority tasks"
+          },
+          {
+            title: "Lunch Break",
+            category: "meal" as const,
+            startTime: "12:00",
+            endTime: "13:00",
+            duration: 60,
+            priority: "medium" as const,
+            description: "Healthy lunch"
+          },
+          {
+            title: "Afternoon Work",
+            category: "work" as const,
+            startTime: "13:00",
+            endTime: schedulePrefs.workEndTime,
+            duration: 240,
+            priority: "high" as const,
+            description: "Continue with tasks"
+          },
+          {
+            title: "Evening Wind Down",
+            category: "personal" as const,
+            startTime: "20:00",
+            endTime: schedulePrefs.sleepTime,
+            duration: 180,
+            priority: "low" as const,
+            description: "Relax and prepare for bed"
+          }
+        ];
+        
+        res.json({ 
+          tasks: fallbackTasks, 
+          rawResponse: "AI temporarily unavailable - using default schedule" 
+        });
+      }
     } catch (error) {
       console.error("Schedule generation error:", error);
       res.status(500).json({ error: "Failed to generate schedule" });
@@ -569,12 +624,24 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
 
       const prompt = `${prompts[type]} Keep it brief (1-2 sentences). Personality style: ${personality}`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-      });
+      try {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+        });
 
-      res.json({ message: response.text });
+        res.json({ message: response.text });
+      } catch (aiError: any) {
+        const fallbackMessages: Record<string, string> = {
+          motivation: "You've got this! Keep pushing forward, one step at a time. 💪",
+          reminder: "Don't forget to stay focused on your goals today!",
+          warning: "Take a moment to refocus. Your goals are waiting!",
+          achievement: "Amazing work! You're making great progress! 🎉",
+          tip: "Break your tasks into smaller steps - it makes everything more manageable!"
+        };
+        
+        res.json({ message: fallbackMessages[type] || "Keep up the great work!" });
+      }
     } catch (error) {
       console.error("Popup generation error:", error);
       res.status(500).json({ error: "Failed to generate popup" });

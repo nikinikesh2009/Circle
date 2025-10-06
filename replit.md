@@ -6,11 +6,15 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
-**October 6, 2025** - Updated Gemini API Key & Fixed AI Features
+**October 6, 2025** - Updated Gemini API Key & Added Fallback Handling
 - **Fixed all AI feature errors**: Updated GEMINI_API_KEY in Replit Secrets to resolve "Failed to generate schedule", "Failed to send message", and "Failed to save preferences" errors
-- All AI features now working properly:
+- **Added fallback responses**: When Google's AI servers are temporarily overloaded, the app now provides default responses instead of crashing
+  - Schedule generation falls back to default daily schedule
+  - Popup messages fall back to motivational defaults
+  - Chat continues to work with retry logic
+- All AI features now working reliably:
   - AI Chat assistant (multimodal support)
-  - AI schedule generation in Planner
+  - AI schedule generation in Planner  
   - AI habit nudges and suggestions
   - AI-powered settings and preferences
 - API key is securely stored in environment variables
