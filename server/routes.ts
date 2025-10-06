@@ -915,6 +915,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ AI ASSISTANT ROUTES ============
+  
+  // Send message to AI assistant
+  app.post("/api/ai/chat", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      // Get user context (recent tasks, habits, streaks)
+      const db = admin.database();
+      const [userSnapshot, tasksSnapshot, habitsSnapshot, aiSettingsSnapshot] = await Promise.all([
+        db.ref(`users/${userId}`).once('value'),
+        db.ref('tasks').orderByChild('userId').equalTo(userId).limitToLast(10).once('value'),
+        db.ref('habits').orderByChild('userId').equalTo(userId).once('value'),
+        db.ref(`aiSettings/${userId}`).once('value'),
+      ]);
+      
+      const user = userSnapshot.val();
+      const tasks = tasksSnapshot.val() ? Object.values(tasksSnapshot.val()) : [];
+      const habits = habitsSnapshot.val() ? Object.values(habitsSnapshot.val()) : [];
+      const aiSettings = aiSettingsSnapshot.val() || { personality: 'friendly', enableTaskSuggestions: true };
+      
+      // Build personality-based system prompt
+      const personalityPrompts: Record<string, string> = {
+        professional: "You are a professional productivity assistant. Be clear, concise, and focus on efficiency and results.",
+        friendly: "You are a friendly productivity assistant. Be warm, encouraging, and conversational while helping users achieve their goals.",
+        motivating: "You are an enthusiastic motivational coach. Be energetic, positive, and inspire users to push beyond their limits.",
+        coach: "You are a personal coach. Ask insightful questions, provide guidance, and help users discover their own solutions."
+      };
+      
+      const systemPrompt = aiSettings.customSystemPrompt || `${personalityPrompts[aiSettings.personality] || personalityPrompts['friendly']}
+
+You are The Circle's AI productivity assistant. You help users:
+- Plan their day and create tasks
+- Track and improve their productivity habits
+- Stay motivated with their goals
+- Manage their focus and time effectively
+
+User Context:
+- Current streak: ${user?.streak || 0} days
+- Total productive days: ${user?.totalDays || 0}
+- Recent tasks: ${tasks.length} tasks tracked
+- Active habits: ${habits.filter((h: any) => h.isActive).length}
+
+Important Guidelines:
+1. When suggesting tasks, ALWAYS ask for confirmation before creating them
+2. Format task suggestions clearly with: title, time, category, and priority
+3. Be conversational and use natural language
+4. Check on their productivity progress regularly
+5. Provide actionable advice, not just encouragement
+6. When discussing the day, ask about their energy levels, priorities, and available time`;
+
+      // Get recent chat history
+      const chatHistorySnapshot = await db.ref('aiChatMessages')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .limitToLast(20)
+        .once('value');
+      
+      const chatHistory = chatHistorySnapshot.val() 
+        ? Object.values(chatHistorySnapshot.val()).map((msg: any) => ({
+            role: msg.role,
+            content: msg.content
+          }))
+        : [];
+      
+      // Call DeepSeek API
+      const OpenAI = (await import('openai')).default;
+      const openai = new OpenAI({
+        apiKey: process.env.DEEPSEEK_API_KEY,
+        baseURL: 'https://api.deepseek.com'
+      });
+      
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...chatHistory,
+          { role: "user", content: message }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+      
+      const aiResponse = completion.choices[0].message.content;
+      
+      // Save both messages to Firebase
+      const userMessageRef = db.ref('aiChatMessages').push();
+      await userMessageRef.set({
+        id: userMessageRef.key,
+        userId,
+        role: 'user',
+        content: message,
+        createdAt: new Date().toISOString()
+      });
+      
+      const assistantMessageRef = db.ref('aiChatMessages').push();
+      await assistantMessageRef.set({
+        id: assistantMessageRef.key,
+        userId,
+        role: 'assistant',
+        content: aiResponse,
+        createdAt: new Date().toISOString()
+      });
+      
+      res.json({ message: aiResponse });
+    } catch (error) {
+      console.error("AI chat error:", error);
+      res.status(500).json({ error: "Failed to get AI response" });
+    }
+  });
+  
+  // Get AI chat history
+  app.get("/api/ai/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref('aiChatMessages')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .once('value');
+      
+      if (!snapshot.exists()) {
+        return res.json([]);
+      }
+      
+      const messages = Object.values(snapshot.val())
+        .map((msg: any) => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt)
+        }))
+        .sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime());
+      
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching AI messages:", error);
+      res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  });
+  
+  // Get AI settings
+  app.get("/api/ai/settings", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref(`aiSettings/${userId}`).once('value');
+      
+      if (!snapshot.exists()) {
+        // Return default settings
+        const defaultSettings = {
+          id: userId,
+          userId,
+          personality: 'friendly',
+          enableTaskSuggestions: true,
+          enableProductivityCheckins: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        return res.json(defaultSettings);
+      }
+      
+      const settings = {
+        ...snapshot.val(),
+        createdAt: new Date(snapshot.val().createdAt),
+        updatedAt: new Date(snapshot.val().updatedAt)
+      };
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching AI settings:", error);
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+  
+  // Update AI settings
+  app.put("/api/ai/settings", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { personality, customSystemPrompt, enableTaskSuggestions, enableProductivityCheckins } = req.body;
+      
+      const db = admin.database();
+      const settingsRef = db.ref(`aiSettings/${userId}`);
+      
+      const settings = {
+        id: userId,
+        userId,
+        personality: personality || 'friendly',
+        customSystemPrompt: customSystemPrompt || null,
+        enableTaskSuggestions: enableTaskSuggestions !== undefined ? enableTaskSuggestions : true,
+        enableProductivityCheckins: enableProductivityCheckins !== undefined ? enableProductivityCheckins : true,
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+      };
+      
+      await settingsRef.set(settings);
+      
+      res.json({
+        ...settings,
+        createdAt: new Date(settings.createdAt),
+        updatedAt: new Date(settings.updatedAt)
+      });
+    } catch (error) {
+      console.error("Error updating AI settings:", error);
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
   // Register admin routes
   const { registerAdminRoutes } = await import("./admin-routes");
   registerAdminRoutes(app);
