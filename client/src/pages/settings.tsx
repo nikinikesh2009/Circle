@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle, GitBranch } from 'lucide-react';
 import { Link } from 'wouter';
 import { type UserPreferences } from '@shared/schema';
 
@@ -500,6 +500,21 @@ export default function Settings() {
                   <div>
                     <div className="font-medium text-sm">FAQ</div>
                     <div className="text-xs text-muted-foreground">Quick answers to common questions</div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+
+            <Link href="/changelog">
+              <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group" data-testid="link-changelog">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <GitBranch className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm">Changelog</div>
+                    <div className="text-xs text-muted-foreground">Version history and updates</div>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />

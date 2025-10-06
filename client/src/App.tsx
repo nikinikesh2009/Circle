@@ -26,10 +26,12 @@ import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
 import Documentation from "@/pages/documentation";
 import Help from "@/pages/help";
+import Changelog from "@/pages/changelog";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
 import BottomNav from "@/components/BottomNav";
+import VersionFooter from "@/components/VersionFooter";
 import { Link, useLocation } from 'wouter';
 import { User, Settings as SettingsIcon } from 'lucide-react';
 
@@ -124,12 +126,14 @@ function AppContent() {
   const { currentUser } = useAuth();
   const [location] = useLocation();
   const showBottomNav = currentUser && !['/login', '/register', '/'].includes(location);
+  const showFooter = currentUser && !['/chat'].includes(location);
 
   return (
     <>
       <Navigation />
-      <div className={showBottomNav ? 'pb-20 md:pb-0' : ''}>
-        <Switch>
+      <div className={`flex flex-col min-h-screen ${showBottomNav ? 'pb-20 md:pb-0' : ''}`}>
+        <div className="flex-1">
+          <Switch>
           <Route path="/" component={HomeRedirect} />
           <Route path="/login" component={Login} />
           <Route path="/register" component={Register} />
@@ -218,10 +222,17 @@ function AppContent() {
               <Help />
             </ProtectedRoute>
           </Route>
+          <Route path="/changelog">
+            <ProtectedRoute>
+              <Changelog />
+            </ProtectedRoute>
+          </Route>
           <Route path="/admin/login" component={AdminLogin} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
+        </div>
+        {showFooter && <VersionFooter />}
       </div>
       {showBottomNav && <BottomNav />}
     </>
