@@ -8,8 +8,13 @@ import {
   insertUserPreferencesSchema,
   insertAiContextSchema,
   insertSupportTicketSchema,
+  insertBattleSchema,
+  insertUserBadgeSchema,
   type InsertTask,
-  type UserPreferences
+  type UserPreferences,
+  type Battle,
+  type Badge,
+  type UserBadge
 } from "@shared/schema";
 import { GoogleGenAI } from "@google/genai";
 import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
@@ -886,6 +891,429 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
     } catch (error) {
       console.error("Error creating support ticket:", error);
       res.status(400).json({ error: "Failed to create support ticket" });
+    }
+  });
+
+  // ============ BATTLE SYSTEM ROUTES ============
+
+  // Create a new battle
+  app.post("/api/battles", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const validatedData = insertBattleSchema.parse(req.body);
+      
+      // Sanitize custom challenge text
+      if (validatedData.customChallenge) {
+        validatedData.customChallenge = sanitizeInput(validatedData.customChallenge);
+      }
+      
+      const db = admin.database();
+      const battleRef = db.ref('battles').push();
+      const battleId = battleRef.key!;
+      
+      const battle: Battle = {
+        id: battleId,
+        ...validatedData,
+        scores: {},
+        createdAt: new Date(),
+      };
+      
+      // Initialize scores for all participants
+      validatedData.participants.forEach(participantId => {
+        battle.scores[participantId] = 0;
+      });
+      
+      await battleRef.set({
+        ...battle,
+        createdAt: battle.createdAt.toISOString(),
+      });
+      
+      res.status(201).json(battle);
+    } catch (error) {
+      console.error("Error creating battle:", error);
+      res.status(400).json({ error: "Failed to create battle" });
+    }
+  });
+
+  // Get all battles (user's battles)
+  app.get("/api/battles", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref('battles').once('value');
+      
+      if (!snapshot.exists()) {
+        return res.json([]);
+      }
+      
+      const allBattles = snapshot.val();
+      
+      // Filter battles where user is a participant
+      const userBattles = Object.values(allBattles)
+        .filter((battle: any) => battle.participants.includes(userId))
+        .map((battle: any) => ({
+          ...battle,
+          createdAt: new Date(battle.createdAt),
+          completedAt: battle.completedAt ? new Date(battle.completedAt) : undefined,
+        }))
+        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
+      
+      res.json(userBattles);
+    } catch (error) {
+      console.error("Error fetching battles:", error);
+      res.status(500).json({ error: "Failed to fetch battles" });
+    }
+  });
+
+  // Get all active/public battles (for discovery)
+  app.get("/api/battles/discover", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref('battles')
+        .orderByChild('status')
+        .equalTo('active')
+        .once('value');
+      
+      if (!snapshot.exists()) {
+        return res.json([]);
+      }
+      
+      const allBattles = snapshot.val();
+      
+      // Filter out user's own battles and format data
+      const discoverBattles = Object.values(allBattles)
+        .filter((battle: any) => !battle.participants.includes(userId))
+        .map((battle: any) => ({
+          ...battle,
+          createdAt: new Date(battle.createdAt),
+        }))
+        .slice(0, 20); // Limit to 20 battles
+      
+      res.json(discoverBattles);
+    } catch (error) {
+      console.error("Error fetching discover battles:", error);
+      res.status(500).json({ error: "Failed to fetch battles" });
+    }
+  });
+
+  // Get specific battle
+  app.get("/api/battles/:battleId", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const { battleId } = req.params;
+      const db = admin.database();
+      
+      const snapshot = await db.ref(`battles/${battleId}`).once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Battle not found" });
+      }
+      
+      const battle = snapshot.val();
+      
+      res.json({
+        ...battle,
+        createdAt: new Date(battle.createdAt),
+        completedAt: battle.completedAt ? new Date(battle.completedAt) : undefined,
+      });
+    } catch (error) {
+      console.error("Error fetching battle:", error);
+      res.status(500).json({ error: "Failed to fetch battle" });
+    }
+  });
+
+  // Update battle score
+  app.post("/api/battles/:battleId/score", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { battleId } = req.params;
+      const { score } = req.body;
+      
+      if (typeof score !== 'number' || score < 0) {
+        return res.status(400).json({ error: "Invalid score" });
+      }
+      
+      const db = admin.database();
+      const battleRef = db.ref(`battles/${battleId}`);
+      
+      const snapshot = await battleRef.once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Battle not found" });
+      }
+      
+      const battle = snapshot.val();
+      
+      // Check if user is a participant
+      if (!battle.participants.includes(userId)) {
+        return res.status(403).json({ error: "Not a participant in this battle" });
+      }
+      
+      // Update score
+      await battleRef.child(`scores/${userId}`).set(score);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating battle score:", error);
+      res.status(500).json({ error: "Failed to update score" });
+    }
+  });
+
+  // Complete a battle and determine winner
+  app.post("/api/battles/:battleId/complete", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const { battleId } = req.params;
+      const db = admin.database();
+      const battleRef = db.ref(`battles/${battleId}`);
+      
+      const snapshot = await battleRef.once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Battle not found" });
+      }
+      
+      const battle = snapshot.val();
+      
+      if (battle.status === 'completed') {
+        return res.status(400).json({ error: "Battle already completed" });
+      }
+      
+      // Determine winner (highest score)
+      let winnerId = '';
+      let highestScore = -1;
+      
+      Object.entries(battle.scores).forEach(([participantId, score]: [string, any]) => {
+        if (score > highestScore) {
+          highestScore = score;
+          winnerId = participantId;
+        }
+      });
+      
+      // Update battle status
+      await battleRef.update({
+        status: 'completed',
+        winnerId: winnerId,
+        completedAt: new Date().toISOString(),
+      });
+      
+      // Award first win badge if this is their first win
+      if (winnerId) {
+        const userBattlesSnapshot = await db.ref('battles')
+          .orderByChild('winnerId')
+          .equalTo(winnerId)
+          .once('value');
+        
+        const wins = userBattlesSnapshot.numChildren();
+        
+        if (wins === 1) {
+          // Award "First Victory" badge
+          const badgeId = 'first_victory';
+          const userBadgeRef = db.ref(`userBadges/${winnerId}_${badgeId}`);
+          const badgeExists = (await userBadgeRef.once('value')).exists();
+          
+          if (!badgeExists) {
+            await userBadgeRef.set({
+              id: `${winnerId}_${badgeId}`,
+              userId: winnerId,
+              badgeId: badgeId,
+              battleId: battleId,
+              earnedAt: new Date().toISOString(),
+            });
+          }
+        }
+      }
+      
+      res.json({ success: true, winnerId });
+    } catch (error) {
+      console.error("Error completing battle:", error);
+      res.status(500).json({ error: "Failed to complete battle" });
+    }
+  });
+
+  // AI matchmaking - suggest opponents
+  app.post("/api/battles/matchmaking", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { battleType } = req.body; // "1v1" or "group"
+      
+      const db = admin.database();
+      
+      // Get current user's stats
+      const userSnapshot = await db.ref(`users/${userId}`).once('value');
+      const userData = userSnapshot.val();
+      
+      // Get all users
+      const allUsersSnapshot = await db.ref('users').once('value');
+      const allUsers = allUsersSnapshot.val();
+      
+      // Get user's battle history
+      const battlesSnapshot = await db.ref('battles').once('value');
+      const allBattles = battlesSnapshot.exists() ? Object.values(battlesSnapshot.val()) : [];
+      
+      const userBattles = allBattles.filter((b: any) => 
+        b.participants.includes(userId)
+      );
+      
+      const userWins = allBattles.filter((b: any) => b.winnerId === userId).length;
+      
+      // Prepare user data for AI
+      const userStats = {
+        streak: userData?.streak || 0,
+        totalDays: userData?.totalDays || 0,
+        wins: userWins,
+        totalBattles: userBattles.length,
+        winRate: userBattles.length > 0 ? (userWins / userBattles.length * 100).toFixed(0) : 0,
+      };
+      
+      // Filter potential opponents (exclude current user)
+      const potentialOpponents = Object.entries(allUsers)
+        .filter(([uid]) => uid !== userId)
+        .map(([uid, data]: [string, any]) => {
+          const opponentBattles = allBattles.filter((b: any) => 
+            b.participants.includes(uid)
+          );
+          const opponentWins = allBattles.filter((b: any) => b.winnerId === uid).length;
+          
+          return {
+            id: uid,
+            email: data.email,
+            streak: data.streak || 0,
+            totalDays: data.totalDays || 0,
+            wins: opponentWins,
+            totalBattles: opponentBattles.length,
+            winRate: opponentBattles.length > 0 ? (opponentWins / opponentBattles.length * 100).toFixed(0) : 0,
+          };
+        })
+        .slice(0, 50); // Limit to 50 for AI processing
+      
+      // Use AI to suggest best matches
+      const prompt = `You are an AI matchmaking assistant for a productivity battle system.
+
+User Stats:
+- Streak: ${userStats.streak} days
+- Total Active Days: ${userStats.totalDays}
+- Battle Wins: ${userStats.wins}
+- Total Battles: ${userStats.totalBattles}
+- Win Rate: ${userStats.winRate}%
+
+Potential Opponents:
+${potentialOpponents.map((opp, idx) => 
+  `${idx + 1}. ${opp.email} - Streak: ${opp.streak}, Days: ${opp.totalDays}, Wins: ${opp.wins}/${opp.totalBattles} (${opp.winRate}% win rate)`
+).join('\n')}
+
+Analyze these opponents and suggest the TOP 5 best matches for a competitive and fair ${battleType} battle. Consider:
+1. Similar skill levels (streak, win rate)
+2. Active users (high totalDays)
+3. Fair competition (not too easy, not too hard)
+4. Engagement potential
+
+Return ONLY a JSON array of 5 opponent IDs in order of best match, like: ["id1", "id2", "id3", "id4", "id5"]`;
+
+      const model = ai.getGenerativeModel({ 
+        model: "gemini-2.0-flash-exp",
+      });
+      
+      const result = await model.generateContent(prompt);
+      const aiResponse = result.response.text();
+      
+      // Parse AI response
+      let suggestedIds: string[] = [];
+      try {
+        const jsonMatch = aiResponse.match(/\[.*\]/s);
+        if (jsonMatch) {
+          suggestedIds = JSON.parse(jsonMatch[0]);
+        }
+      } catch (parseError) {
+        console.error("AI response parsing error:", parseError);
+        // Fallback: suggest top 5 by similar stats
+        suggestedIds = potentialOpponents
+          .sort((a, b) => {
+            const aDiff = Math.abs(a.streak - userStats.streak) + Math.abs((a.winRate as number) - (userStats.winRate as number));
+            const bDiff = Math.abs(b.streak - userStats.streak) + Math.abs((b.winRate as number) - (userStats.winRate as number));
+            return aDiff - bDiff;
+          })
+          .slice(0, 5)
+          .map(opp => opp.id);
+      }
+      
+      // Get full user data for suggested opponents
+      const suggestions = suggestedIds
+        .map(id => potentialOpponents.find(opp => opp.id === id))
+        .filter(Boolean);
+      
+      res.json(suggestions);
+    } catch (error) {
+      console.error("Error in AI matchmaking:", error);
+      res.status(500).json({ error: "Failed to generate matchmaking suggestions" });
+    }
+  });
+
+  // Get user's badges
+  app.get("/api/badges/user", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref('userBadges')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .once('value');
+      
+      if (!snapshot.exists()) {
+        return res.json([]);
+      }
+      
+      const userBadges = Object.values(snapshot.val()).map((badge: any) => ({
+        ...badge,
+        earnedAt: new Date(badge.earnedAt),
+      }));
+      
+      res.json(userBadges);
+    } catch (error) {
+      console.error("Error fetching user badges:", error);
+      res.status(500).json({ error: "Failed to fetch badges" });
+    }
+  });
+
+  // Get all available badges
+  app.get("/api/badges", async (req, res) => {
+    try {
+      const db = admin.database();
+      
+      const snapshot = await db.ref('badges').once('value');
+      
+      if (!snapshot.exists()) {
+        // Initialize default badges if none exist
+        const defaultBadges: Partial<Badge>[] = [
+          { id: 'first_victory', name: 'First Victory', description: 'Won your first battle', icon: '🏆', rarity: 'common', category: 'battle', requirementType: 'first_win', requirementValue: 1 },
+          { id: 'battle_novice', name: 'Battle Novice', description: 'Participated in 5 battles', icon: '⚔️', rarity: 'common', category: 'battle', requirementType: 'total_battles', requirementValue: 5 },
+          { id: 'battle_veteran', name: 'Battle Veteran', description: 'Participated in 25 battles', icon: '🛡️', rarity: 'rare', category: 'battle', requirementType: 'total_battles', requirementValue: 25 },
+          { id: 'win_streak_5', name: 'Winning Streak', description: 'Won 5 battles in a row', icon: '🔥', rarity: 'rare', category: 'battle', requirementType: 'win_streak', requirementValue: 5 },
+          { id: 'champion', name: 'Champion', description: 'Won 10 battles', icon: '👑', rarity: 'epic', category: 'battle', requirementType: 'total_wins', requirementValue: 10 },
+          { id: 'legend', name: 'Legend', description: 'Won 50 battles', icon: '💎', rarity: 'legendary', category: 'battle', requirementType: 'total_wins', requirementValue: 50 },
+          { id: 'focus_master', name: 'Focus Master', description: 'Won a focus time battle', icon: '🎯', rarity: 'rare', category: 'focus', requirementType: 'focus_battle_win', requirementValue: 1 },
+          { id: 'habit_warrior', name: 'Habit Warrior', description: 'Won a habit streak battle', icon: '💪', rarity: 'rare', category: 'habit', requirementType: 'habit_battle_win', requirementValue: 1 },
+        ];
+        
+        // Store default badges
+        const badgesRef = db.ref('badges');
+        for (const badge of defaultBadges) {
+          await badgesRef.child(badge.id!).set({
+            ...badge,
+            createdAt: new Date().toISOString(),
+          });
+        }
+        
+        return res.json(defaultBadges);
+      }
+      
+      const badges = Object.values(snapshot.val());
+      res.json(badges);
+    } catch (error) {
+      console.error("Error fetching badges:", error);
+      res.status(500).json({ error: "Failed to fetch badges" });
     }
   });
 
