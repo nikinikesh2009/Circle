@@ -7,6 +7,7 @@ import {
   insertScheduledNotificationSchema,
   insertUserPreferencesSchema,
   insertAiContextSchema,
+  insertSupportTicketSchema,
   type InsertTask,
   type UserPreferences
 } from "@shared/schema";
@@ -851,6 +852,40 @@ Be ${personality} in your approach. Format the response clearly with sections.`;
     } catch (error) {
       console.error("Error searching users:", error);
       res.status(500).json({ error: "Failed to search users" });
+    }
+  });
+
+  // Support ticket endpoint
+  app.post("/api/support/ticket", async (req, res) => {
+    try {
+      const validatedData = insertSupportTicketSchema.parse(req.body);
+      
+      // Sanitize inputs
+      const sanitizedTicket = {
+        ...validatedData,
+        name: sanitizeInput(validatedData.name),
+        subject: sanitizeInput(validatedData.subject),
+        message: sanitizeInput(validatedData.message),
+      };
+      
+      // Store ticket in Firebase
+      const db = admin.database();
+      const ticketRef = db.ref('supportTickets').push();
+      const ticketId = ticketRef.key!;
+      
+      const ticket = {
+        id: ticketId,
+        ...sanitizedTicket,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      };
+      
+      await ticketRef.set(ticket);
+      
+      res.status(201).json({ success: true, ticketId });
+    } catch (error) {
+      console.error("Error creating support ticket:", error);
+      res.status(400).json({ error: "Failed to create support ticket" });
     }
   });
 

@@ -24,6 +24,8 @@ import Settings from "@/pages/settings";
 import FAQ from "@/pages/faq";
 import About from "@/pages/about";
 import Privacy from "@/pages/privacy";
+import Documentation from "@/pages/documentation";
+import Help from "@/pages/help";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -204,6 +206,16 @@ function AppContent() {
           <Route path="/privacy">
             <ProtectedRoute>
               <Privacy />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/documentation">
+            <ProtectedRoute>
+              <Documentation />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/help">
+            <ProtectedRoute>
+              <Help />
             </ProtectedRoute>
           </Route>
           <Route path="/admin/login" component={AdminLogin} />
