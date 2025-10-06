@@ -1,25 +1,16 @@
 import { 
-  type ChatMessage, 
-  type InsertChatMessage,
   type PushSubscription,
   type InsertPushSubscription,
   type ScheduledNotification,
   type InsertScheduledNotification,
   type UserPreferences,
   type InsertUserPreferences,
-  type AiContext,
-  type InsertAiContext,
   type PrivateMessage,
   type InsertPrivateMessage
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
-  // Chat Messages
-  getChatMessages(userId: string): Promise<ChatMessage[]>;
-  addChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-  clearChatMessages(userId: string): Promise<void>;
-  
   // Push Subscriptions
   getPushSubscriptions(userId: string): Promise<PushSubscription[]>;
   addPushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
@@ -36,11 +27,6 @@ export interface IStorage {
   getUserPreferences(userId: string): Promise<UserPreferences | null>;
   saveUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   
-  // AI Context (Memory)
-  getAiContext(userId: string): Promise<AiContext[]>;
-  addAiContext(context: InsertAiContext): Promise<AiContext>;
-  updateAiContextLastUsed(contextId: string): Promise<void>;
-  
   // Private Messages
   getConversation(userId1: string, userId2: string): Promise<PrivateMessage[]>;
   sendPrivateMessage(message: InsertPrivateMessage): Promise<PrivateMessage>;
@@ -49,39 +35,14 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private chatMessages: Map<string, ChatMessage[]>;
   private pushSubscriptions: Map<string, PushSubscription[]>;
   private scheduledNotifications: ScheduledNotification[];
   private userPreferences: Map<string, UserPreferences>;
-  private aiContexts: Map<string, AiContext[]>;
 
   constructor() {
-    this.chatMessages = new Map();
     this.pushSubscriptions = new Map();
     this.scheduledNotifications = [];
     this.userPreferences = new Map();
-    this.aiContexts = new Map();
-  }
-
-  // Chat Messages
-  async getChatMessages(userId: string): Promise<ChatMessage[]> {
-    return [...(this.chatMessages.get(userId) || [])];
-  }
-
-  async addChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
-    const message: ChatMessage = {
-      ...insertMessage,
-      id: randomUUID(),
-      createdAt: new Date(),
-    };
-    const userMessages = this.chatMessages.get(insertMessage.userId) || [];
-    userMessages.push(message);
-    this.chatMessages.set(insertMessage.userId, userMessages);
-    return message;
-  }
-
-  async clearChatMessages(userId: string): Promise<void> {
-    this.chatMessages.set(userId, []);
   }
 
   // Push Subscriptions
@@ -158,34 +119,6 @@ export class MemStorage implements IStorage {
     };
     this.userPreferences.set(insertPreferences.userId, preferences);
     return preferences;
-  }
-
-  // AI Context
-  async getAiContext(userId: string): Promise<AiContext[]> {
-    return [...(this.aiContexts.get(userId) || [])];
-  }
-
-  async addAiContext(insertContext: InsertAiContext): Promise<AiContext> {
-    const context: AiContext = {
-      ...insertContext,
-      id: randomUUID(),
-      lastUsed: new Date(),
-      createdAt: new Date(),
-    };
-    const userContexts = this.aiContexts.get(insertContext.userId) || [];
-    userContexts.push(context);
-    this.aiContexts.set(insertContext.userId, userContexts);
-    return context;
-  }
-
-  async updateAiContextLastUsed(contextId: string): Promise<void> {
-    for (const [userId, contexts] of Array.from(this.aiContexts.entries())) {
-      const context = contexts.find((c: AiContext) => c.id === contextId);
-      if (context) {
-        context.lastUsed = new Date();
-        return;
-      }
-    }
   }
 
   // Private Messages

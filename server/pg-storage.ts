@@ -1,21 +1,15 @@
 import { 
-  type ChatMessage, 
-  type InsertChatMessage,
   type PushSubscription,
   type InsertPushSubscription,
   type ScheduledNotification,
   type InsertScheduledNotification,
   type UserPreferences,
   type InsertUserPreferences,
-  type AiContext,
-  type InsertAiContext,
   type PrivateMessage,
   type InsertPrivateMessage,
-  chatMessagesTable,
   pushSubscriptionsTable,
   scheduledNotificationsTable,
   userPreferencesTable,
-  aiContextsTable,
   privateMessagesTable
 } from "@shared/schema";
 import { db } from "./db";
@@ -24,51 +18,6 @@ import { randomUUID } from "crypto";
 import type { IStorage } from "./storage";
 
 export class PgStorage implements IStorage {
-  // Chat Messages
-  async getChatMessages(userId: string): Promise<ChatMessage[]> {
-    const messages = await db
-      .select()
-      .from(chatMessagesTable)
-      .where(eq(chatMessagesTable.userId, userId));
-    
-    return messages.map(msg => ({
-      ...msg,
-      role: msg.role as "user" | "assistant",
-      fileUrl: msg.fileUrl ?? undefined,
-      fileType: (msg.fileType as "image" | "audio" | "document") ?? undefined,
-      fileName: msg.fileName ?? undefined,
-      mimeType: msg.mimeType ?? undefined,
-      createdAt: new Date(msg.createdAt),
-    }));
-  }
-
-  async addChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
-    const id = randomUUID();
-    const [message] = await db
-      .insert(chatMessagesTable)
-      .values({
-        id,
-        ...insertMessage,
-      })
-      .returning();
-    
-    return {
-      ...message,
-      role: message.role as "user" | "assistant",
-      fileUrl: message.fileUrl ?? undefined,
-      fileType: (message.fileType as "image" | "audio" | "document") ?? undefined,
-      fileName: message.fileName ?? undefined,
-      mimeType: message.mimeType ?? undefined,
-      createdAt: new Date(message.createdAt),
-    };
-  }
-
-  async clearChatMessages(userId: string): Promise<void> {
-    await db
-      .delete(chatMessagesTable)
-      .where(eq(chatMessagesTable.userId, userId));
-  }
-
   // Push Subscriptions
   async getPushSubscriptions(userId: string): Promise<PushSubscription[]> {
     const subscriptions = await db
@@ -209,7 +158,6 @@ export class PgStorage implements IStorage {
     return {
       ...preferences,
       notificationPreferences: preferences.notificationPreferences as any,
-      aiPreferences: preferences.aiPreferences as any,
       schedulePreferences: preferences.schedulePreferences as any,
       updatedAt: new Date(preferences.updatedAt),
       createdAt: new Date(preferences.createdAt),
@@ -234,7 +182,6 @@ export class PgStorage implements IStorage {
       return {
         ...updated,
         notificationPreferences: updated.notificationPreferences as any,
-        aiPreferences: updated.aiPreferences as any,
         schedulePreferences: updated.schedulePreferences as any,
         updatedAt: new Date(updated.updatedAt),
         createdAt: new Date(updated.createdAt),
@@ -252,56 +199,10 @@ export class PgStorage implements IStorage {
     return {
       ...created,
       notificationPreferences: created.notificationPreferences as any,
-      aiPreferences: created.aiPreferences as any,
       schedulePreferences: created.schedulePreferences as any,
       updatedAt: new Date(created.updatedAt),
       createdAt: new Date(created.createdAt),
     };
-  }
-
-  // AI Context (Memory)
-  async getAiContext(userId: string): Promise<AiContext[]> {
-    const contexts = await db
-      .select()
-      .from(aiContextsTable)
-      .where(eq(aiContextsTable.userId, userId));
-    
-    return contexts.map(ctx => ({
-      ...ctx,
-      contextType: ctx.contextType as "personal_info" | "goal" | "problem" | "preference" | "achievement",
-      relevanceScore: ctx.relevanceScore as number,
-      lastUsed: new Date(ctx.lastUsed),
-      createdAt: new Date(ctx.createdAt),
-    }));
-  }
-
-  async addAiContext(insertContext: InsertAiContext): Promise<AiContext> {
-    const id = randomUUID();
-    const [context] = await db
-      .insert(aiContextsTable)
-      .values({
-        id,
-        ...insertContext,
-        relevanceScore: insertContext.relevanceScore || 1,
-      })
-      .returning();
-    
-    return {
-      ...context,
-      contextType: context.contextType as "personal_info" | "goal" | "problem" | "preference" | "achievement",
-      relevanceScore: context.relevanceScore as number,
-      lastUsed: new Date(context.lastUsed),
-      createdAt: new Date(context.createdAt),
-    };
-  }
-
-  async updateAiContextLastUsed(contextId: string): Promise<void> {
-    await db
-      .update(aiContextsTable)
-      .set({
-        lastUsed: new Date(),
-      })
-      .where(eq(aiContextsTable.id, contextId));
   }
 
   // Private Messages
