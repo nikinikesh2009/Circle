@@ -600,6 +600,9 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
 
         res.json({ message: response.choices[0]?.message?.content });
       } catch (aiError: any) {
+        console.error("DeepSeek API Error:", aiError.message || aiError);
+        console.error("Error details:", JSON.stringify(aiError, null, 2));
+        
         const fallbackMessages: Record<string, string> = {
           motivation: "You've got this! Keep pushing forward, one step at a time. 💪",
           reminder: "Don't forget to stay focused on your goals today!",
