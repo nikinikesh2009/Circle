@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Calendar, Target, Zap, MessageSquare, Menu, Users, Newspaper, Sword } from 'lucide-react';
+import { Home, Calendar, Target, Zap, MessageCircle, Menu, Users, Newspaper, Sword } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,7 +20,7 @@ export default function BottomNav() {
 
   const rightNavItems = [
     { path: '/habits', icon: Target, label: 'Habits', testId: 'bottom-nav-habits' },
-    { path: '/chat', icon: MessageSquare, label: 'AI Chat', testId: 'bottom-nav-chat' },
+    { path: '/messages', icon: MessageCircle, label: 'Messages', testId: 'bottom-nav-messages' },
   ];
 
   const menuItems = [
