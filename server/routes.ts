@@ -918,7 +918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ AI ASSISTANT ROUTES ============
   
   // Send message to AI assistant
-  app.post("/api/ai/chat", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+  app.post("/api/ai/chat", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const { message } = req.body;
