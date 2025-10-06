@@ -92,7 +92,7 @@ const faqItems = [
       {
         id: 'q10',
         question: 'How does Focus Mode work?',
-        answer: 'Focus Mode provides customizable timers for work sessions and breaks. Track distractions and receive AI insights to improve concentration.',
+        answer: 'Focus Mode provides customizable timers for work sessions and breaks. Track distractions to improve concentration.',
       },
       {
         id: 'q11',
