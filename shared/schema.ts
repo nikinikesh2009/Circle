@@ -666,3 +666,43 @@ export const insertNotificationSchema = notificationSchema.omit({
 
 export type Notification = z.infer<typeof notificationSchema>;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// ============ AI ASSISTANT SYSTEM ============
+
+// AI Chat Message Schema
+export const aiChatMessageSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  createdAt: z.date(),
+});
+
+export const insertAiChatMessageSchema = aiChatMessageSchema.omit({ 
+  id: true, 
+  createdAt: true
+});
+
+export type AiChatMessage = z.infer<typeof aiChatMessageSchema>;
+export type InsertAiChatMessage = z.infer<typeof insertAiChatMessageSchema>;
+
+// AI Settings Schema
+export const aiSettingsSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  personality: z.enum(["professional", "friendly", "motivating", "coach"]).default("friendly"),
+  customSystemPrompt: z.string().optional(),
+  enableTaskSuggestions: z.boolean().default(true),
+  enableProductivityCheckins: z.boolean().default(true),
+  updatedAt: z.date(),
+  createdAt: z.date(),
+});
+
+export const insertAiSettingsSchema = aiSettingsSchema.omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+
+export type AiSettings = z.infer<typeof aiSettingsSchema>;
+export type InsertAiSettings = z.infer<typeof insertAiSettingsSchema>;
