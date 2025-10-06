@@ -9,18 +9,30 @@ async function throwIfResNotOk(res: Response) {
 }
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
-  const user = auth.currentUser;
-  if (user) {
-    try {
-      const token = await user.getIdToken();
-      return {
-        "Authorization": `Bearer ${token}`,
-      };
-    } catch (error) {
-      console.error("Error getting auth token:", error);
-    }
-  }
-  return {};
+  return new Promise((resolve, reject) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      unsubscribe();
+      
+      if (user) {
+        try {
+          const token = await user.getIdToken(true);
+          resolve({
+            "Authorization": `Bearer ${token}`,
+          });
+        } catch (error) {
+          console.error("Error getting auth token:", error);
+          reject(new Error("Authentication failed. Please log in again."));
+        }
+      } else {
+        reject(new Error("Not authenticated. Please log in."));
+      }
+    });
+    
+    setTimeout(() => {
+      unsubscribe();
+      reject(new Error("Authentication timeout. Please refresh and try again."));
+    }, 5000);
+  });
 }
 
 export async function apiRequest(
@@ -28,24 +40,35 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const authHeaders = await getAuthHeaders();
-  const headers: Record<string, string> = {
-    ...authHeaders,
-  };
-  
-  if (data) {
-    headers["Content-Type"] = "application/json";
+  try {
+    const authHeaders = await getAuthHeaders();
+    const headers: Record<string, string> = {
+      ...authHeaders,
+    };
+    
+    if (data) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+    });
+
+    if (res.status === 401) {
+      throw new Error("Session expired. Please log in again.");
+    }
+
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error: any) {
+    if (error.message?.includes("Not authenticated") || error.message?.includes("Authentication")) {
+      throw error;
+    }
+    throw error;
   }
-
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
