@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useAuth } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import HomeRedirect from "@/components/HomeRedirect";
@@ -34,11 +35,13 @@ import BottomNav from "@/components/BottomNav";
 import VersionFooter from "@/components/VersionFooter";
 import NotificationBell from "@/components/NotificationBell";
 import { Link, useLocation } from 'wouter';
-import { User, Settings as SettingsIcon } from 'lucide-react';
+import { User, Settings as SettingsIcon, Moon, Sun } from 'lucide-react';
+import { useTheme } from "@/contexts/ThemeContext";
 
 function Navigation() {
   const { currentUser, logout } = useAuth();
   const [location] = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   if (!currentUser) return null;
 
@@ -85,6 +88,14 @@ function Navigation() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button 
+                onClick={toggleTheme}
+                className="p-2 rounded-lg transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+                aria-label="Toggle theme"
+                data-testid="button-theme-toggle"
+              >
+                {theme === "light" ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+              </button>
               <NotificationBell />
               <Link href="/profile">
                 <button 
@@ -243,12 +254,14 @@ function AppContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <AppContent />
-        </TooltipProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <AppContent />
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
