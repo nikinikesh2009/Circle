@@ -6,18 +6,19 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
-**October 6, 2025** - Updated Gemini API Key & Added Fallback Handling
-- **Fixed all AI feature errors**: Updated GEMINI_API_KEY in Replit Secrets to resolve "Failed to generate schedule", "Failed to send message", and "Failed to save preferences" errors
-- **Added fallback responses**: When Google's AI servers are temporarily overloaded, the app now provides default responses instead of crashing
-  - Schedule generation falls back to default daily schedule
-  - Popup messages fall back to motivational defaults
-  - Chat continues to work with retry logic
-- All AI features now working reliably:
-  - AI Chat assistant (multimodal support)
-  - AI schedule generation in Planner  
+**October 6, 2025** - Switched to DeepSeek AI for Better Performance
+- **Migrated from Gemini to DeepSeek**: Switched all AI features to use DeepSeek API for faster responses and better cost efficiency
+- **All AI features now using DeepSeek**:
+  - AI Chat assistant (text-based conversations)
+  - AI schedule generation in Planner
   - AI habit nudges and suggestions
   - AI-powered settings and preferences
-- API key is securely stored in environment variables
+  - AI matchmaking for battles
+- **Added fallback responses**: When AI servers are temporarily overloaded, the app provides default responses instead of crashing
+  - Schedule generation falls back to default daily schedule
+  - Popup messages fall back to motivational defaults
+- DeepSeek API key securely stored in environment variables
+- Note: File upload support (images, audio, PDFs) temporarily removed - text chat only
 
 **October 6, 2025** - Fixed AI Authentication Issues & Mobile Connectivity
 - **Fixed mobile authentication errors**: "Failed to generate schedule", "Failed to save preferences", "Failed to send message"
@@ -77,9 +78,10 @@ The platform features an immersive, full-screen AI Chat experience, a bottom nav
 - **Neon Database (@neondatabase/serverless)**: Serverless PostgreSQL, configured with Drizzle ORM for a planned migration.
 
 ### AI Integration
-- **Google Gemini**: Powers AI features.
-  - **Gemini 2.0 Flash Exp**: For multimodal chat (images, audio, PDFs).
-  - **Gemini 2.5 Flash**: For text-only AI features (daily planning, habit nudges, AI matchmaking).
+- **DeepSeek**: Powers all AI features using OpenAI-compatible API.
+  - **DeepSeek Chat**: Used for all AI features (chat, daily planning, habit nudges, AI matchmaking)
+  - More cost-effective and faster than Gemini
+  - Text-based conversations only
 
 ### UI Component Libraries
 - **Radix UI**: Provides unstyled, accessible component primitives for the UI.

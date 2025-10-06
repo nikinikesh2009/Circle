@@ -16,13 +16,18 @@ import {
   type Badge,
   type UserBadge
 } from "@shared/schema";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
 import { apiLimiter, aiLimiter, uploadLimiter } from "./rate-limit";
 import DOMPurify from "isomorphic-dompurify";
 import admin from "firebase-admin";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const ai = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: process.env.DEEPSEEK_API_KEY || "",
+  timeout: 30000,
+  maxRetries: 3
+});
 
 // Sanitize user input to prevent XSS
 function sanitizeInput(input: string): string {
@@ -103,77 +108,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 When asked about who made you or who created you, respond that you were made by ACO Network, by Nikil Nikesh (Splash Pro).
 Be helpful, friendly, and provide accurate information. Use clear formatting in your responses.`;
 
-        const geminiMessages = await Promise.all(
-          chatHistory.slice(-10).map(async (msg) => {
-            const parts: any[] = [];
-            
-            if (msg.fileUrl && msg.mimeType && msg.fileType) {
-              if (!isValidStorageUrl(msg.fileUrl)) {
-                console.error("Skipping invalid file URL:", msg.fileUrl);
-                parts.push({ text: msg.content || "Invalid file attachment." });
-                return {
-                  role: msg.role === "assistant" ? "model" : "user",
-                  parts
-                };
-              }
-              
-              if (!isValidMimeType(msg.mimeType, msg.fileType)) {
-                console.error("Skipping invalid MIME type:", msg.mimeType, msg.fileType);
-                parts.push({ text: msg.content || "Unsupported file type." });
-                return {
-                  role: msg.role === "assistant" ? "model" : "user",
-                  parts
-                };
-              }
-              
-              try {
-                const fileResponse = await fetch(msg.fileUrl);
-                if (!fileResponse.ok) {
-                  throw new Error(`Failed to fetch file: ${fileResponse.statusText}`);
-                }
-                
-                const arrayBuffer = await fileResponse.arrayBuffer();
-                const base64Data = Buffer.from(arrayBuffer).toString('base64');
-                
-                parts.push({
-                  inlineData: {
-                    data: base64Data,
-                    mimeType: msg.mimeType
-                  }
-                });
-                
-                if (msg.content && msg.content !== `[Uploaded ${msg.fileType}]`) {
-                  parts.push({ text: msg.content });
-                } else {
-                  parts.push({ text: "Please analyze this file." });
-                }
-              } catch (fileError) {
-                console.error("Error fetching file:", fileError);
-                parts.push({ text: msg.content || "File upload failed." });
-              }
-            } else {
-              parts.push({ text: msg.content });
-            }
-            
+        const openaiMessages = chatHistory.slice(-10).map((msg) => {
+          if (msg.role === "assistant") {
             return {
-              role: msg.role === "assistant" ? "model" : "user",
-              parts
+              role: "assistant" as const,
+              content: msg.content || ""
             };
-          })
-        );
-
-        const messagesWithSystem = [
-          { role: "user", parts: [{ text: systemPrompt }] },
-          { role: "model", parts: [{ text: "Understood. I am an AI assistant created by ACO Network, by Nikil Nikesh (Splash Pro). How can I help you today?" }] },
-          ...geminiMessages
-        ];
-
-        const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash-exp",
-          contents: messagesWithSystem,
+          } else {
+            return {
+              role: "user" as const,
+              content: msg.content || ""
+            };
+          }
         });
 
-        const aiContent = response.text || "I'm sorry, I couldn't generate a response.";
+        const messagesWithSystem: OpenAI.Chat.ChatCompletionMessageParam[] = [
+          { role: "system", content: systemPrompt },
+          ...openaiMessages
+        ];
+
+        const response = await ai.chat.completions.create({
+          model: "deepseek-chat",
+          messages: messagesWithSystem,
+          temperature: 0.7,
+          max_tokens: 2000
+        });
+
+        const aiContent = response.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
 
         assistantMessage = await storage.addChatMessage({
           userId: validatedData.userId,
@@ -308,12 +269,14 @@ Provide the schedule as a JSON array of tasks with this exact format:
 Only return the JSON array, no other text.`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+        const response = await ai.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7,
+          max_tokens: 2000
         });
 
-        const aiContent = response.text || "";
+        const aiContent = response.choices[0]?.message?.content || "";
         
         // Parse AI response to extract JSON
         let tasks: InsertTask[] = [];
@@ -402,12 +365,13 @@ Reason: ${sanitizedReason}
 
 Suggest how to reorganize the remaining tasks for the day. Provide suggestions as JSON array with same format as tasks.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
 
-      res.json({ suggestion: response.text });
+      res.json({ suggestion: response.choices[0]?.message?.content });
     } catch (error) {
       console.error("Schedule adjustment error:", error);
       res.status(500).json({ error: "Failed to adjust schedule" });
@@ -436,12 +400,13 @@ Suggest how to reorganize the remaining tasks for the day. Provide suggestions a
 
       const prompt = `${personalityPrompts[personality]}. Generate a short motivational message (2-3 sentences) to nudge the user to complete their habit: "${sanitizedHabitName}". They've missed ${missedDays} days. Last completion: ${lastCompletion}. Make it personal and actionable.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
 
-      res.json({ nudge: response.text });
+      res.json({ nudge: response.choices[0]?.message?.content });
     } catch (error) {
       console.error("Habit nudge error:", error);
       res.status(500).json({ error: "Failed to generate habit nudge" });
@@ -464,12 +429,13 @@ ${deadline ? `Deadline: ${deadline}` : ''}
 
 Provide specific, measurable actions as a JSON array of strings.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
 
-      const content = response.text || "";
+      const content = response.choices[0]?.message?.content || "";
       let microSteps: string[] = [];
       
       try {
@@ -591,12 +557,13 @@ Suggest an optimal focus session:
 
 Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "motivation": "..." }`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
 
-      res.json({ suggestion: response.text });
+      res.json({ suggestion: response.choices[0]?.message?.content });
     } catch (error) {
       console.error("Focus session suggestion error:", error);
       res.status(500).json({ error: "Failed to suggest focus session" });
@@ -625,12 +592,13 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
       const prompt = `${prompts[type]} Keep it brief (1-2 sentences). Personality style: ${personality}`;
 
       try {
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+        const response = await ai.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [{ role: "user", content: prompt }],
+          temperature: 0.7
         });
 
-        res.json({ message: response.text });
+        res.json({ message: response.choices[0]?.message?.content });
       } catch (aiError: any) {
         const fallbackMessages: Record<string, string> = {
           motivation: "You've got this! Keep pushing forward, one step at a time. 💪",
@@ -757,12 +725,13 @@ Provide:
 
 Be ${personality} in your approach. Format the response clearly with sections.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
 
-      const solution = response.text;
+      const solution = response.choices[0]?.message?.content || "";
 
       // Save this interaction as context
       await storage.addAiContext({
@@ -1278,12 +1247,13 @@ Analyze these opponents and suggest the TOP 5 best matches for a competitive and
 
 Return ONLY a JSON array of 5 opponent IDs in order of best match, like: ["id1", "id2", "id3", "id4", "id5"]`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+      const response = await ai.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7
       });
       
-      const aiResponse = response.text || "";
+      const aiResponse = response.choices[0]?.message?.content || "";
       
       // Parse AI response
       let suggestedIds: string[] = [];
