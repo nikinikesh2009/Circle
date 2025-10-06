@@ -4,9 +4,21 @@
 
 The Circle is a full-stack web application designed to be a comprehensive productivity platform. It integrates AI-powered tools with habit tracking, motivational features, and community engagement to help users achieve their goals. Key capabilities include intelligent daily planning, a multimodal AI chat assistant, a focus mode, gamified habit formation, and a competitive battle system for user challenges. The platform aims to provide an immersive, supportive environment for personal growth and productivity.
 
+## Recent Changes
+
+**October 6, 2025** - Fixed AI Authentication Issues & Security
+- Fixed all frontend pages to use authenticated `apiRequest` helper instead of plain fetch
+- Removed insecure AI Configuration tab from admin dashboard (API keys should only be managed through Replit secrets)
+- Fixed rate limiter configuration (Express trust proxy set to `1` for proper IP detection)
+- Added SSL configuration for development environment (`NODE_TLS_REJECT_UNAUTHORIZED = "0"`)
+- All AI endpoints now properly authenticated with Firebase tokens
+- Pages fixed: Planner, Settings, Habits, Messages
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+
+**Security Note**: API keys must be managed through Replit Secrets (environment variables), never through UI configuration.
 
 ## System Architecture
 
