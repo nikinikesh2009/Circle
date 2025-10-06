@@ -549,7 +549,7 @@ Format as JSON: { "task": "...", "duration": number, "breakDuration": number, "m
   });
 
   // Generate motivational popup message
-  app.post("/api/ai/generate-popup", authenticateUser, validateUserId, aiLimiter, async (req: AuthRequest, res) => {
+  app.post("/api/ai/generate-popup", authenticateUser, aiLimiter, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const { type, context } = req.body;
