@@ -10,6 +10,23 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 2025: Head-to-Head Battle System
+- **Battle System**: Complete competitive battle feature with 1v1 and group battles
+  - Challenge types: Habit Streak, Focus Time, Task Completion, Custom Challenges
+  - Real-time score tracking and winner determination
+  - Battle status management (pending, active, completed)
+- **AI Matchmaking**: Intelligent opponent suggestions powered by Gemini AI
+  - Analyzes user stats (streaks, win rate, total battles)
+  - Suggests top 5 best-matched opponents for fair competition
+  - Skill-based matchmaking for balanced battles
+- **Badge System**: Achievement tracking with rarity-based badges
+  - Badge categories: battle, habit, focus, streak, community, special
+  - Rarity levels: common, rare, epic, legendary
+  - Automatic badge awards on battle completion
+  - Badge showcase with earned and locked badges display
+- **Navigation**: Added Battles to middle menu in bottom navigation
+- **Database**: Firebase Realtime Database integration for battles, badges, and user badges
+
 ### October 2025: Version Control & Changelog System
 - **Version Footer**: Added version footer component displaying on every page (except chat)
   - Shows current version (v1.0.0) from package.json
