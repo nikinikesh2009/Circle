@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { apiRequest } from '@/lib/queryClient';
 
 type Task = {
   id: string;
@@ -97,15 +98,11 @@ export default function Planner() {
     if (!currentUser) return;
     setGenerating(true);
     try {
-      const response = await fetch('/api/ai/generate-schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.uid,
-          date: selectedDate,
-          dayDescription: dayDescription.trim() || undefined,
-          existingTasks: tasks.length > 0 ? tasks : null
-        })
+      const response = await apiRequest('POST', '/api/ai/generate-schedule', {
+        userId: currentUser.uid,
+        date: selectedDate,
+        dayDescription: dayDescription.trim() || undefined,
+        existingTasks: tasks.length > 0 ? tasks : null
       });
 
       if (response.ok) {

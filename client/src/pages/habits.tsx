@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import confetti from 'canvas-confetti';
+import { apiRequest } from '@/lib/queryClient';
 
 type Habit = {
   id: string;
@@ -183,15 +184,11 @@ export default function Habits() {
     if (!currentUser) return;
     
     try {
-      const response = await fetch('/api/ai/habit-nudge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.uid,
-          habitName: habit.name,
-          missedDays: habit.bestStreak - habit.currentStreak,
-          lastCompletion: today
-        })
+      const response = await apiRequest('POST', '/api/ai/habit-nudge', {
+        userId: currentUser.uid,
+        habitName: habit.name,
+        missedDays: habit.bestStreak - habit.currentStreak,
+        lastCompletion: today
       });
 
       if (response.ok) {

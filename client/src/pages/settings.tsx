@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings as SettingsIcon, Bell, Brain, Clock, Save, HelpCircle, Info, Shield, ChevronRight, BookOpen, MessageCircle, GitBranch } from 'lucide-react';
 import { Link } from 'wouter';
 import { type UserPreferences } from '@shared/schema';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function Settings() {
   const { currentUser } = useAuth();
@@ -52,7 +53,7 @@ export default function Settings() {
     if (!currentUser) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/preferences?userId=${currentUser.uid}`);
+      const response = await apiRequest('GET', `/api/preferences?userId=${currentUser.uid}`);
       if (response.ok) {
         const data = await response.json();
         if (data) {
@@ -75,13 +76,9 @@ export default function Settings() {
     if (!currentUser) return;
     setSaving(true);
     try {
-      const response = await fetch('/api/preferences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.uid,
-          ...formData
-        })
+      const response = await apiRequest('POST', '/api/preferences', {
+        userId: currentUser.uid,
+        ...formData
       });
 
       if (response.ok) {

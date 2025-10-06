@@ -40,9 +40,7 @@ export default function Messages() {
     queryKey: ["/api/users/search", searchQuery],
     enabled: !!currentUser && searchQuery.length > 0,
     queryFn: async () => {
-      const response = await fetch(`/api/users/search?query=${encodeURIComponent(searchQuery)}`, {
-        credentials: "include",
-      });
+      const response = await apiRequest('GET', `/api/users/search?query=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) throw new Error("Failed to search users");
       return response.json();
     },
@@ -52,9 +50,7 @@ export default function Messages() {
     queryKey: ["/api/private-messages", selectedUserId],
     enabled: !!currentUser && !!selectedUserId,
     queryFn: async () => {
-      const response = await fetch(`/api/private-messages/${selectedUserId}`, {
-        credentials: "include",
-      });
+      const response = await apiRequest('GET', `/api/private-messages/${selectedUserId}`);
       if (!response.ok) throw new Error("Failed to fetch messages");
       return response.json();
     },
