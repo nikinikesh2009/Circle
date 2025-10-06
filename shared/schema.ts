@@ -639,3 +639,30 @@ export const insertBattleInvitationSchema = battleInvitationSchema.omit({
 
 export type BattleInvitation = z.infer<typeof battleInvitationSchema>;
 export type InsertBattleInvitation = z.infer<typeof insertBattleInvitationSchema>;
+
+// ============ NOTIFICATION SYSTEM ============
+
+// Notification Schema
+export const notificationSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  type: z.enum(["battle_invite", "battle_accepted", "battle_declined", "battle_completed", "message", "achievement"]),
+  title: z.string(),
+  message: z.string(),
+  relatedId: z.string().optional(), // battleId, messageId, etc.
+  relatedData: z.record(z.any()).optional(), // Additional data like battleType, challengeType, etc.
+  read: z.boolean().default(false),
+  actionUrl: z.string().optional(), // Where to navigate when clicked
+  createdAt: z.date(),
+  readAt: z.date().optional(),
+});
+
+export const insertNotificationSchema = notificationSchema.omit({ 
+  id: true, 
+  createdAt: true,
+  read: true,
+  readAt: true
+});
+
+export type Notification = z.infer<typeof notificationSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
