@@ -8,11 +8,13 @@ import {
   insertSupportTicketSchema,
   insertBattleSchema,
   insertUserBadgeSchema,
+  insertNotificationSchema,
   type InsertTask,
   type UserPreferences,
   type Battle,
   type Badge,
-  type UserBadge
+  type UserBadge,
+  type Notification
 } from "@shared/schema";
 import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
 import { apiLimiter } from "./rate-limit";
@@ -287,6 +289,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ NOTIFICATION SYSTEM ROUTES ============
+
+  // Get all notifications for current user
+  app.get("/api/notifications", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const db = admin.database();
+      
+      const snapshot = await db.ref('notifications')
+        .orderByChild('userId')
+        .equalTo(userId)
+        .once('value');
+      
+      if (!snapshot.exists()) {
+        return res.json([]);
+      }
+      
+      const notifications = Object.values(snapshot.val())
+        .map((notification: any) => ({
+          ...notification,
+          createdAt: new Date(notification.createdAt),
+          readAt: notification.readAt ? new Date(notification.readAt) : undefined,
+        }))
+        .sort((a: any, b: any) => b.createdAt.getTime() - a.createdAt.getTime());
+      
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/notifications/:id/read", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { id } = req.params;
+      const db = admin.database();
+      
+      const notificationRef = db.ref(`notifications/${id}`);
+      const snapshot = await notificationRef.once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      
+      const notification = snapshot.val();
+      
+      // Verify ownership
+      if (notification.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      
+      await notificationRef.update({
+        read: true,
+        readAt: new Date().toISOString(),
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
   // ============ BATTLE SYSTEM ROUTES ============
 
   // Create a new battle
@@ -320,6 +387,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...battle,
         createdAt: battle.createdAt.toISOString(),
       });
+      
+      // Create notifications for invited users (excluding creator)
+      const invitedUsers = validatedData.participants.filter(id => id !== userId);
+      const notificationPromises = invitedUsers.map(async (invitedUserId) => {
+        const notificationRef = db.ref('notifications').push();
+        const notification: Notification = {
+          id: notificationRef.key!,
+          userId: invitedUserId,
+          type: 'battle_invite',
+          title: 'Battle Challenge!',
+          message: `${validatedData.participantNames[userId]} challenged you to a ${battle.challengeType.replace('_', ' ')} battle!`,
+          relatedId: battleId,
+          relatedData: {
+            battleId,
+            battleType: battle.type,
+            challengeType: battle.challengeType,
+            creatorId: userId,
+            creatorName: validatedData.participantNames[userId],
+          },
+          read: false,
+          actionUrl: `/battles`,
+          createdAt: new Date(),
+        };
+        
+        await notificationRef.set({
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+        });
+      });
+      
+      await Promise.all(notificationPromises);
       
       res.status(201).json(battle);
     } catch (error) {
@@ -522,6 +620,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error completing battle:", error);
       res.status(500).json({ error: "Failed to complete battle" });
+    }
+  });
+
+  // Accept battle invitation
+  app.patch("/api/battles/:battleId/accept", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { battleId } = req.params;
+      const db = admin.database();
+      
+      const battleRef = db.ref(`battles/${battleId}`);
+      const snapshot = await battleRef.once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Battle not found" });
+      }
+      
+      const battle = snapshot.val();
+      
+      // Check if user is a participant
+      if (!battle.participants.includes(userId)) {
+        return res.status(403).json({ error: "Not a participant in this battle" });
+      }
+      
+      // Update battle status to active
+      await battleRef.update({
+        status: 'active',
+      });
+      
+      // Create notification for battle creator
+      const creatorId = battle.createdBy;
+      if (creatorId !== userId) {
+        const notificationRef = db.ref('notifications').push();
+        const notification: Notification = {
+          id: notificationRef.key!,
+          userId: creatorId,
+          type: 'battle_accepted',
+          title: 'Battle Accepted!',
+          message: `${battle.participantNames[userId]} accepted your battle challenge!`,
+          relatedId: battleId,
+          relatedData: {
+            battleId,
+            battleType: battle.type,
+            challengeType: battle.challengeType,
+            acceptedBy: userId,
+            acceptedByName: battle.participantNames[userId],
+          },
+          read: false,
+          actionUrl: `/battles`,
+          createdAt: new Date(),
+        };
+        
+        await notificationRef.set({
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error accepting battle:", error);
+      res.status(500).json({ error: "Failed to accept battle" });
+    }
+  });
+
+  // Decline battle invitation
+  app.patch("/api/battles/:battleId/decline", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+    try {
+      const userId = req.user!.uid;
+      const { battleId } = req.params;
+      const db = admin.database();
+      
+      const battleRef = db.ref(`battles/${battleId}`);
+      const snapshot = await battleRef.once('value');
+      
+      if (!snapshot.exists()) {
+        return res.status(404).json({ error: "Battle not found" });
+      }
+      
+      const battle = snapshot.val();
+      
+      // Check if user is a participant
+      if (!battle.participants.includes(userId)) {
+        return res.status(403).json({ error: "Not a participant in this battle" });
+      }
+      
+      // Update battle status to cancelled
+      await battleRef.update({
+        status: 'cancelled',
+      });
+      
+      // Create notification for battle creator
+      const creatorId = battle.createdBy;
+      if (creatorId !== userId) {
+        const notificationRef = db.ref('notifications').push();
+        const notification: Notification = {
+          id: notificationRef.key!,
+          userId: creatorId,
+          type: 'battle_declined',
+          title: 'Battle Declined',
+          message: `${battle.participantNames[userId]} declined your battle challenge.`,
+          relatedId: battleId,
+          relatedData: {
+            battleId,
+            battleType: battle.type,
+            challengeType: battle.challengeType,
+            declinedBy: userId,
+            declinedByName: battle.participantNames[userId],
+          },
+          read: false,
+          actionUrl: `/battles`,
+          createdAt: new Date(),
+        };
+        
+        await notificationRef.set({
+          ...notification,
+          createdAt: notification.createdAt.toISOString(),
+        });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error declining battle:", error);
+      res.status(500).json({ error: "Failed to decline battle" });
     }
   });
 
