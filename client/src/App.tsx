@@ -27,6 +27,7 @@ import Privacy from "@/pages/privacy";
 import Documentation from "@/pages/documentation";
 import Help from "@/pages/help";
 import Changelog from "@/pages/changelog";
+import Battles from "@/pages/battles";
 import NotFound from "@/pages/not-found";
 import AdminLogin from "@/pages/admin-login";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -225,6 +226,11 @@ function AppContent() {
           <Route path="/changelog">
             <ProtectedRoute>
               <Changelog />
+            </ProtectedRoute>
+          </Route>
+          <Route path="/battles">
+            <ProtectedRoute>
+              <Battles />
             </ProtectedRoute>
           </Route>
           <Route path="/admin/login" component={AdminLogin} />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Calendar, Target, Zap, MessageSquare, Menu, Users, Newspaper } from 'lucide-react';
+import { Home, Calendar, Target, Zap, MessageSquare, Menu, Users, Newspaper, Sword } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -24,12 +24,13 @@ export default function BottomNav() {
   ];
 
   const menuItems = [
+    { path: '/battles', icon: Sword, label: 'Battles', description: 'Head-to-head challenges', testId: 'menu-battles' },
     { path: '/focus', icon: Zap, label: 'Focus Mode', description: 'Stay concentrated', testId: 'menu-focus' },
     { path: '/groups', icon: Users, label: 'Groups', description: 'Connect with communities', testId: 'menu-groups' },
     { path: '/feed', icon: Newspaper, label: 'Feed', description: 'Community updates', testId: 'menu-feed' },
   ];
 
-  const isMenuActive = ['/focus', '/groups', '/feed'].includes(location);
+  const isMenuActive = ['/battles', '/focus', '/groups', '/feed'].includes(location);
 
   const handleMenuItemClick = (path: string) => {
     setShowMenu(false);

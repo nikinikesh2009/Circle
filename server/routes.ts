@@ -1211,17 +1211,17 @@ Analyze these opponents and suggest the TOP 5 best matches for a competitive and
 
 Return ONLY a JSON array of 5 opponent IDs in order of best match, like: ["id1", "id2", "id3", "id4", "id5"]`;
 
-      const model = ai.getGenerativeModel({ 
-        model: "gemini-2.0-flash-exp",
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
       });
       
-      const result = await model.generateContent(prompt);
-      const aiResponse = result.response.text();
+      const aiResponse = response.text || "";
       
       // Parse AI response
       let suggestedIds: string[] = [];
       try {
-        const jsonMatch = aiResponse.match(/\[.*\]/s);
+        const jsonMatch = aiResponse.match(/\[.*\]/);
         if (jsonMatch) {
           suggestedIds = JSON.parse(jsonMatch[0]);
         }
