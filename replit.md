@@ -2,35 +2,31 @@
 
 ## Overview
 
-The Circle is a full-stack web application designed to be a comprehensive productivity platform. It integrates AI-powered tools with habit tracking, motivational features, and community engagement to help users achieve their goals. Key capabilities include intelligent daily planning, a multimodal AI chat assistant, a focus mode, gamified habit formation, and a competitive battle system for user challenges. The platform aims to provide an immersive, supportive environment for personal growth and productivity.
+The Circle is a full-stack web application designed to be a comprehensive productivity platform. It integrates habit tracking, motivational features, and community engagement to help users achieve their goals. Key capabilities include manual daily planning, focus mode, gamified habit formation, and a competitive battle system for user challenges. The platform aims to provide an immersive, supportive environment for personal growth and productivity.
 
 ## Recent Changes
 
-**October 6, 2025** - Switched to DeepSeek AI for Better Performance
-- **Migrated from Gemini to DeepSeek**: Switched all AI features to use DeepSeek API for faster responses and better cost efficiency
-- **All AI features now using DeepSeek**:
-  - AI Chat assistant (text-based conversations)
-  - AI schedule generation in Planner
-  - AI habit nudges and suggestions
-  - AI-powered settings and preferences
-  - AI matchmaking for battles
-- **Added fallback responses**: When AI servers are temporarily overloaded, the app provides default responses instead of crashing
-  - Schedule generation falls back to default daily schedule
-  - Popup messages fall back to motivational defaults
-- DeepSeek API key securely stored in environment variables
-- Note: File upload support (images, audio, PDFs) temporarily removed - text chat only
-
-**October 6, 2025** - Fixed AI Authentication Issues & Mobile Connectivity
-- **Fixed mobile authentication errors**: "Failed to generate schedule", "Failed to save preferences", "Failed to send message"
-- Improved authentication token handling:
-  - Uses cached tokens first for faster requests (especially on slow mobile connections)
-  - Automatically refreshes expired tokens when server returns 401
-  - Better error messages: "Not authenticated. Please log in." instead of generic errors
-- Added explicit Firebase persistence configuration for reliable mobile login
-- Fixed all frontend pages to use authenticated `apiRequest` helper
-- Removed insecure AI Configuration tab from admin dashboard
-- Fixed rate limiter configuration and added SSL for development
-- **Solution for users**: If you see auth errors, simply log out and log back in to refresh your session
+**October 6, 2025** - Complete AI Feature Removal
+- **All AI features have been permanently removed** at user request
+- Removed features:
+  - AI Chat assistant page (deleted entirely)
+  - AI schedule generation in Planner (users now create schedules manually)
+  - AI habit nudges (removed from habits page)
+  - AI-powered settings and preferences (removed from settings)
+  - AI matchmaking for battles (replaced with simple similarity-based matching)
+  - AI Manager Control Panel from dashboard
+  - AI daily insights
+- **Backend cleanup**:
+  - Removed all AI endpoints from server/routes.ts
+  - Removed AI schemas from shared/schema.ts
+  - Removed AI storage methods from server/storage.ts
+  - Uninstalled openai, marked, and isomorphic-dompurify packages
+- **Frontend cleanup**:
+  - Removed chat route and navigation from App.tsx and BottomNav.tsx
+  - Updated all help documentation to remove AI references
+  - Replaced AI Chat with Messages in bottom navigation
+- **Simple fallback algorithms**: Battle matchmaking now uses stat similarity instead of AI
+- Platform is fully functional without any AI dependencies
 
 ## User Preferences
 
@@ -62,26 +58,20 @@ Development uses Vite for the frontend with HMR and `tsx` for the TypeScript ser
 
 ### UI/UX Decisions
 
-The platform features an immersive, full-screen AI Chat experience, a bottom navigation for mobile, and a clear, modern aesthetic. The design includes a version footer and a comprehensive changelog page. A detailed documentation page with searchable sidebar navigation covers all platform features, complemented by a tabbed help and support center with an FAQ and support ticket submission.
+The platform features a bottom navigation for mobile, and a clear, modern aesthetic. The design includes a version footer and a comprehensive changelog page. A detailed documentation page with searchable sidebar navigation covers all platform features, complemented by a tabbed help and support center with an FAQ and support ticket submission.
 
 ### Feature Specifications
 
-- **AI-Powered Productivity**: Intelligent daily planning, multimodal AI chat (images, audio, PDFs), smart habit nudges, task optimization.
-- **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, AI matchmaking, and a rarity-based badge system for achievements.
-- **Community & Motivation**: Motivational posts with like functionality, user streaks, and community engagement features.
+- **Manual Productivity Tools**: Daily planning with manual task creation, habit tracking, and focus mode with customizable timers.
+- **Gamified Habits**: Habit tracking, goal setting, competitive battle system (1v1, group battles) with various challenge types, similarity-based matchmaking, and a rarity-based badge system for achievements.
+- **Community & Motivation**: Motivational posts with like functionality, user streaks, community engagement features, and private messaging.
 - **Documentation & Support**: Comprehensive in-app documentation, searchable FAQ, and a support ticket system.
 
 ## External Dependencies
 
 ### Authentication & Database
-- **Firebase**: Used for email/password authentication, Realtime Database (NoSQL), and Storage for file uploads (images, audio, documents). Essential for user management, streak tracking, motivational posts, and chat attachments.
+- **Firebase**: Used for email/password authentication, Realtime Database (NoSQL), and Storage for file uploads. Essential for user management, streak tracking, motivational posts, and user data.
 - **Neon Database (@neondatabase/serverless)**: Serverless PostgreSQL, configured with Drizzle ORM for a planned migration.
-
-### AI Integration
-- **DeepSeek**: Powers all AI features using OpenAI-compatible API.
-  - **DeepSeek Chat**: Used for all AI features (chat, daily planning, habit nudges, AI matchmaking)
-  - More cost-effective and faster than Gemini
-  - Text-based conversations only
 
 ### UI Component Libraries
 - **Radix UI**: Provides unstyled, accessible component primitives for the UI.
