@@ -30,18 +30,6 @@ export const auditLogs = pgTable("audit_logs", {
 });
 
 // Core Tables
-export const chatMessagesTable = pgTable("chat_messages", {
-  id: varchar("id").primaryKey().notNull(),
-  userId: varchar("user_id").notNull(),
-  role: varchar("role").notNull(),
-  content: text("content").notNull(),
-  fileUrl: text("file_url"),
-  fileType: varchar("file_type"),
-  fileName: varchar("file_name"),
-  mimeType: varchar("mime_type"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
 export const pushSubscriptionsTable = pgTable("push_subscriptions", {
   id: varchar("id").primaryKey().notNull(),
   userId: varchar("user_id").notNull(),
@@ -68,20 +56,8 @@ export const userPreferencesTable = pgTable("user_preferences", {
   id: varchar("id").primaryKey().notNull(),
   userId: varchar("user_id").notNull().unique(),
   notificationPreferences: json("notification_preferences").notNull(),
-  aiPreferences: json("ai_preferences").notNull(),
   schedulePreferences: json("schedule_preferences").notNull(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const aiContextsTable = pgTable("ai_contexts", {
-  id: varchar("id").primaryKey().notNull(),
-  userId: varchar("user_id").notNull(),
-  contextType: varchar("context_type").notNull(),
-  topic: varchar("topic").notNull(),
-  content: text("content").notNull(),
-  relevanceScore: integer("relevance_score").notNull().default(1),
-  lastUsed: timestamp("last_used").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -257,35 +233,13 @@ export const insertGroupMemberSchema = groupMemberSchema.omit({
 export type GroupMember = z.infer<typeof groupMemberSchema>;
 export type InsertGroupMember = z.infer<typeof insertGroupMemberSchema>;
 
-// Chat Message Schema
-export const chatMessageSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  role: z.enum(["user", "assistant"]),
-  content: z.string(),
-  fileUrl: z.string().optional(),
-  fileType: z.enum(["image", "audio", "document"]).optional(),
-  fileName: z.string().optional(),
-  mimeType: z.string().optional(),
-  createdAt: z.date(),
-});
-
-export const insertChatMessageSchema = chatMessageSchema.omit({ 
-  id: true, 
-  createdAt: true
-});
-
-export type ChatMessage = z.infer<typeof chatMessageSchema>;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
-
-// ============ FEATURE 1: AI-POWERED DAILY PLANNER ============
+// ============ FEATURE 1: DAILY PLANNER ============
 
 // Daily Plan Schema
 export const dailyPlanSchema = z.object({
   id: z.string(),
   userId: z.string(),
   date: z.string(), // YYYY-MM-DD format
-  generatedBy: z.enum(["ai", "user"]),
   totalTasks: z.number().default(0),
   completedTasks: z.number().default(0),
   createdAt: z.date(),
@@ -314,7 +268,6 @@ export const taskSchema = z.object({
   duration: z.number(), // minutes
   priority: z.enum(["low", "medium", "high", "urgent"]),
   status: z.enum(["pending", "in_progress", "completed", "skipped", "postponed"]),
-  aiGenerated: z.boolean().default(false),
   completedAt: z.date().optional(),
   createdAt: z.date(),
 });
@@ -328,7 +281,7 @@ export const insertTaskSchema = taskSchema.omit({
 export type Task = z.infer<typeof taskSchema>;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 
-// ============ FEATURE 2: ENHANCED HABIT TRACKER ============
+// ============ FEATURE 2: HABIT TRACKER ============
 
 // Habit Schema
 export const habitSchema = z.object({
@@ -343,7 +296,6 @@ export const habitSchema = z.object({
   currentStreak: z.number().default(0),
   bestStreak: z.number().default(0),
   totalCompletions: z.number().default(0),
-  aiNudgesEnabled: z.boolean().default(true),
   isActive: z.boolean().default(true),
   createdAt: z.date(),
 });
@@ -389,7 +341,6 @@ export const goalSchema = z.object({
   currentValue: z.number().default(0),
   unit: z.string(), // "days", "times", "hours", etc.
   deadline: z.string().optional(), // YYYY-MM-DD format
-  aiMicroSteps: z.array(z.string()).optional(),
   status: z.enum(["active", "completed", "abandoned"]),
   createdAt: z.date(),
 });
@@ -519,9 +470,9 @@ export const insertPopupMessageSchema = popupMessageSchema.omit({
 export type PopupMessage = z.infer<typeof popupMessageSchema>;
 export type InsertPopupMessage = z.infer<typeof insertPopupMessageSchema>;
 
-// ============ FEATURE 5: AI PROBLEM SOLVER & ASSISTANT ============
+// ============ FEATURE 5: USER PREFERENCES ============
 
-// User Preferences Schema (AI settings)
+// User Preferences Schema
 export const userPreferencesSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -531,13 +482,6 @@ export const userPreferencesSchema = z.object({
     quietHoursStart: z.string().optional(), // HH:MM
     quietHoursEnd: z.string().optional(), // HH:MM
     motivationFrequency: z.enum(["low", "medium", "high"]).default("medium"),
-  }),
-  aiPreferences: z.object({
-    personalityStyle: z.enum(["supportive", "strict", "balanced", "friendly"]).default("balanced"),
-    plannerEnabled: z.boolean().default(true),
-    autoScheduleTasks: z.boolean().default(true),
-    habitNudgesEnabled: z.boolean().default(true),
-    focusModeEnabled: z.boolean().default(true),
   }),
   schedulePreferences: z.object({
     wakeUpTime: z.string().default("07:00"), // HH:MM
@@ -559,27 +503,6 @@ export const insertUserPreferencesSchema = userPreferencesSchema.omit({
 
 export type UserPreferences = z.infer<typeof userPreferencesSchema>;
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
-
-// AI Conversation Context Schema (for memory)
-export const aiContextSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  contextType: z.enum(["personal_info", "goal", "problem", "preference", "achievement"]),
-  topic: z.string(),
-  content: z.string(),
-  relevanceScore: z.number().default(1.0),
-  lastUsed: z.date(),
-  createdAt: z.date(),
-});
-
-export const insertAiContextSchema = aiContextSchema.omit({ 
-  id: true, 
-  createdAt: true,
-  lastUsed: true
-});
-
-export type AiContext = z.infer<typeof aiContextSchema>;
-export type InsertAiContext = z.infer<typeof insertAiContextSchema>;
 
 // ============ PRIVATE MESSAGING ============
 
