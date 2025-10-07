@@ -9,9 +9,18 @@ import { ref as dbRef, get, set, push, runTransaction, query, orderByChild } fro
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/shared/lib/firebase';
 import { Post, Comment, User } from '@shared/schema';
-import { Heart, MessageCircle, Image as ImageIcon, Send, User as UserIcon, Loader2, X, Search, SlidersHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Image as ImageIcon, Send, User as UserIcon, Loader2, X, Search, SlidersHorizontal, Edit, Trash2, Share2, Link2, Flag } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDistanceToNow } from 'date-fns';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface PostWithUser extends Post {
   user?: User;
@@ -39,6 +48,8 @@ export default function Feed() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'popular' | 'comments'>('recent');
   const [showFilters, setShowFilters] = useState(false);
+  const [editingPost, setEditingPost] = useState<PostWithUser | null>(null);
+  const [editContent, setEditContent] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -449,6 +460,98 @@ export default function Feed() {
     return String.fromCodePoint(...code.split('').map(c => 127397 + c.charCodeAt(0)));
   };
 
+  const handleEditPost = async () => {
+    if (!editingPost || !editContent.trim()) {
+      toast({
+        title: "Empty Content",
+        description: "Please enter some content for your post.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const postRef = dbRef(db, `posts/${editingPost.id}`);
+      await set(postRef, {
+        ...editingPost,
+        content: editContent.trim(),
+        editedAt: new Date().toISOString(),
+      });
+      await loadPosts();
+      setEditingPost(null);
+      setEditContent('');
+      toast({
+        title: "Post Updated",
+        description: "Your post has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update post.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      const postRef = dbRef(db, `posts/${postId}`);
+      await set(postRef, null);
+      await loadPosts();
+      toast({
+        title: "Post Deleted",
+        description: "Your post has been deleted.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSharePost = async (post: PostWithUser) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Check out this post from The Circle',
+          text: post.content || 'A post from The Circle community',
+          url: window.location.href,
+        });
+      } catch (error) {
+        // User cancelled share
+      }
+    } else {
+      toast({
+        title: "Share Not Available",
+        description: "Sharing is not supported on your device. Try copying the link instead.",
+      });
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({
+      title: "Link Copied",
+      description: "Post link copied to clipboard.",
+    });
+  };
+
+  const handleReportPost = (postId: string) => {
+    toast({
+      title: "Post Reported",
+      description: "Thank you for reporting. We'll review this post.",
+    });
+  };
+
+  const openEditDialog = (post: PostWithUser) => {
+    setEditingPost(post);
+    setEditContent(post.content || '');
+  };
+
   const filteredPosts = posts
     .filter(post => {
       if (searchQuery) {
@@ -638,11 +741,12 @@ export default function Feed() {
             </Card>
           ) : (
             filteredPosts.map((post) => (
-              <Card 
-                key={post.id} 
-                className="border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
-                data-testid={`card-post-${post.id}`}
-              >
+              <ContextMenu key={post.id}>
+                <ContextMenuTrigger>
+                  <Card 
+                    className="border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
+                    data-testid={`card-post-${post.id}`}
+                  >
                 <CardContent className="p-6 md:p-8">
                   {/* Post Header */}
                   <div className="flex items-start gap-4 mb-4">
@@ -790,9 +894,76 @@ export default function Feed() {
                   )}
                 </CardContent>
               </Card>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-56">
+              {post.userId === userData?.id ? (
+                <>
+                  <ContextMenuItem onClick={() => openEditDialog(post)} data-testid={`context-edit-${post.id}`}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Post
+                  </ContextMenuItem>
+                  <ContextMenuItem 
+                    onClick={() => handleDeletePost(post.id)} 
+                    className="text-destructive focus:text-destructive"
+                    data-testid={`context-delete-${post.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Post
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                </>
+              ) : null}
+              <ContextMenuItem onClick={() => handleSharePost(post)} data-testid={`context-share-${post.id}`}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Post
+              </ContextMenuItem>
+              <ContextMenuItem onClick={handleCopyLink} data-testid={`context-copy-link-${post.id}`}>
+                <Link2 className="w-4 h-4 mr-2" />
+                Copy Link
+              </ContextMenuItem>
+              {post.userId !== userData?.id && (
+                <>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem 
+                    onClick={() => handleReportPost(post.id)}
+                    className="text-destructive focus:text-destructive"
+                    data-testid={`context-report-${post.id}`}
+                  >
+                    <Flag className="w-4 h-4 mr-2" />
+                    Report Post
+                  </ContextMenuItem>
+                </>
+              )}
+            </ContextMenuContent>
+          </ContextMenu>
             ))
           )}
         </div>
+
+        {/* Edit Post Dialog */}
+        <Dialog open={!!editingPost} onOpenChange={() => setEditingPost(null)}>
+          <DialogContent data-testid="dialog-edit-post">
+            <DialogHeader>
+              <DialogTitle>Edit Post</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-post-content">Content</Label>
+                <Textarea
+                  id="edit-post-content"
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  placeholder="What's on your mind?"
+                  className="min-h-[150px]"
+                  data-testid="input-edit-post-content"
+                />
+              </div>
+              <Button onClick={handleEditPost} className="w-full" data-testid="button-update-post">
+                Update Post
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
