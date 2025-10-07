@@ -8,13 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sword, Trophy, Users, Target, Clock, Zap, Award, Sparkles } from 'lucide-react';
+import { Sword, Trophy, Users, Target, Clock, Zap, Award, Sparkles, Info, LogOut, TrendingUp, XCircle } from 'lucide-react';
 import { apiRequest, queryClient } from '@/shared/lib/queryClient';
 import { useToast } from '@/shared/hooks/use-toast';
 import { useAuthContext } from '@/shared/contexts/AuthContext';
 import { type Battle } from '@shared/schema';
 import { format, differenceInDays } from 'date-fns';
 import BadgeShowcase from '@/shared/components/BadgeShowcase';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 export default function Battles() {
   const { currentUser } = useAuthContext();
@@ -361,8 +368,73 @@ export default function Battles() {
 }
 
 function BattleCard({ battle, currentUserId }: { battle: Battle; currentUserId: string }) {
+  const { toast } = useToast();
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
+  const [progressPoints, setProgressPoints] = useState('');
   const isWinner = battle.winnerId === currentUserId;
   const daysRemaining = differenceInDays(new Date(battle.endDate), new Date());
+  
+  const leaveBattleMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('DELETE', `/api/battles/${battle.id}/leave`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/battles'] });
+      toast({
+        title: 'Left Battle',
+        description: 'You have left this battle.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to leave battle.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const reportProgressMutation = useMutation({
+    mutationFn: async (points: number) => {
+      return await apiRequest('PATCH', `/api/battles/${battle.id}/progress`, { points });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/battles'] });
+      setShowProgressDialog(false);
+      setProgressPoints('');
+      toast({
+        title: 'Progress Updated',
+        description: 'Your battle progress has been recorded.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update progress.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const handleLeaveBattle = () => {
+    if (confirm('Are you sure you want to leave this battle?')) {
+      leaveBattleMutation.mutate();
+    }
+  };
+
+  const handleReportProgress = () => {
+    const points = parseInt(progressPoints);
+    if (isNaN(points) || points < 0) {
+      toast({
+        title: 'Invalid Input',
+        description: 'Please enter a valid number of points.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    reportProgressMutation.mutate(points);
+  };
   
   const getChallengeIcon = (type: string) => {
     switch (type) {
@@ -392,83 +464,206 @@ function BattleCard({ battle, currentUserId }: { battle: Battle; currentUserId: 
   };
 
   return (
-    <Card className={battle.status === 'completed' && isWinner ? 'border-yellow-500/50' : ''} data-testid={`card-battle-${battle.id}`}>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className={getStatusColor(battle.status)}>
-                {battle.status}
-              </Badge>
-              <Badge variant="outline" className="gap-1">
-                {getChallengeIcon(battle.challengeType)}
-                {getChallengeLabel(battle.challengeType)}
-              </Badge>
-              {battle.type === 'group' && (
-                <Badge variant="outline" className="gap-1">
-                  <Users className="w-3 h-3" />
-                  Group
-                </Badge>
-              )}
-            </div>
-            <CardTitle className="text-lg">
-              {battle.customChallenge || getChallengeLabel(battle.challengeType)}
-            </CardTitle>
-          </div>
-          {battle.status === 'completed' && isWinner && (
-            <Award className="w-8 h-8 text-yellow-500" />
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Participants */}
-          <div className="grid grid-cols-2 gap-4">
-            {battle.participants.map((participantId) => (
-              <div
-                key={participantId}
-                className={`p-3 rounded-lg border ${
-                  participantId === currentUserId
-                    ? 'bg-primary/10 border-primary/20'
-                    : 'bg-muted/50 border-border'
-                }`}
-                data-testid={`participant-${participantId}`}
-              >
-                <p className="text-sm font-medium truncate">
-                  {battle.participantNames[participantId]}
-                </p>
-                <p className="text-2xl font-bold mt-1">
-                  {battle.scores[participantId] || 0}
-                </p>
-                <p className="text-xs text-muted-foreground">points</p>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <Card className={battle.status === 'completed' && isWinner ? 'border-yellow-500/50' : ''} data-testid={`card-battle-${battle.id}`}>
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className={getStatusColor(battle.status)}>
+                      {battle.status}
+                    </Badge>
+                    <Badge variant="outline" className="gap-1">
+                      {getChallengeIcon(battle.challengeType)}
+                      {getChallengeLabel(battle.challengeType)}
+                    </Badge>
+                    {battle.type === 'group' && (
+                      <Badge variant="outline" className="gap-1">
+                        <Users className="w-3 h-3" />
+                        Group
+                      </Badge>
+                    )}
+                  </div>
+                  <CardTitle className="text-lg">
+                    {battle.customChallenge || getChallengeLabel(battle.challengeType)}
+                  </CardTitle>
+                </div>
+                {battle.status === 'completed' && isWinner && (
+                  <Award className="w-8 h-8 text-yellow-500" />
+                )}
               </div>
-            ))}
-          </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Participants */}
+                <div className="grid grid-cols-2 gap-4">
+                  {battle.participants.map((participantId) => (
+                    <div
+                      key={participantId}
+                      className={`p-3 rounded-lg border ${
+                        participantId === currentUserId
+                          ? 'bg-primary/10 border-primary/20'
+                          : 'bg-muted/50 border-border'
+                      }`}
+                      data-testid={`participant-${participantId}`}
+                    >
+                      <p className="text-sm font-medium truncate">
+                        {battle.participantNames[participantId]}
+                      </p>
+                      <p className="text-2xl font-bold mt-1">
+                        {battle.scores[participantId] || 0}
+                      </p>
+                      <p className="text-xs text-muted-foreground">points</p>
+                    </div>
+                  ))}
+                </div>
 
-          {/* Date Info */}
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {battle.status === 'active' && daysRemaining >= 0 ? (
-                <span>{daysRemaining} days remaining</span>
-              ) : battle.status === 'completed' ? (
-                <span>Completed {format(new Date(battle.completedAt || battle.endDate), 'MMM d')}</span>
-              ) : (
-                <span>Ends {format(new Date(battle.endDate), 'MMM d')}</span>
-              )}
+                {/* Date Info */}
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    {battle.status === 'active' && daysRemaining >= 0 ? (
+                      <span>{daysRemaining} days remaining</span>
+                    ) : battle.status === 'completed' ? (
+                      <span>Completed {format(new Date(battle.completedAt || battle.endDate), 'MMM d')}</span>
+                    ) : (
+                      <span>Ends {format(new Date(battle.endDate), 'MMM d')}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Winner Badge */}
+                {battle.status === 'completed' && battle.winnerId && (
+                  <div className={`p-3 rounded-lg ${isWinner ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/50'}`}>
+                    <p className="text-sm font-medium">
+                      {isWinner ? '🎉 You won this battle!' : `Winner: ${battle.participantNames[battle.winnerId]}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <ContextMenuItem onClick={() => setShowDetailsDialog(true)} data-testid={`context-details-${battle.id}`}>
+            <Info className="w-4 h-4 mr-2" />
+            View Details
+          </ContextMenuItem>
+          {battle.status === 'active' && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => setShowProgressDialog(true)} data-testid={`context-progress-${battle.id}`}>
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Report Progress
+              </ContextMenuItem>
+              <ContextMenuItem 
+                onClick={handleLeaveBattle} 
+                className="text-destructive focus:text-destructive"
+                data-testid={`context-leave-${battle.id}`}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Leave Battle
+              </ContextMenuItem>
+            </>
+          )}
+          {battle.status === 'pending' && battle.createdBy === currentUserId && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem 
+                onClick={handleLeaveBattle} 
+                className="text-destructive focus:text-destructive"
+                data-testid={`context-cancel-${battle.id}`}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Cancel Battle
+              </ContextMenuItem>
+            </>
+          )}
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent data-testid="dialog-battle-details">
+          <DialogHeader>
+            <DialogTitle>Battle Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Challenge Type</Label>
+              <div className="flex items-center gap-2 mt-1">
+                {getChallengeIcon(battle.challengeType)}
+                <span>{getChallengeLabel(battle.challengeType)}</span>
+              </div>
             </div>
-          </div>
-
-          {/* Winner Badge */}
-          {battle.status === 'completed' && battle.winnerId && (
-            <div className={`p-3 rounded-lg ${isWinner ? 'bg-yellow-500/10 border border-yellow-500/20' : 'bg-muted/50'}`}>
-              <p className="text-sm font-medium">
-                {isWinner ? '🎉 You won this battle!' : `Winner: ${battle.participantNames[battle.winnerId]}`}
+            {battle.customChallenge && (
+              <div>
+                <Label>Challenge Description</Label>
+                <p className="text-sm text-muted-foreground mt-1">{battle.customChallenge}</p>
+              </div>
+            )}
+            <div>
+              <Label>Duration</Label>
+              <p className="text-sm text-muted-foreground mt-1">
+                {format(new Date(battle.startDate), 'MMM d, yyyy')} - {format(new Date(battle.endDate), 'MMM d, yyyy')}
               </p>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <div>
+              <Label>Status</Label>
+              <Badge variant="outline" className={`${getStatusColor(battle.status)} mt-1`}>
+                {battle.status}
+              </Badge>
+            </div>
+            <div>
+              <Label>Participants</Label>
+              <div className="mt-2 space-y-2">
+                {battle.participants.map((participantId) => (
+                  <div key={participantId} className="flex justify-between items-center">
+                    <span className="text-sm">{battle.participantNames[participantId]}</span>
+                    <span className="font-bold">{battle.scores[participantId] || 0} pts</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Progress Dialog */}
+      <Dialog open={showProgressDialog} onOpenChange={setShowProgressDialog}>
+        <DialogContent data-testid="dialog-report-progress">
+          <DialogHeader>
+            <DialogTitle>Report Progress</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="progress-points">Points to Add</Label>
+              <Input
+                id="progress-points"
+                type="number"
+                min="0"
+                value={progressPoints}
+                onChange={(e) => setProgressPoints(e.target.value)}
+                placeholder="Enter points"
+                data-testid="input-progress-points"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Current score: {battle.scores[currentUserId] || 0}
+              </p>
+            </div>
+            <Button 
+              onClick={handleReportProgress} 
+              disabled={reportProgressMutation.isPending}
+              className="w-full"
+              data-testid="button-submit-progress"
+            >
+              {reportProgressMutation.isPending ? 'Updating...' : 'Update Progress'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
