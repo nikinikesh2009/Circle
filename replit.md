@@ -6,6 +6,34 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
+**October 7, 2025** - Critical Bug Fixes & Mobile Navigation Enhancement
+- **Fixed Firebase Storage Configuration**
+  - Corrected storage bucket URL to circle-classroom.appspot.com
+  - Resolved all media upload failures
+  - Images now upload successfully to Firebase Storage
+- **Enhanced Post Creation Validation**
+  - Added content length validation (min 10 chars)
+  - Required content or image (cannot post empty)
+  - Improved error handling and user feedback
+  - Fixed post submission flow
+- **Fixed Battle Creation Issues**
+  - Added custom challenge requirements validation
+  - Implemented date validation (future dates only)
+  - Added self-battle prevention
+  - Enhanced user lookup error handling
+  - All battle types now work correctly
+- **Improved Mobile Navigation**
+  - Replaced center navigation button with dropdown menu
+  - Added Popover menu with all 9 features
+  - Features: Dashboard, AI Chat, Battles, Community, Planner, Habits, Groups, Profile, Help
+  - Fixed SPA routing (wouter setLocation instead of window.location)
+  - Smooth navigation without page reloads
+- **Service Worker Cache Fixes**
+  - Upgraded to v3 with aggressive cache clearing
+  - Network-first fetch strategy
+  - Eliminated stale JavaScript issues
+  - Clean browser console (no errors)
+
 **October 6, 2025** - DeepSeek AI Integration & Smart Command Recognition
 - **Integrated DeepSeek AI as productivity assistant**
 - Messages page transformed into dedicated AI chat interface

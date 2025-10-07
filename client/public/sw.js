@@ -1,8 +1,20 @@
-const CACHE_NAME = 'the-circle-v1';
+const CACHE_NAME = 'the-circle-v3';
 
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installing...');
-  self.skipWaiting();
+  console.log('Service Worker v3 installing - clearing all caches...');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          console.log('Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      console.log('All caches cleared, installing new service worker...');
+      return self.skipWaiting();
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {
@@ -18,28 +30,27 @@ self.addEventListener('fetch', (event) => {
   }
   
   event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
+    fetch(request).then((response) => {
+      if (!response || response.status !== 200 || response.type === 'error') {
+        return response;
       }
       
-      return fetch(request).then((response) => {
-        if (!response || response.status !== 200 || response.type === 'error') {
-          return response;
+      if (request.destination === 'document' || 
+          request.destination === 'script' || 
+          request.destination === 'style' ||
+          request.destination === 'image') {
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(request, responseToCache);
+        });
+      }
+      
+      return response;
+    }).catch(() => {
+      return caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        
-        if (request.destination === 'document' || 
-            request.destination === 'script' || 
-            request.destination === 'style' ||
-            request.destination === 'image') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-        }
-        
-        return response;
-      }).catch(() => {
         if (request.destination === 'document') {
           return caches.match('/');
         }
@@ -53,16 +64,20 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
+  console.log('Service Worker v3 activating - clearing all old caches...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      console.log('Taking control of all clients...');
+      return self.clients.claim();
     })
   );
 });

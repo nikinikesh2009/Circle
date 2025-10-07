@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/popover";
 
 export default function BottomNav() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showMenu, setShowMenu] = useState(false);
 
   const mainNavItems = [
@@ -39,7 +39,7 @@ export default function BottomNav() {
 
   const handleMenuItemClick = (path: string) => {
     setShowMenu(false);
-    window.location.href = path;
+    setLocation(path);
   };
 
   return (
