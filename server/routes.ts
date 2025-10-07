@@ -362,6 +362,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.uid;
       const validatedData = insertBattleSchema.parse(req.body);
       
+      // Validate custom challenge is provided when challenge type is custom
+      if (validatedData.challengeType === 'custom' && (!validatedData.customChallenge || !validatedData.customChallenge.trim())) {
+        return res.status(400).json({ error: "Custom challenge description is required for custom challenge type" });
+      }
+      
       // Sanitize custom challenge text
       if (validatedData.customChallenge) {
         validatedData.customChallenge = sanitizeInput(validatedData.customChallenge);

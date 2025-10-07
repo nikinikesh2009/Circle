@@ -278,6 +278,7 @@ export default function GroupDetail() {
   };
 
   const handleCreatePost = async () => {
+    // Validate content
     if (!postContent.trim() && !selectedImage) {
       toast({
         title: "Empty post",
@@ -287,35 +288,61 @@ export default function GroupDetail() {
       return;
     }
 
-    if (!userData || !currentUser || !groupId) return;
+    // Validate content length
+    if (postContent.trim().length > 5000) {
+      toast({
+        title: "Content too long",
+        description: "Please keep your post under 5000 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!userData || !currentUser || !groupId) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create a post.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSubmitting(true);
     try {
       let imageUrl: string | undefined;
 
+      // Upload image if selected
       if (selectedImage) {
-        const imagePath = `posts/${userData.id}/${Date.now()}.jpg`;
-        const imageRef = storageRef(storage, imagePath);
-        await uploadBytes(imageRef, selectedImage);
-        imageUrl = await getDownloadURL(imageRef);
+        try {
+          const imagePath = `posts/${userData.id}/${Date.now()}.jpg`;
+          const imageRef = storageRef(storage, imagePath);
+          await uploadBytes(imageRef, selectedImage);
+          imageUrl = await getDownloadURL(imageRef);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          toast({
+            title: "Image Upload Failed",
+            description: "Failed to upload image. Posting without image.",
+            variant: "destructive",
+          });
+        }
       }
 
+      // Create post with all required fields
       const newPostRef = push(dbRef(db, 'posts'));
-      const newPost: any = {
+      const newPost = {
         userId: userData.id,
         content: postContent.trim(),
         groupId,
+        imageUrl: imageUrl || undefined,
         likes: 0,
         commentCount: 0,
         createdAt: new Date().toISOString(),
       };
 
-      if (imageUrl) {
-        newPost.imageUrl = imageUrl;
-      }
-
       await set(newPostRef, newPost);
 
+      // Reset form
       setPostContent('');
       setSelectedImage(null);
       setImagePreview(null);
@@ -331,9 +358,10 @@ export default function GroupDetail() {
       await loadPosts();
     } catch (error) {
       console.error('Error creating post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create post. Please try again.';
       toast({
         title: "Error",
-        description: "Failed to create post. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

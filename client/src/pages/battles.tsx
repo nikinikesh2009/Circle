@@ -52,56 +52,97 @@ export default function Battles() {
         customChallenge: '',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const errorMessage = error?.message || 'Failed to create battle. Please try again.';
       toast({
         title: 'Error',
-        description: 'Failed to create battle. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     },
   });
 
   const handleCreateBattle = async () => {
-    if (!newBattle.opponentEmail) {
+    // Validate opponent email
+    if (!newBattle.opponentEmail.trim()) {
       toast({
         title: 'Missing Information',
-        description: 'Please select an opponent.',
+        description: 'Please enter an opponent email.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Search for user by email
-    const response = await apiRequest('GET', `/api/users/search?query=${encodeURIComponent(newBattle.opponentEmail)}`);
-    const users = await response.json();
-
-    if (!users || users.length === 0) {
+    // Validate custom challenge if challenge type is custom
+    if (newBattle.challengeType === 'custom' && !newBattle.customChallenge.trim()) {
       toast({
-        title: 'User Not Found',
-        description: 'No user found with that email.',
+        title: 'Missing Information',
+        description: 'Please describe your custom challenge.',
         variant: 'destructive',
       });
       return;
     }
 
-    const opponent = users[0];
+    // Validate dates
+    if (new Date(newBattle.startDate) >= new Date(newBattle.endDate)) {
+      toast({
+        title: 'Invalid Dates',
+        description: 'End date must be after start date.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const battleData = {
-      type: newBattle.type,
-      challengeType: newBattle.challengeType,
-      customChallenge: newBattle.challengeType === 'custom' ? newBattle.customChallenge : undefined,
-      participants: [currentUser!.uid, opponent.id],
-      participantNames: {
-        [currentUser!.uid]: currentUser!.email || 'You',
-        [opponent.id]: opponent.email,
-      },
-      status: 'pending',
-      startDate: newBattle.startDate,
-      endDate: newBattle.endDate,
-      createdBy: currentUser!.uid,
-    };
+    try {
+      // Search for user by email
+      const response = await apiRequest('GET', `/api/users/search?query=${encodeURIComponent(newBattle.opponentEmail)}`);
+      const users = await response.json();
 
-    createBattleMutation.mutate(battleData);
+      if (!users || users.length === 0) {
+        toast({
+          title: 'User Not Found',
+          description: 'No user found with that email. Please check and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const opponent = users[0];
+
+      // Prevent user from battling themselves
+      if (opponent.id === currentUser!.uid) {
+        toast({
+          title: 'Invalid Opponent',
+          description: 'You cannot create a battle with yourself.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const battleData = {
+        type: newBattle.type,
+        challengeType: newBattle.challengeType,
+        customChallenge: newBattle.challengeType === 'custom' ? newBattle.customChallenge.trim() : undefined,
+        participants: [currentUser!.uid, opponent.id],
+        participantNames: {
+          [currentUser!.uid]: currentUser!.email || 'You',
+          [opponent.id]: opponent.email,
+        },
+        status: 'pending' as const,
+        startDate: newBattle.startDate,
+        endDate: newBattle.endDate,
+        createdBy: currentUser!.uid,
+      };
+
+      createBattleMutation.mutate(battleData);
+    } catch (error) {
+      console.error('Error searching for user:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to search for user. Please check your connection and try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const getChallengeIcon = (type: string) => {
