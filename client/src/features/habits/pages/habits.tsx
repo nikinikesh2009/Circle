@@ -3,7 +3,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/shared/hooks/use-toast';
-import { CheckCircle2, Circle, Flame, TrendingUp, Plus, Target } from 'lucide-react';
+import { CheckCircle2, Circle, Flame, TrendingUp, Plus, Target, Pencil, Trash2, BarChart3, RotateCcw } from 'lucide-react';
 import { ref, get, set, update } from 'firebase/database';
 import { db } from '@/shared/lib/firebase';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import confetti from 'canvas-confetti';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator } from '@/components/ui/context-menu';
+import { useLongPress } from '@/shared/hooks/use-long-press';
 
 type Habit = {
   id: string;
@@ -39,6 +41,10 @@ export default function Habits() {
   const [habits, setHabits] = useState<Habit[]>([]);
   const [completions, setCompletions] = useState<Record<string, boolean>>({});
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showStatsDialog, setShowStatsDialog] = useState(false);
+  const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
+  const [statsHabit, setStatsHabit] = useState<Habit | null>(null);
   const [newHabit, setNewHabit] = useState({
     name: '',
     description: '',
@@ -175,6 +181,80 @@ export default function Habits() {
     }
   };
 
+  const openEditDialog = (habit: Habit) => {
+    setEditingHabit(habit);
+    setShowEditDialog(true);
+  };
+
+  const updateHabit = async () => {
+    if (!currentUser || !editingHabit) return;
+    try {
+      const habitRef = ref(db, `habits/${currentUser.uid}/${editingHabit.id}`);
+      await update(habitRef, {
+        name: editingHabit.name,
+        description: editingHabit.description,
+        category: editingHabit.category,
+        frequency: editingHabit.frequency,
+      });
+      await loadHabits();
+      setShowEditDialog(false);
+      setEditingHabit(null);
+      toast({
+        title: "Habit updated",
+        description: "Your habit has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update habit.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteHabit = async (habitId: string) => {
+    if (!currentUser) return;
+    try {
+      const habitRef = ref(db, `habits/${currentUser.uid}/${habitId}`);
+      await update(habitRef, { isActive: false });
+      await loadHabits();
+      toast({
+        title: "Habit deleted",
+        description: "Habit removed from your list.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete habit.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetStreak = async (habitId: string) => {
+    if (!currentUser) return;
+    try {
+      const habitRef = ref(db, `habits/${currentUser.uid}/${habitId}`);
+      await update(habitRef, { currentStreak: 0 });
+      await loadHabits();
+      toast({
+        title: "Streak reset",
+        description: "Habit streak has been reset to 0.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reset streak.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const viewStats = (habit: Habit) => {
+    setStatsHabit(habit);
+    setShowStatsDialog(true);
+  };
+
   const totalCompleted = Object.values(completions).filter(Boolean).length;
   const completionRate = habits.length > 0 ? (totalCompleted / habits.length) * 100 : 0;
 
@@ -288,53 +368,207 @@ export default function Habits() {
         ) : (
           <div className="space-y-3">
             {habits.map((habit) => (
-              <Card 
-                key={habit.id} 
-                className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => toggleHabitCompletion(habit)}
-                data-testid={`card-habit-${habit.id}`}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 mt-1">
-                      {completions[habit.id] ? (
-                        <CheckCircle2 className="w-8 h-8 text-green-500" data-testid={`icon-completed-${habit.id}`} />
-                      ) : (
-                        <Circle className="w-8 h-8 text-muted-foreground" data-testid={`icon-pending-${habit.id}`} />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-semibold text-lg">{habit.name}</h3>
-                          {habit.description && (
-                            <p className="text-sm text-muted-foreground">{habit.description}</p>
+              <ContextMenu key={habit.id}>
+                <ContextMenuTrigger>
+                  <Card 
+                    className="hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => toggleHabitCompletion(habit)}
+                    data-testid={`card-habit-${habit.id}`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 mt-1">
+                          {completions[habit.id] ? (
+                            <CheckCircle2 className="w-8 h-8 text-green-500" data-testid={`icon-completed-${habit.id}`} />
+                          ) : (
+                            <Circle className="w-8 h-8 text-muted-foreground" data-testid={`icon-pending-${habit.id}`} />
                           )}
                         </div>
-                        <Badge variant="outline">{habit.category}</Badge>
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h3 className="font-semibold text-lg">{habit.name}</h3>
+                              {habit.description && (
+                                <p className="text-sm text-muted-foreground">{habit.description}</p>
+                              )}
+                            </div>
+                            <Badge variant="outline">{habit.category}</Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-sm">
+                            <div className="flex items-center gap-1">
+                              <Flame className="w-4 h-4 text-orange-500" />
+                              <span className="font-medium">{habit.currentStreak}</span>
+                              <span className="text-muted-foreground">day streak</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <TrendingUp className="w-4 h-4 text-green-500" />
+                              <span className="font-medium">{habit.bestStreak}</span>
+                              <span className="text-muted-foreground">best</span>
+                            </div>
+                            <div className="text-muted-foreground">
+                              {habit.totalCompletions} total
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Flame className="w-4 h-4 text-orange-500" />
-                          <span className="font-medium">{habit.currentStreak}</span>
-                          <span className="text-muted-foreground">day streak</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          <span className="font-medium">{habit.bestStreak}</span>
-                          <span className="text-muted-foreground">best</span>
-                        </div>
-                        <div className="text-muted-foreground">
-                          {habit.totalCompletions} total
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-56">
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); viewStats(habit); }} data-testid={`context-stats-${habit.id}`}>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    View Statistics
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(habit); }} data-testid={`context-edit-${habit.id}`}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Habit
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); resetStreak(habit.id); }} data-testid={`context-reset-${habit.id}`}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Streak
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem 
+                    onClick={(e) => { e.stopPropagation(); deleteHabit(habit.id); }} 
+                    className="text-destructive focus:text-destructive"
+                    data-testid={`context-delete-${habit.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Habit
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}
+
+        {/* Edit Habit Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent data-testid="dialog-edit-habit">
+            <DialogHeader>
+              <DialogTitle>Edit Habit</DialogTitle>
+              <DialogDescription>Update your habit details</DialogDescription>
+            </DialogHeader>
+            {editingHabit && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editHabitName">Habit Name</Label>
+                  <Input
+                    id="editHabitName"
+                    value={editingHabit.name}
+                    onChange={(e) => setEditingHabit({ ...editingHabit, name: e.target.value })}
+                    placeholder="e.g., Morning meditation"
+                    data-testid="input-edit-habit-name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editHabitDescription">Description (optional)</Label>
+                  <Input
+                    id="editHabitDescription"
+                    value={editingHabit.description || ''}
+                    onChange={(e) => setEditingHabit({ ...editingHabit, description: e.target.value })}
+                    placeholder="Why this habit matters"
+                    data-testid="input-edit-habit-description"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editHabitCategory">Category</Label>
+                  <Input
+                    id="editHabitCategory"
+                    value={editingHabit.category}
+                    onChange={(e) => setEditingHabit({ ...editingHabit, category: e.target.value })}
+                    placeholder="e.g., Health, Productivity"
+                    data-testid="input-edit-habit-category"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editHabitFrequency">Frequency</Label>
+                  <Select
+                    value={editingHabit.frequency}
+                    onValueChange={(value: 'daily' | 'weekly') => setEditingHabit({ ...editingHabit, frequency: value })}
+                  >
+                    <SelectTrigger id="editHabitFrequency" data-testid="select-edit-habit-frequency">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={updateHabit} className="w-full" data-testid="button-update-habit">Update Habit</Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Stats Dialog */}
+        <Dialog open={showStatsDialog} onOpenChange={setShowStatsDialog}>
+          <DialogContent data-testid="dialog-habit-stats">
+            <DialogHeader>
+              <DialogTitle>Habit Statistics</DialogTitle>
+              <DialogDescription>Track your progress</DialogDescription>
+            </DialogHeader>
+            {statsHabit && (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold mb-2">{statsHabit.name}</h3>
+                  <Badge variant="outline" className="text-base">{statsHabit.category}</Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <Flame className="w-6 h-6 text-orange-500" />
+                      </div>
+                      <p className="text-3xl font-bold">{statsHabit.currentStreak}</p>
+                      <p className="text-sm text-muted-foreground">Current Streak</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <TrendingUp className="w-6 h-6 text-green-500" />
+                      </div>
+                      <p className="text-3xl font-bold">{statsHabit.bestStreak}</p>
+                      <p className="text-sm text-muted-foreground">Best Streak</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <CheckCircle2 className="w-6 h-6 text-primary" />
+                      </div>
+                      <p className="text-3xl font-bold">{statsHabit.totalCompletions}</p>
+                      <p className="text-sm text-muted-foreground">Total Completions</p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="flex items-center justify-center mb-2">
+                        <Target className="w-6 h-6 text-secondary" />
+                      </div>
+                      <p className="text-3xl font-bold">{statsHabit.frequency}</p>
+                      <p className="text-sm text-muted-foreground">Frequency</p>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {statsHabit.description && (
+                  <div>
+                    <Label>Description</Label>
+                    <p className="text-sm text-muted-foreground mt-1">{statsHabit.description}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
