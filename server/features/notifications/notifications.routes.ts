@@ -5,7 +5,7 @@ import {
   insertScheduledNotificationSchema,
   type Notification
 } from "@shared/schema";
-import { authenticateUser, validateUserId, type AuthRequest } from "../../auth-middleware";
+import { authenticateUser, validateUserId, type AuthRequest } from "../../shared/middleware/auth-middleware";
 import admin from "firebase-admin";
 
 // Simple input sanitization (trim whitespace)

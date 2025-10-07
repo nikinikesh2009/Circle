@@ -4,8 +4,8 @@ import { admins, auditLogs } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
-import { authenticateAdmin, generateAdminToken, type AdminAuthRequest } from "./admin-auth-middleware";
-import { authLimiter } from "./rate-limit";
+import { authenticateAdmin, generateAdminToken, type AdminAuthRequest } from "./shared/middleware/admin-auth-middleware";
+import { authLimiter } from "./shared/middleware/rate-limit";
 import DOMPurify from "isomorphic-dompurify";
 
 // Validate 32-digit password requirement

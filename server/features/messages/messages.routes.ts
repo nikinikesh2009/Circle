@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { storage } from "../../storage";
-import { authenticateUser, type AuthRequest } from "../../auth-middleware";
+import { authenticateUser, type AuthRequest } from "../../shared/middleware/auth-middleware";
 import admin from "firebase-admin";
 
 // Simple input sanitization (trim whitespace)

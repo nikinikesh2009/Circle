@@ -16,8 +16,8 @@ import {
   type UserBadge,
   type Notification
 } from "@shared/schema";
-import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./auth-middleware";
-import { apiLimiter } from "./rate-limit";
+import { authenticateUser, validateUserId, requireAdmin, type AuthRequest } from "./shared/middleware/auth-middleware";
+import { apiLimiter } from "./shared/middleware/rate-limit";
 import admin from "firebase-admin";
 
 // Simple input sanitization (trim whitespace)
