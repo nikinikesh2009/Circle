@@ -35,19 +35,22 @@ export default function Messages() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  console.log("[Messages] currentUser:", currentUser, "authLoading:", authLoading);
+  // Only try to fetch when auth is loaded and user exists
+  const shouldFetch = !authLoading && !!currentUser;
 
   const { data: messages = [], isLoading, error } = useQuery<AiChatMessage[]>({
     queryKey: ["/api/ai/messages"],
-    enabled: !!currentUser,
-    retry: 2,
+    enabled: shouldFetch,
+    retry: 1,
+    staleTime: 0,
+    refetchOnMount: true,
   });
-
-  console.log("[Messages] Query state - isLoading:", isLoading, "error:", error, "messages:", messages?.length);
 
   const { data: aiSettings, refetch: refetchSettings } = useQuery<AiSettings>({
     queryKey: ["/api/ai/settings"],
-    enabled: !!currentUser,
+    enabled: shouldFetch,
+    retry: 1,
+    staleTime: 0,
   });
 
   // Sync custom prompt with settings when they load
@@ -248,7 +251,11 @@ export default function Messages() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {error ? (
+          {authLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
                 <Bot className="w-8 h-8 text-destructive" />

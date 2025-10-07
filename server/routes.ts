@@ -1109,19 +1109,14 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
   app.get("/api/ai/messages", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
-      console.log("[AI Messages] Fetching messages for user:", userId);
       const db = admin.database();
       
-      console.log("[AI Messages] Querying Firebase...");
       const snapshot = await db.ref('aiChatMessages')
         .orderByChild('userId')
         .equalTo(userId)
         .once('value');
       
-      console.log("[AI Messages] Query complete, exists:", snapshot.exists());
-      
       if (!snapshot.exists()) {
-        console.log("[AI Messages] No messages found, returning empty array");
         return res.json([]);
       }
       
@@ -1132,10 +1127,9 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
         }))
         .sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime());
       
-      console.log("[AI Messages] Returning", messages.length, "messages");
       res.json(messages);
     } catch (error) {
-      console.error("[AI Messages] Error:", error);
+      console.error("Error fetching AI messages:", error);
       res.status(500).json({ error: "Failed to fetch messages" });
     }
   });
