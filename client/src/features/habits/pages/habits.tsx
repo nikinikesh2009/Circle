@@ -45,6 +45,7 @@ export default function Habits() {
   const [showStatsDialog, setShowStatsDialog] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
   const [statsHabit, setStatsHabit] = useState<Habit | null>(null);
+  const [longPressTriggered, setLongPressTriggered] = useState(false);
   const [newHabit, setNewHabit] = useState({
     name: '',
     description: '',
@@ -369,11 +370,32 @@ export default function Habits() {
           <div className="space-y-3">
             {habits.map((habit) => (
               <ContextMenu key={habit.id}>
-                <ContextMenuTrigger>
+                <ContextMenuTrigger asChild>
                   <Card 
                     className="hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => toggleHabitCompletion(habit)}
+                    onClick={() => {
+                      if (!longPressTriggered) {
+                        toggleHabitCompletion(habit);
+                      }
+                      setTimeout(() => setLongPressTriggered(false), 100);
+                    }}
                     data-testid={`card-habit-${habit.id}`}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      const timer = setTimeout(() => {
+                        setLongPressTriggered(true);
+                        const event = new MouseEvent('contextmenu', {
+                          bubbles: true,
+                          cancelable: true,
+                          view: window,
+                          clientX: touch.clientX,
+                          clientY: touch.clientY
+                        });
+                        e.currentTarget.dispatchEvent(event);
+                      }, 500);
+                      e.currentTarget.addEventListener('touchend', () => clearTimeout(timer), { once: true });
+                      e.currentTarget.addEventListener('touchmove', () => clearTimeout(timer), { once: true });
+                    }}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">

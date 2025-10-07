@@ -466,8 +466,24 @@ function BattleCard({ battle, currentUserId }: { battle: Battle; currentUserId: 
   return (
     <>
       <ContextMenu>
-        <ContextMenuTrigger>
-          <Card className={battle.status === 'completed' && isWinner ? 'border-yellow-500/50' : ''} data-testid={`card-battle-${battle.id}`}>
+        <ContextMenuTrigger asChild>
+          <Card className={`cursor-pointer ${battle.status === 'completed' && isWinner ? 'border-yellow-500/50' : ''}`} data-testid={`card-battle-${battle.id}`}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              const timer = setTimeout(() => {
+                const event = new MouseEvent('contextmenu', {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window,
+                  clientX: touch.clientX,
+                  clientY: touch.clientY
+                });
+                e.currentTarget.dispatchEvent(event);
+              }, 500);
+              e.currentTarget.addEventListener('touchend', () => clearTimeout(timer), { once: true });
+              e.currentTarget.addEventListener('touchmove', () => clearTimeout(timer), { once: true });
+            }}
+          >
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">

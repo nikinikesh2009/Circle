@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { useLongPress } from '@/shared/hooks/use-long-press';
 
 interface PostWithUser extends Post {
   user?: User;
@@ -742,10 +743,25 @@ export default function Feed() {
           ) : (
             filteredPosts.map((post) => (
               <ContextMenu key={post.id}>
-                <ContextMenuTrigger>
+                <ContextMenuTrigger asChild>
                   <Card 
-                    className="border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden"
+                    className="border-border/50 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-3xl overflow-hidden cursor-pointer"
                     data-testid={`card-post-${post.id}`}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      const timer = setTimeout(() => {
+                        const event = new MouseEvent('contextmenu', {
+                          bubbles: true,
+                          cancelable: true,
+                          view: window,
+                          clientX: touch.clientX,
+                          clientY: touch.clientY
+                        });
+                        e.currentTarget.dispatchEvent(event);
+                      }, 500);
+                      e.currentTarget.addEventListener('touchend', () => clearTimeout(timer), { once: true });
+                      e.currentTarget.addEventListener('touchmove', () => clearTimeout(timer), { once: true });
+                    }}
                   >
                 <CardContent className="p-6 md:p-8">
                   {/* Post Header */}

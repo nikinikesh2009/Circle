@@ -445,8 +445,24 @@ export default function Planner() {
           <div className="space-y-3">
             {tasks.map((task) => (
               <ContextMenu key={task.id}>
-                <ContextMenuTrigger>
-                  <Card className="hover:shadow-md transition-shadow" data-testid={`card-task-${task.id}`}>
+                <ContextMenuTrigger asChild>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer" data-testid={`card-task-${task.id}`}
+                    onTouchStart={(e) => {
+                      const touch = e.touches[0];
+                      const timer = setTimeout(() => {
+                        const event = new MouseEvent('contextmenu', {
+                          bubbles: true,
+                          cancelable: true,
+                          view: window,
+                          clientX: touch.clientX,
+                          clientY: touch.clientY
+                        });
+                        e.currentTarget.dispatchEvent(event);
+                      }, 500);
+                      e.currentTarget.addEventListener('touchend', () => clearTimeout(timer), { once: true });
+                      e.currentTarget.addEventListener('touchmove', () => clearTimeout(timer), { once: true });
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 mt-1">
