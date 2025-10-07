@@ -28,18 +28,22 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Messages() {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
   const [message, setMessage] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [customPrompt, setCustomPrompt] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  console.log("[Messages] currentUser:", currentUser, "authLoading:", authLoading);
+
   const { data: messages = [], isLoading, error } = useQuery<AiChatMessage[]>({
     queryKey: ["/api/ai/messages"],
     enabled: !!currentUser,
     retry: 2,
   });
+
+  console.log("[Messages] Query state - isLoading:", isLoading, "error:", error, "messages:", messages?.length);
 
   const { data: aiSettings, refetch: refetchSettings } = useQuery<AiSettings>({
     queryKey: ["/api/ai/settings"],
