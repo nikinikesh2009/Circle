@@ -8,7 +8,7 @@ const firebaseConfig = {
   authDomain: "circle-classroom.firebaseapp.com",
   databaseURL: "https://circle-classroom-default-rtdb.firebaseio.com",
   projectId: "circle-classroom",
-  storageBucket: "circle-classroom.firebasestorage.app",
+  storageBucket: "circle-classroom.appspot.com",
   messagingSenderId: "704930090713",
   appId: "1:704930090713:web:47a0d25c5a42ed18b6f8c8"
 };
