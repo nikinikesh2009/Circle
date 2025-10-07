@@ -3,7 +3,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/shared/hooks/use-toast';
-import { Calendar, Clock, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2, Copy, Flag } from 'lucide-react';
 import { ref, get, set, update, remove } from 'firebase/database';
 import { db } from '@/shared/lib/firebase';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { apiRequest } from '@/shared/lib/queryClient';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from '@/components/ui/context-menu';
+import { useLongPress } from '@/shared/hooks/use-long-press';
 
 type Task = {
   id: string;
@@ -215,6 +217,59 @@ export default function Planner() {
     }
   };
 
+  const duplicateTask = async (task: Task) => {
+    if (!currentUser) return;
+    try {
+      const taskId = `task_${Date.now()}`;
+      const taskData = {
+        userId: currentUser.uid,
+        planId: `plan_${Date.now()}`,
+        title: `${task.title} (Copy)`,
+        description: task.description,
+        category: task.category,
+        startTime: task.startTime,
+        endTime: task.endTime,
+        duration: task.duration,
+        priority: task.priority,
+        status: 'pending',
+      };
+
+      const taskRef = ref(db, `tasks/${currentUser.uid}/${selectedDate}/${taskId}`);
+      await set(taskRef, taskData);
+      await loadTasks();
+      
+      toast({
+        title: "Task duplicated",
+        description: "A copy of the task has been created.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to duplicate task.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const changePriority = async (taskId: string, priority: Task['priority']) => {
+    if (!currentUser) return;
+    try {
+      const taskRef = ref(db, `tasks/${currentUser.uid}/${selectedDate}/${taskId}`);
+      await update(taskRef, { priority });
+      await loadTasks();
+      toast({
+        title: "Priority updated",
+        description: `Task priority changed to ${priority}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update priority.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getStatusIcon = (status: Task['status']) => {
     switch (status) {
       case 'completed':
@@ -389,72 +444,124 @@ export default function Planner() {
         ) : (
           <div className="space-y-3">
             {tasks.map((task) => (
-              <Card key={task.id} className="hover:shadow-md transition-shadow" data-testid={`card-task-${task.id}`}>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getStatusIcon(task.status)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-semibold text-base md:text-lg">{task.title}</h3>
+              <ContextMenu key={task.id}>
+                <ContextMenuTrigger>
+                  <Card className="hover:shadow-md transition-shadow" data-testid={`card-task-${task.id}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-1">
+                          {getStatusIcon(task.status)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold text-base md:text-lg">{task.title}</h3>
+                          </div>
+                          {task.description && (
+                            <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
+                          )}
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <Badge variant="outline" className={categoryColors[task.category]}>
+                              {task.category}
+                            </Badge>
+                            <Badge className={priorityColors[task.priority]}>
+                              {task.priority}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {task.startTime} - {task.endTime}
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                              {task.duration} min
+                            </span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            {task.status !== 'completed' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => updateTaskStatus(task.id, 'completed')}
+                                data-testid={`button-complete-${task.id}`}
+                                className="w-full sm:w-auto"
+                              >
+                                <CheckCircle2 className="w-4 h-4 mr-1" />
+                                Complete
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => openEditDialog(task)}
+                              data-testid={`button-edit-${task.id}`}
+                              className="w-full sm:w-auto"
+                            >
+                              <Pencil className="w-4 h-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteTask(task.id)}
+                              data-testid={`button-delete-${task.id}`}
+                              className="w-full sm:w-auto text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground mb-2">{task.description}</p>
-                      )}
-                      <div className="flex flex-wrap items-center gap-2 mb-3">
-                        <Badge variant="outline" className={categoryColors[task.category]}>
-                          {task.category}
-                        </Badge>
-                        <Badge className={priorityColors[task.priority]}>
-                          {task.priority}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {task.startTime} - {task.endTime}
-                        </span>
-                        <span className="text-sm text-muted-foreground">
-                          {task.duration} min
-                        </span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        {task.status !== 'completed' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateTaskStatus(task.id, 'completed')}
-                            data-testid={`button-complete-${task.id}`}
-                            className="w-full sm:w-auto"
-                          >
-                            <CheckCircle2 className="w-4 h-4 mr-1" />
-                            Complete
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => openEditDialog(task)}
-                          data-testid={`button-edit-${task.id}`}
-                          className="w-full sm:w-auto"
-                        >
-                          <Pencil className="w-4 h-4 mr-1" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => deleteTask(task.id)}
-                          data-testid={`button-delete-${task.id}`}
-                          className="w-full sm:w-auto text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4 mr-1" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-56">
+                  {task.status !== 'completed' && (
+                    <>
+                      <ContextMenuItem onClick={() => updateTaskStatus(task.id, 'completed')} data-testid={`context-complete-${task.id}`}>
+                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                        Mark Complete
+                      </ContextMenuItem>
+                      <ContextMenuSeparator />
+                    </>
+                  )}
+                  <ContextMenuItem onClick={() => openEditDialog(task)} data-testid={`context-edit-${task.id}`}>
+                    <Pencil className="w-4 h-4 mr-2" />
+                    Edit Task
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => duplicateTask(task)} data-testid={`context-duplicate-${task.id}`}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Duplicate
+                  </ContextMenuItem>
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger data-testid={`context-priority-${task.id}`}>
+                      <Flag className="w-4 h-4 mr-2" />
+                      Change Priority
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent>
+                      <ContextMenuItem onClick={() => changePriority(task.id, 'low')}>
+                        Low Priority
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => changePriority(task.id, 'medium')}>
+                        Medium Priority
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => changePriority(task.id, 'high')}>
+                        High Priority
+                      </ContextMenuItem>
+                      <ContextMenuItem onClick={() => changePriority(task.id, 'urgent')}>
+                        Urgent Priority
+                      </ContextMenuItem>
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem 
+                    onClick={() => deleteTask(task.id)} 
+                    className="text-destructive focus:text-destructive"
+                    data-testid={`context-delete-${task.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Task
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             ))}
           </div>
         )}
