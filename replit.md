@@ -6,6 +6,29 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 
 ## Recent Changes
 
+**October 7, 2025** - Long-Press Context Menus & Comprehensive Visual Polish
+- **Implemented long-press context menus for quick actions**
+  - Created reusable `useLongPress` hook supporting mobile touch and desktop mouse events
+  - Configurable delay (500ms default), movement threshold, and haptic feedback
+  - Planner tasks: Edit, Delete, Duplicate, Complete, Change Priority
+  - Habits: Edit, Delete, View Stats, Reset Streak
+  - Context menus use shadcn ContextMenu component for consistency
+- **Comprehensive visual enhancements**
+  - Glassmorphism effects (`.glass`, `.glass-strong`) for modern card designs
+  - Professional card shadows with hover-lift animations
+  - Smooth transitions and animations: float, slide-in, scale-in
+  - Button shine effects for interactive elements
+  - Shimmer loading animations for skeleton screens
+  - Enhanced badge glow effects with gradient borders
+  - Context menu entrance animations
+  - Improved focus states with primary color outlines
+- **Benefits**
+  - Mobile-first interactions with long-press menus
+  - Professional, polished appearance across all features
+  - Improved UX with smooth animations and transitions
+  - Consistent design language throughout the platform
+  - Dark mode support for all new visual effects
+
 **October 7, 2025** - Professional Feature-Based Architecture Reorganization
 - **Reorganized codebase into professional feature-based structure**
 - Client-side structure:
