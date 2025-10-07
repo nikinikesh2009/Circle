@@ -1106,7 +1106,7 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
   });
   
   // Get AI chat history
-  app.get("/api/ai/messages", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+  app.get("/api/ai/messages", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const db = admin.database();
@@ -1135,7 +1135,7 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
   });
   
   // Get AI settings
-  app.get("/api/ai/settings", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+  app.get("/api/ai/settings", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const db = admin.database();
@@ -1170,7 +1170,7 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
   });
   
   // Update AI settings
-  app.put("/api/ai/settings", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+  app.put("/api/ai/settings", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       const { personality, customSystemPrompt, enableTaskSuggestions, enableProductivityCheckins } = req.body;
@@ -1203,7 +1203,7 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
   });
   
   // Create tasks from AI suggestions (after user confirmation)
-  app.post("/api/ai/create-tasks", authenticateUser, validateUserId, async (req: AuthRequest, res) => {
+  app.post("/api/ai/create-tasks", authenticateUser, async (req: AuthRequest, res) => {
     try {
       const userId = req.user!.uid;
       
