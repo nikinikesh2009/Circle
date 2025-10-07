@@ -35,9 +35,10 @@ export default function Messages() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const { data: messages = [], isLoading } = useQuery<AiChatMessage[]>({
+  const { data: messages = [], isLoading, error } = useQuery<AiChatMessage[]>({
     queryKey: ["/api/ai/messages"],
     enabled: !!currentUser,
+    retry: 2,
   });
 
   const { data: aiSettings, refetch: refetchSettings } = useQuery<AiSettings>({
@@ -243,7 +244,20 @@ export default function Messages() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {isLoading ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <Bot className="w-8 h-8 text-destructive" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Unable to Load Messages</h3>
+              <p className="text-muted-foreground max-w-md mb-6">
+                There was an error loading your AI chat history. Please try refreshing the page.
+              </p>
+              <Button onClick={() => window.location.reload()} data-testid="button-reload">
+                Reload Page
+              </Button>
+            </div>
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
