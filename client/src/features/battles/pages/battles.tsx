@@ -9,12 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sword, Trophy, Users, Target, Clock, Zap, Award, Sparkles } from 'lucide-react';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { apiRequest, queryClient } from '@/shared/lib/queryClient';
+import { useToast } from '@/shared/hooks/use-toast';
+import { useAuthContext } from '@/shared/contexts/AuthContext';
 import { type Battle } from '@shared/schema';
 import { format, differenceInDays } from 'date-fns';
-import BadgeShowcase from '@/components/BadgeShowcase';
+import BadgeShowcase from '@/shared/components/BadgeShowcase';
 
 export default function Battles() {
   const { currentUser } = useAuthContext();

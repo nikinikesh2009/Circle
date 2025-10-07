@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { Calendar, Clock, Plus, CheckCircle2, Circle, PlayCircle, XCircle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
 import { ref, get, set, update, remove } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { db } from '@/shared/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/shared/lib/queryClient';
 
 type Task = {
   id: string;

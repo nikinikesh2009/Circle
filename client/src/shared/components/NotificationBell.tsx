@@ -10,8 +10,8 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/shared/lib/queryClient';
+import { useToast } from '@/shared/hooks/use-toast';
 import { type Notification } from '@shared/schema';
 import { formatDistanceToNow } from 'date-fns';
 import { useLocation } from 'wouter';

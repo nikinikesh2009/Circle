@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { Mail, Lock, Eye, EyeOff, LogIn } from 'lucide-react';
 
 export default function Login() {

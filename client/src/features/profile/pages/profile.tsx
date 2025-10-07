@@ -1,15 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { User, Flame, Trophy, Calendar, Heart, Lock, Eye, EyeOff, CheckCircle, Camera, Globe, FileText, Settings, Upload } from 'lucide-react';
 import { ref as dbRef, update } from 'firebase/database';
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db, storage } from '@/shared/lib/firebase';
 
 export default function Profile() {
   const { userData, updateUserPassword, refreshUserData, currentUser } = useAuth();

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/shared/hooks/use-toast";
 import {
   Shield,
@@ -15,8 +15,8 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
-import { Input } from "@/shared/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { adminApiRequest } from "@/shared/lib/adminApiRequest";
 
 interface Admin {

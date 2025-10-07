@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { ref, get, set, update, remove, push, query as dbQuery, orderByChild, limitToFirst, runTransaction } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { db } from '@/shared/lib/firebase';
 import { MotivationalPost } from '@shared/schema';
 import { Heart, Flame, TrendingUp, Award, Sparkles, CheckCircle, Zap } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/shared/lib/queryClient';
 import { Link } from 'wouter';
 
 export default function Dashboard() {

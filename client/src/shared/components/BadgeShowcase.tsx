@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Award, Lock } from 'lucide-react';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/shared/contexts/AuthContext';
 import { type Badge as BadgeType, type UserBadge } from '@shared/schema';
 
 const rarityColors = {

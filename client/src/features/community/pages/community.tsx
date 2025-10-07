@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ref, get, query, orderByChild, limitToFirst } from 'firebase/database';
-import { db } from '@/lib/firebase';
+import { db } from '@/shared/lib/firebase';
 import { User } from '@shared/schema';
 import { Users, Trophy, Flame, TrendingUp, Crown, Medal, Award, User as UserIcon, Globe, Search, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

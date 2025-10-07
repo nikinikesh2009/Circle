@@ -10,7 +10,7 @@ import {
   EmailAuthProvider
 } from 'firebase/auth';
 import { ref, get, set, update } from 'firebase/database';
-import { auth, db } from '@/lib/firebase';
+import { auth, db } from '@/shared/lib/firebase';
 import { User, InsertUser } from '@shared/schema';
 
 interface AuthContextType {

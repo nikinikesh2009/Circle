@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { Clock, Play, Pause, RotateCcw, Coffee, Zap, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

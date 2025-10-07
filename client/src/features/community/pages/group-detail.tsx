@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/shared/hooks/use-toast';
 import { ref as dbRef, get, set, push, runTransaction } from 'firebase/database';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '@/lib/firebase';
+import { db, storage } from '@/shared/lib/firebase';
 import { Group, GroupMember, Post, Comment, User } from '@shared/schema';
 import { Heart, MessageCircle, Image as ImageIcon, Send, User as UserIcon, Loader2, X, Users, LogOut, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
