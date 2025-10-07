@@ -374,10 +374,11 @@ export default function Habits() {
                   <Card 
                     className="hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => {
-                      if (!longPressTriggered) {
+                      const wasLongPress = longPressTriggered;
+                      setLongPressTriggered(false);
+                      if (!wasLongPress) {
                         toggleHabitCompletion(habit);
                       }
-                      setTimeout(() => setLongPressTriggered(false), 100);
                     }}
                     data-testid={`card-habit-${habit.id}`}
                     onTouchStart={(e) => {

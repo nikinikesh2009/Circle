@@ -7,12 +7,20 @@ The Circle is a full-stack web application designed to be a comprehensive produc
 ## Recent Changes
 
 **October 7, 2025** - Long-Press Context Menus & Comprehensive Visual Polish
-- **Implemented long-press context menus for quick actions**
+- **Implemented long-press context menus with full mobile support**
   - Created reusable `useLongPress` hook supporting mobile touch and desktop mouse events
-  - Configurable delay (500ms default), movement threshold, and haptic feedback
+  - Touch-based long-press: 500ms delay triggers context menu on mobile devices
+  - Synthetic contextmenu MouseEvent dispatched for Radix UI ContextMenu compatibility
+  - Cleanup listeners (touchend/touchmove with {once: true}) prevent false triggers
   - Planner tasks: Edit, Delete, Duplicate, Complete, Change Priority
-  - Habits: Edit, Delete, View Stats, Reset Streak
-  - Context menus use shadcn ContextMenu component for consistency
+  - Habits: Edit, Delete, View Stats, Reset Streak (with click guard to prevent completion toggle)
+  - Battles: View Details, Report Progress, Leave/Cancel Battle
+  - Community posts: Edit/Delete own, Share, Copy Link, Report others
+  - Context menus use shadcn ContextMenu component with asChild prop for proper event delegation
+- **Click Guard Implementation (Habits)**
+  - Atomic flag check-and-reset pattern prevents completion toggle when opening context menu
+  - `const wasLongPress = longPressTriggered; setLongPressTriggered(false);` eliminates race conditions
+  - Long-press opens menu without triggering card's onClick handler
 - **Comprehensive visual enhancements**
   - Glassmorphism effects (`.glass`, `.glass-strong`) for modern card designs
   - Professional card shadows with hover-lift animations
@@ -23,9 +31,9 @@ The Circle is a full-stack web application designed to be a comprehensive produc
   - Context menu entrance animations
   - Improved focus states with primary color outlines
 - **Benefits**
-  - Mobile-first interactions with long-press menus
-  - Professional, polished appearance across all features
-  - Improved UX with smooth animations and transitions
+  - Mobile-first interactions with long-press menus across all features
+  - Professional, polished appearance with smooth animations
+  - No UX conflicts between long-press and click interactions
   - Consistent design language throughout the platform
   - Dark mode support for all new visual effects
 
