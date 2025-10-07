@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { Home, Calendar, Target, Zap, MessageCircle, Menu, Users, Newspaper, Sword } from 'lucide-react';
+import { Home, Calendar, Target, Zap, MessageCircle, Grid, Users, Newspaper, Sword, Sparkles, CheckSquare, UsersRound, User, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function BottomNav() {
   const [location] = useLocation();
@@ -23,14 +22,20 @@ export default function BottomNav() {
     { path: '/messages', icon: MessageCircle, label: 'Messages', testId: 'bottom-nav-messages' },
   ];
 
-  const menuItems = [
-    { path: '/battles', icon: Sword, label: 'Battles', description: 'Head-to-head challenges', testId: 'menu-battles' },
-    { path: '/focus', icon: Zap, label: 'Focus Mode', description: 'Stay concentrated', testId: 'menu-focus' },
-    { path: '/groups', icon: Users, label: 'Groups', description: 'Connect with communities', testId: 'menu-groups' },
-    { path: '/feed', icon: Newspaper, label: 'Feed', description: 'Community updates', testId: 'menu-feed' },
+  const allFeatures = [
+    { path: '/dashboard', icon: Home, label: 'Dashboard', testId: 'menu-dashboard' },
+    { path: '/messages', icon: Sparkles, label: 'AI Chat / Messages', testId: 'menu-ai-chat' },
+    { path: '/battles', icon: Sword, label: 'Battles', testId: 'menu-battles' },
+    { path: '/community', icon: Users, label: 'Community', testId: 'menu-community' },
+    { path: '/planner', icon: Calendar, label: 'Planner', testId: 'menu-planner' },
+    { path: '/habits', icon: CheckSquare, label: 'Habits', testId: 'menu-habits' },
+    { path: '/groups', icon: UsersRound, label: 'Groups', testId: 'menu-groups' },
+    { path: '/profile', icon: User, label: 'Profile', testId: 'menu-profile' },
+    { path: '/help', icon: HelpCircle, label: 'Help', testId: 'menu-help' },
   ];
 
-  const isMenuActive = ['/battles', '/focus', '/groups', '/feed'].includes(location);
+  const menuPaths = allFeatures.map(f => f.path);
+  const isMenuActive = menuPaths.includes(location);
 
   const handleMenuItemClick = (path: string) => {
     setShowMenu(false);
@@ -62,19 +67,54 @@ export default function BottomNav() {
             );
           })}
 
-          <Link href="/community">
-            <button
-              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all transform hover:scale-105 ${
-                location === '/community'
-                  ? 'bg-gradient-to-br from-primary via-secondary to-accent text-primary-foreground shadow-lg shadow-primary/50'
-                  : 'bg-gradient-to-br from-primary/80 via-secondary/80 to-accent/80 text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/30'
-              }`}
-              data-testid="bottom-nav-community"
+          <Popover open={showMenu} onOpenChange={setShowMenu}>
+            <PopoverTrigger asChild>
+              <button
+                className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all transform hover:scale-105 ${
+                  isMenuActive
+                    ? 'bg-gradient-to-br from-primary via-secondary to-accent text-primary-foreground shadow-lg shadow-primary/50'
+                    : 'bg-gradient-to-br from-primary/80 via-secondary/80 to-accent/80 text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/30'
+                }`}
+                data-testid="bottom-nav-menu-trigger"
+              >
+                <Grid className="w-6 h-6" />
+                <span className="text-[9px] font-bold mt-0.5">Menu</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent 
+              className="w-80 mb-2 p-4" 
+              align="center" 
+              side="top"
+              data-testid="popover-menu-content"
             >
-              <Users className="w-6 h-6" />
-              <span className="text-[9px] font-bold mt-0.5">Community</span>
-            </button>
-          </Link>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold mb-3 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                  All Features
+                </h3>
+                <div className="grid gap-2">
+                  {allFeatures.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location === item.path;
+                    
+                    return (
+                      <Button
+                        key={item.path}
+                        variant={isActive ? "default" : "ghost"}
+                        className={`h-auto py-3 px-3 justify-start ${
+                          isActive ? 'bg-gradient-to-r from-primary via-secondary to-accent text-primary-foreground' : ''
+                        }`}
+                        onClick={() => handleMenuItemClick(item.path)}
+                        data-testid={item.testId}
+                      >
+                        <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+                        <span className="font-medium text-sm">{item.label}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {rightNavItems.map((item) => {
             const Icon = item.icon;
@@ -99,39 +139,6 @@ export default function BottomNav() {
         </div>
       </nav>
 
-      <Dialog open={showMenu} onOpenChange={setShowMenu}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-              Quick Access
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-3 py-4">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              
-              return (
-                <Button
-                  key={item.path}
-                  variant={isActive ? "default" : "outline"}
-                  className={`h-auto py-4 px-4 justify-start ${
-                    isActive ? 'bg-gradient-to-r from-primary via-secondary to-accent' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick(item.path)}
-                  data-testid={item.testId}
-                >
-                  <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
-                  <div className="flex flex-col items-start">
-                    <span className="font-semibold">{item.label}</span>
-                    <span className="text-xs text-muted-foreground">{item.description}</span>
-                  </div>
-                </Button>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }
