@@ -39,7 +39,7 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t border-border safe-area-inset-bottom">
         <div className="flex items-center justify-around h-16 px-2 relative">
           {mainNavItems.map((item) => {
             const Icon = item.icon;
@@ -62,18 +62,19 @@ export default function BottomNav() {
             );
           })}
 
-          <button
-            onClick={() => setShowMenu(true)}
-            className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all transform hover:scale-105 ${
-              isMenuActive
-                ? 'bg-gradient-to-br from-primary via-secondary to-accent text-primary-foreground shadow-lg shadow-primary/50'
-                : 'bg-gradient-to-br from-primary/80 via-secondary/80 to-accent/80 text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/30'
-            }`}
-            data-testid="bottom-nav-menu"
-          >
-            <Menu className="w-6 h-6" />
-            <span className="text-[9px] font-bold mt-0.5">More</span>
-          </button>
+          <Link href="/community">
+            <button
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all transform hover:scale-105 ${
+                location === '/community'
+                  ? 'bg-gradient-to-br from-primary via-secondary to-accent text-primary-foreground shadow-lg shadow-primary/50'
+                  : 'bg-gradient-to-br from-primary/80 via-secondary/80 to-accent/80 text-primary-foreground shadow-md hover:shadow-lg hover:shadow-primary/30'
+              }`}
+              data-testid="bottom-nav-community"
+            >
+              <Users className="w-6 h-6" />
+              <span className="text-[9px] font-bold mt-0.5">Community</span>
+            </button>
+          </Link>
 
           {rightNavItems.map((item) => {
             const Icon = item.icon;
