@@ -50,6 +50,7 @@ export const aiSettingsSchema = z.object({
   personality: z.enum(["professional", "friendly", "motivating", "coach"]).default("friendly"),
   customSystemPrompt: z.string().optional(),
   enableTaskSuggestions: z.boolean().default(true),
+  enableProductivityCheckins: z.boolean().default(true),
   enableAutoScheduling: z.boolean().default(false),
   preferredResponseLength: z.enum(["concise", "balanced", "detailed"]).default("balanced"),
   createdAt: z.date(),
