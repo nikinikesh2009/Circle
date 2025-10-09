@@ -1040,7 +1040,7 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
       const OpenAI = (await import('openai')).default;
       const openai = new OpenAI({
         apiKey: process.env.DEEPSEEK_API_KEY,
-        baseURL: 'https://api.deepseek.com'
+        baseURL: 'https://api.deepseek.com/v1'
       });
       
       const completion = await openai.chat.completions.create({

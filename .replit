@@ -76,6 +76,7 @@ externalPort = 8008
 
 [env]
 PORT = "5000"
+DEEPSEEK_API_KEY = "sk-e9bd4629776744b38796d60ee2146893"
 
 [agent]
 integrations = ["firebase_barebones_javascript:1.0.0", "javascript_gemini:1.0.0"]
