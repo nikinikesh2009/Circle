@@ -1014,19 +1014,25 @@ Proactive Behavior:
 
 Be conversational, empathetic, and provide actionable advice. Remember previous context in the conversation.`;
 
-      // Get recent chat history
-      const chatHistorySnapshot = await db.ref('aiChatMessages')
-        .orderByChild('userId')
-        .equalTo(userId)
-        .limitToLast(20)
-        .once('value');
-      
-      const chatHistory = chatHistorySnapshot.val() 
-        ? Object.values(chatHistorySnapshot.val()).map((msg: any) => ({
-            role: msg.role,
-            content: msg.content
-          }))
-        : [];
+      // Get recent chat history (non-fatal if DB unavailable)
+      let chatHistory: Array<{ role: string; content: string }> = [];
+      try {
+        const chatHistorySnapshot = await db.ref('aiChatMessages')
+          .orderByChild('userId')
+          .equalTo(userId)
+          .limitToLast(20)
+          .once('value');
+
+        chatHistory = chatHistorySnapshot.val()
+          ? Object.values(chatHistorySnapshot.val()).map((msg: any) => ({
+              role: msg.role,
+              content: msg.content,
+            }))
+          : [];
+      } catch (historyError) {
+        console.error("AI chat: failed to read chat history; continuing without it", historyError);
+        chatHistory = [];
+      }
       
       // Call DeepSeek API
       if (!process.env.DEEPSEEK_API_KEY) {
@@ -1071,25 +1077,29 @@ Be conversational, empathetic, and provide actionable advice. Remember previous 
         }
       }
       
-      // Save both messages to Firebase
-      const userMessageRef = db.ref('aiChatMessages').push();
-      await userMessageRef.set({
-        id: userMessageRef.key,
-        userId,
-        role: 'user',
-        content: message,
-        createdAt: new Date().toISOString()
-      });
-      
-      const assistantMessageRef = db.ref('aiChatMessages').push();
-      await assistantMessageRef.set({
-        id: assistantMessageRef.key,
-        userId,
-        role: 'assistant',
-        content: cleanedResponse,
-        taskSuggestions: taskSuggestions || null,
-        createdAt: new Date().toISOString()
-      });
+      // Save both messages to Firebase (non-fatal if DB unavailable)
+      try {
+        const userMessageRef = db.ref('aiChatMessages').push();
+        await userMessageRef.set({
+          id: userMessageRef.key,
+          userId,
+          role: 'user',
+          content: message,
+          createdAt: new Date().toISOString(),
+        });
+
+        const assistantMessageRef = db.ref('aiChatMessages').push();
+        await assistantMessageRef.set({
+          id: assistantMessageRef.key,
+          userId,
+          role: 'assistant',
+          content: cleanedResponse,
+          taskSuggestions: taskSuggestions || null,
+          createdAt: new Date().toISOString(),
+        });
+      } catch (saveError) {
+        console.error("AI chat: failed to save messages; returning response anyway", saveError);
+      }
       
       res.json({ 
         message: cleanedResponse,
