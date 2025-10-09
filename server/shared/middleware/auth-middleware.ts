@@ -90,7 +90,7 @@ export async function requireAdmin(
   
   // Check if user is admin in database
   try {
-    const { db } = await import("./db");
+    const { db } = await import("../../db");
     const { admins } = await import("@shared/schema");
     const { eq } = await import("drizzle-orm");
     
