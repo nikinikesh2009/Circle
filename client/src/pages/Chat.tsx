@@ -7,7 +7,7 @@ import { CircleListItem } from "@/components/CircleListItem";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, MoreVertical, ArrowLeft } from "lucide-react";
+import { Send, MoreVertical, ArrowLeft, Image, Paperclip, Mic } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -42,6 +42,47 @@ export default function Chat() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const { send, on, isConnected } = useWebSocket("/ws");
+
+  const handleImageUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // TODO: Implement image upload
+        console.log('Image selected:', file);
+      }
+    };
+    input.click();
+  };
+
+  const handleFileUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // TODO: Implement file upload
+        console.log('File selected:', file);
+      }
+    };
+    input.click();
+  };
+
+  const handleVoiceRecord = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        // TODO: Implement voice message upload
+        console.log('Audio file selected:', file);
+      }
+    };
+    input.click();
+  };
 
   // Get user's circles
   const { data: circles = [], isLoading: circlesLoading } = useQuery<Circle[]>({
@@ -157,7 +198,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full w-full">
       {/* Circles List - Hidden on mobile, shown on desktop */}
       <div className="hidden lg:block w-80 border-r border-border">
         <div className="p-4 border-b border-border">
@@ -183,7 +224,7 @@ export default function Chat() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative">
         {/* Chat Header */}
         <div className="p-4 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -211,7 +252,7 @@ export default function Chat() {
         </div>
 
         {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 p-4 pb-24">
           {messagesLoading ? (
             <div className="space-y-4">
               {[1, 2, 3].map((i) => (
@@ -247,15 +288,48 @@ export default function Chat() {
           )}
         </ScrollArea>
 
-        {/* Message Input */}
-        <div className="p-4 border-t border-border">
-          <div className="flex gap-2">
+        {/* Message Input - Sticky to bottom */}
+        <div className="sticky bottom-0 lg:bottom-0 left-0 right-0 p-4 border-t border-border bg-background mb-16 lg:mb-0">
+          <div className="flex gap-2 items-end">
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleImageUpload}
+                disabled={!isConnected}
+                data-testid="button-attach-image"
+                title="Attach image"
+              >
+                <Image className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleFileUpload}
+                disabled={!isConnected}
+                data-testid="button-attach-file"
+                title="Attach file"
+              >
+                <Paperclip className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleVoiceRecord}
+                disabled={!isConnected}
+                data-testid="button-record-voice"
+                title="Record voice"
+              >
+                <Mic className="h-5 w-5" />
+              </Button>
+            </div>
             <Input
               placeholder="Type a message..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
               disabled={!isConnected}
+              className="flex-1"
               data-testid="input-message"
             />
             <Button

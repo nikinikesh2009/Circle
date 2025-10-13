@@ -90,7 +90,7 @@ function AppContent() {
               <ThemeToggle />
             </div>
           </header>
-          <main className="flex-1 overflow-auto pb-16 lg:pb-0">
+          <main className="flex-1 overflow-auto pb-16 lg:pb-0 w-full">
             <Router />
           </main>
         </div>
