@@ -8,10 +8,18 @@ Circle is a production-grade Progressive Web App for creating and managing inter
 - ✅ Added authentication system with Passport.js and PostgreSQL session store
 - ✅ Built circles CRUD API (create, join, leave, list)
 - ✅ Integrated frontend with authentication and circles management
-- 🚧 Real-time messaging with WebSocket (backend implemented, frontend pending)
-- 📋 AI assistant integration (pending)
-- 📋 PWA service worker (pending)
-- 📋 Firebase Cloud Messaging (pending)
+- ✅ Real-time messaging with WebSocket (complete)
+- ✅ AI assistant integration with GPT-5 (complete)
+- ✅ PWA service worker with offline support (complete)
+- ✅ In-app notification system with real-time updates (complete)
+
+### Latest Updates (October 13, 2025)
+- Fixed critical notification system bugs:
+  - Added WebSocket import for server-side notification broadcasting
+  - Fixed unread count to use SQL COUNT() aggregate for accurate counts
+  - Implemented DB-level authorization for notification mutations
+  - Fixed circle member count to use SQL COUNT() aggregate
+- All notification features now fully functional and tested
 
 ## Project Architecture
 

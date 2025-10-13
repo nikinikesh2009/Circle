@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, requireAuth } from "./auth";
 import passport from "passport";
 import { insertUserSchema, insertCircleSchema, insertMessageSchema } from "@shared/schema";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import type { Store } from "express-session";
 import OpenAI from "openai";
 import { z } from "zod";
@@ -128,6 +128,7 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
 
       res.json({ message: "Joined successfully" });
     } catch (error: any) {
+      console.error("Join circle error:", error);
       res.status(500).json({ error: error.message });
     }
   });
