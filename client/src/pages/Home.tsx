@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -20,6 +21,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function Home() {
+  const [location] = useLocation();
+  const isExplorePage = location === "/explore";
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newCircle, setNewCircle] = useState({
@@ -90,9 +93,13 @@ export default function Home() {
     isMember: myCircleIds.has(circle.id),
   }));
 
-  const filteredCircles = circlesWithMembership.filter((circle: any) =>
-    circle.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredCircles = circlesWithMembership.filter((circle: any) => {
+    const matchesSearch = circle.name.toLowerCase().includes(searchQuery.toLowerCase());
+    if (isExplorePage) {
+      return matchesSearch && !circle.isMember;
+    }
+    return matchesSearch;
+  });
 
   if (isLoading) {
     return (
@@ -103,8 +110,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 lg:p-6 space-y-6">
+    <div className="flex flex-col h-full w-full">
+      <div className="p-4 lg:p-6 space-y-6 w-full">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -175,61 +182,67 @@ export default function Home() {
           </Dialog>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList>
-            <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
-            <TabsTrigger value="my-circles" data-testid="tab-my-circles">My Circles</TabsTrigger>
-            <TabsTrigger value="discover" data-testid="tab-discover">Discover</TabsTrigger>
-          </TabsList>
-          <TabsContent value="all" className="mt-6">
+        {isExplorePage ? (
+          <div className="mt-6">
+            <h2 className="text-2xl font-bold mb-4">Explore Circles</h2>
             {filteredCircles.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredCircles.map((circle: any) => (
                   <CircleCard
                     key={circle.id}
                     {...circle}
-                    onClick={() => console.log(`Circle ${circle.name} clicked`)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">No circles found</p>
-            )}
-          </TabsContent>
-          <TabsContent value="my-circles" className="mt-6">
-            {myCircles.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {myCircles.map((circle: any) => (
-                  <CircleCard
-                    key={circle.id}
-                    {...circle}
-                    isMember={true}
+                    isMember={false}
                     onClick={() => console.log(`Circle ${circle.name} clicked`)}
                   />
                 ))}
               </div>
             ) : (
               <p className="text-center text-muted-foreground py-8">
-                You haven't joined any circles yet. Discover circles to get started!
+                {searchQuery ? "No circles found matching your search" : "No new circles to explore"}
               </p>
             )}
-          </TabsContent>
-          <TabsContent value="discover" className="mt-6">
-            {filteredCircles.filter((c: any) => !c.isMember).length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredCircles.filter((c: any) => !c.isMember).map((circle: any) => (
-                  <CircleCard
-                    key={circle.id}
-                    {...circle}
-                    onClick={() => console.log(`Circle ${circle.name} clicked`)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">No new circles to discover</p>
-            )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <Tabs defaultValue="all" className="w-full">
+            <TabsList>
+              <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
+              <TabsTrigger value="my-circles" data-testid="tab-my-circles">My Circles</TabsTrigger>
+            </TabsList>
+            <TabsContent value="all" className="mt-6">
+              {filteredCircles.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredCircles.map((circle: any) => (
+                    <CircleCard
+                      key={circle.id}
+                      {...circle}
+                      onClick={() => console.log(`Circle ${circle.name} clicked`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No circles found</p>
+              )}
+            </TabsContent>
+            <TabsContent value="my-circles" className="mt-6">
+              {myCircles.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {myCircles.map((circle: any) => (
+                    <CircleCard
+                      key={circle.id}
+                      {...circle}
+                      isMember={true}
+                      onClick={() => console.log(`Circle ${circle.name} clicked`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  You haven't joined any circles yet. Explore circles to get started!
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
     </div>
   );

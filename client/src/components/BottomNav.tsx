@@ -7,7 +7,7 @@ export function BottomNav() {
 
   const navItems = [
     { icon: Home, label: "Home", path: "/", testId: "nav-home" },
-    { icon: Compass, label: "Discover", path: "/discover", testId: "nav-discover" },
+    { icon: Compass, label: "Explore", path: "/explore", testId: "nav-explore" },
     { icon: MessageCircle, label: "Chat", path: "/chat", testId: "nav-chat" },
     { icon: User, label: "Profile", path: "/profile", testId: "nav-profile" },
   ];

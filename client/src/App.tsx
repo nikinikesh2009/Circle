@@ -50,7 +50,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
       <Route path="/">{() => <ProtectedRoute component={Home} />}</Route>
-      <Route path="/discover">{() => <ProtectedRoute component={Home} />}</Route>
+      <Route path="/explore">{() => <ProtectedRoute component={Home} />}</Route>
       <Route path="/chat">{() => <ProtectedRoute component={Chat} />}</Route>
       <Route path="/chat/:circleId">{() => <ProtectedRoute component={Chat} />}</Route>
       <Route path="/support">{() => <ProtectedRoute component={Support} />}</Route>
