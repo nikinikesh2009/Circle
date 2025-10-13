@@ -162,6 +162,80 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  app.patch("/api/messages/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.id;
+      const { content } = req.body;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      await storage.editMessage(messageId, userId, content);
+      res.json({ success: true, message: "Message updated" });
+    } catch (error: any) {
+      console.error("Edit message error:", error);
+      res.status(500).json({ error: "Failed to edit message" });
+    }
+  });
+
+  app.delete("/api/messages/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.id;
+
+      await storage.deleteMessage(messageId, userId);
+      res.json({ success: true, message: "Message deleted" });
+    } catch (error: any) {
+      console.error("Delete message error:", error);
+      res.status(500).json({ error: "Failed to delete message" });
+    }
+  });
+
+  app.post("/api/messages/:id/reactions", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.id;
+      const { emoji } = req.body;
+
+      if (!emoji) {
+        return res.status(400).json({ error: "Emoji is required" });
+      }
+
+      const reaction = await storage.addReaction({ messageId, userId, emoji });
+      res.json(reaction);
+    } catch (error: any) {
+      console.error("Add reaction error:", error);
+      res.status(500).json({ error: "Failed to add reaction" });
+    }
+  });
+
+  app.delete("/api/messages/:id/reactions/:emoji", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const messageId = req.params.id;
+      const emoji = req.params.emoji;
+
+      await storage.removeReaction(messageId, userId, emoji);
+      res.json({ success: true, message: "Reaction removed" });
+    } catch (error: any) {
+      console.error("Remove reaction error:", error);
+      res.status(500).json({ error: "Failed to remove reaction" });
+    }
+  });
+
+  app.get("/api/messages/:id/reactions", requireAuth, async (req, res) => {
+    try {
+      const messageId = req.params.id;
+      const reactions = await storage.getMessageReactions(messageId);
+      res.json(reactions);
+    } catch (error: any) {
+      console.error("Get reactions error:", error);
+      res.status(500).json({ error: "Failed to get reactions" });
+    }
+  });
+
   // This is using Replit's AI Integrations service for OpenAI-compatible API access
   const openai = new OpenAI({
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
