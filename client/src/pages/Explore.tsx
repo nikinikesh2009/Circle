@@ -3,11 +3,9 @@ import { CircleCard } from "@/components/CircleCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +18,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function Home() {
+export default function Explore() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newCircle, setNewCircle] = useState({
@@ -55,45 +53,12 @@ export default function Home() {
     },
   });
 
-  const joinCircleMutation = useMutation({
-    mutationFn: async (circleId: string) => {
-      const response = await apiRequest("POST", `/api/circles/${circleId}/join`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
-      toast({ title: "Success", description: "Joined circle successfully!" });
-    },
-    onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    },
-  });
-
-  const leaveCircleMutation = useMutation({
-    mutationFn: async (circleId: string) => {
-      const response = await apiRequest("POST", `/api/circles/${circleId}/leave`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
-      toast({ title: "Success", description: "Left circle successfully!" });
-    },
-    onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
-    },
-  });
-
   const myCircleIds = new Set(myCircles.map((c: any) => c.id));
-  const circlesWithMembership = allCircles.map((circle: any) => ({
-    ...circle,
-    isMember: myCircleIds.has(circle.id),
-  }));
-
-  const filteredCircles = circlesWithMembership.filter((circle: any) => 
-    circle.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const exploreCircles = allCircles
+    .filter((circle: any) => !myCircleIds.has(circle.id))
+    .filter((circle: any) => 
+      circle.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   if (isLoading) {
     return (
@@ -176,45 +141,25 @@ export default function Home() {
           </Dialog>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-            <TabsList>
-              <TabsTrigger value="all" data-testid="tab-all">All</TabsTrigger>
-              <TabsTrigger value="my-circles" data-testid="tab-my-circles">My Circles</TabsTrigger>
-            </TabsList>
-            <TabsContent value="all" className="mt-6">
-              {filteredCircles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredCircles.map((circle: any) => (
-                    <CircleCard
-                      key={circle.id}
-                      {...circle}
-                      onClick={() => console.log(`Circle ${circle.name} clicked`)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">No circles found</p>
-              )}
-            </TabsContent>
-            <TabsContent value="my-circles" className="mt-6">
-              {myCircles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {myCircles.map((circle: any) => (
-                    <CircleCard
-                      key={circle.id}
-                      {...circle}
-                      isMember={true}
-                      onClick={() => console.log(`Circle ${circle.name} clicked`)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  You haven't joined any circles yet. Explore circles to get started!
-                </p>
-              )}
-            </TabsContent>
-          </Tabs>
+        <div>
+          <h2 className="text-2xl font-bold mb-4">Explore Circles</h2>
+          {exploreCircles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {exploreCircles.map((circle: any) => (
+                <CircleCard
+                  key={circle.id}
+                  {...circle}
+                  isMember={false}
+                  onClick={() => console.log(`Circle ${circle.name} clicked`)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              {searchQuery ? "No circles found matching your search" : "No new circles to explore"}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

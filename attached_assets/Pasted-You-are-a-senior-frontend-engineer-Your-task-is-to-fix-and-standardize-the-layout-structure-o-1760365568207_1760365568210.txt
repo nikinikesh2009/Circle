@@ -1,0 +1,58 @@
+You are a senior frontend engineer.  
+Your task is to **fix and standardize the layout structure** of my Circle PWA to ensure a consistent UI across all pages.
+
+============================================================
+📌 CURRENT ISSUE
+- The bottom navigation bar shows different labels on different pages (“Explore” vs “Discover”).
+- The content area shifts vertically between pages.
+- Dark/light theme doesn’t apply consistently across routes.
+- This is caused by pages having separate layouts instead of sharing one root layout.
+
+============================================================
+🏗️ WHAT I NEED YOU TO DO
+
+1. 🧱 **Create a single unified layout component** (e.g., `Layout.jsx`) that:
+   - Contains the top navigation bar.
+   - Wraps the main content container.
+   - Contains the bottom navigation bar.
+   - Handles dark/light theme globally.
+
+2. 🔁 **Wrap all routes inside this unified layout** so:
+   - Home
+   - Explore (previously Discover)
+   - Chat
+   - Profile
+   …all share the same structure.
+
+3. 🧭 **Standardize the bottom navigation bar**:
+   - Final tab labels should be:
+     - Home
+     - Explore
+     - Chat
+     - Profile
+   - Highlight active tab properly.
+   - Ensure mobile responsiveness is preserved.
+
+4. 🎨 **Fix global styling**:
+   - Use consistent padding/margin for the main content area across all pages.
+   - Apply `min-h-screen` and proper flex layout so the bottom nav doesn’t jump.
+   - Make theme (dark/light) apply at the root level, not per page.
+
+5. 🧰 **Clean up theme switching**:
+   - Ensure toggling between dark/light mode updates all pages instantly.
+   - No white flashes or unstyled sections.
+
+============================================================
+🎯 FINAL RESULT EXPECTATION
+- All pages use one unified layout.
+- No vertical shifting when switching tabs.
+- Navigation labels are the same everywhere.
+- Dark/light theme works consistently.
+- Production-grade mobile responsive structure.
+
+============================================================
+🚀 Extra (if time allows)
+- Smooth transition between routes (fade or slide).
+- Keep the bottom nav fixed at the bottom even when scrolling.
+
+============================================================
