@@ -164,6 +164,75 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  app.post("/api/dm/conversations", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { otherUserId } = req.body;
+
+      if (!otherUserId) {
+        return res.status(400).json({ error: "otherUserId is required" });
+      }
+
+      const conversation = await storage.getOrCreateConversation(userId, otherUserId);
+      res.json(conversation);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dm/conversations", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const conversations = await storage.getUserConversations(userId);
+      res.json(conversations);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/dm/conversations/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const conversationId = req.params.id;
+      const { content } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ error: "content is required" });
+      }
+
+      const conversations = await storage.getUserConversations(userId);
+      const conversation = conversations.find(c => c.id === conversationId);
+      
+      if (!conversation) {
+        return res.status(403).json({ error: "Not authorized to send messages in this conversation" });
+      }
+
+      const message = await storage.sendDmMessage(conversationId, userId, content);
+      res.json(message);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dm/conversations/:id/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const conversationId = req.params.id;
+
+      const conversations = await storage.getUserConversations(userId);
+      const conversation = conversations.find(c => c.id === conversationId);
+      
+      if (!conversation) {
+        return res.status(403).json({ error: "Not authorized to access this conversation" });
+      }
+
+      const messages = await storage.getDmMessages(conversationId);
+      res.json(messages);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/circles/:id/messages", requireAuth, async (req, res) => {
     try {
       const circleId = req.params.id;

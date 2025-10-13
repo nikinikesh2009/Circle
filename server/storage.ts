@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq, and, desc, count } from "drizzle-orm";
+import { eq, and, desc, count, or, sql as drizzleSql } from "drizzle-orm";
 import {
   users,
   circles,
@@ -7,6 +7,8 @@ import {
   messages,
   notifications,
   reactions,
+  conversations,
+  dmMessages,
   type User,
   type InsertUser,
   type Circle,
@@ -18,6 +20,10 @@ import {
   type InsertNotification,
   type Reaction,
   type InsertReaction,
+  type Conversation,
+  type InsertConversation,
+  type DmMessage,
+  type InsertDmMessage,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
@@ -61,6 +67,12 @@ export interface IStorage {
   markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
   markAllNotificationsAsRead(userId: string): Promise<void>;
   deleteNotification(notificationId: string, userId: string): Promise<void>;
+
+  // DM (Direct Messaging) methods
+  getOrCreateConversation(userId1: string, userId2: string): Promise<any>;
+  getUserConversations(userId: string): Promise<any[]>;
+  sendDmMessage(conversationId: string, senderId: string, content: string): Promise<any>;
+  getDmMessages(conversationId: string, limit?: number): Promise<any[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -314,6 +326,96 @@ export class DbStorage implements IStorage {
 
   async deleteNotification(notificationId: string, userId: string): Promise<void> {
     await db.delete(notifications).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+  }
+
+  async getOrCreateConversation(userId1: string, userId2: string): Promise<Conversation> {
+    if (userId1 === userId2) {
+      throw new Error("Cannot create conversation with yourself");
+    }
+
+    const [user1Id, user2Id] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+
+    const [existing] = await db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.user1Id, user1Id),
+          eq(conversations.user2Id, user2Id)
+        )
+      );
+
+    if (existing) {
+      return existing;
+    }
+
+    const [newConversation] = await db
+      .insert(conversations)
+      .values({ user1Id, user2Id })
+      .returning();
+    
+    return newConversation;
+  }
+
+  async getUserConversations(userId: string): Promise<any[]> {
+    const userConversations = await db
+      .select({
+        id: conversations.id,
+        user1Id: conversations.user1Id,
+        user2Id: conversations.user2Id,
+        createdAt: conversations.createdAt,
+      })
+      .from(conversations)
+      .where(
+        or(
+          eq(conversations.user1Id, userId),
+          eq(conversations.user2Id, userId)
+        )
+      )
+      .orderBy(desc(conversations.createdAt));
+
+    const conversationsWithUsers = await Promise.all(
+      userConversations.map(async (conv) => {
+        const otherUserId = conv.user1Id === userId ? conv.user2Id : conv.user1Id;
+        const otherUser = await this.getUser(otherUserId);
+        return {
+          ...conv,
+          otherUser: otherUser ? { id: otherUser.id, name: otherUser.name, username: otherUser.username, avatar: otherUser.avatar } : null,
+        };
+      })
+    );
+
+    return conversationsWithUsers;
+  }
+
+  async sendDmMessage(conversationId: string, senderId: string, content: string): Promise<DmMessage> {
+    const [dmMessage] = await db
+      .insert(dmMessages)
+      .values({ conversationId, senderId, content })
+      .returning();
+    
+    return dmMessage;
+  }
+
+  async getDmMessages(conversationId: string, limit = 100): Promise<any[]> {
+    const msgs = await db
+      .select()
+      .from(dmMessages)
+      .where(eq(dmMessages.conversationId, conversationId))
+      .orderBy(desc(dmMessages.createdAt))
+      .limit(limit);
+
+    const messagesWithUsers = await Promise.all(
+      msgs.map(async (msg) => {
+        const sender = await this.getUser(msg.senderId);
+        return {
+          ...msg,
+          sender: sender ? { id: sender.id, name: sender.name, username: sender.username, avatar: sender.avatar } : null,
+        };
+      })
+    );
+
+    return messagesWithUsers.reverse();
   }
 }
 

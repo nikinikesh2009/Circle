@@ -68,6 +68,22 @@ export const reactions = pgTable("reactions", {
   pk: primaryKey({ columns: [table.messageId, table.userId, table.emoji] }),
 }));
 
+export const conversations = pgTable("conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user1Id: varchar("user1_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  user2Id: varchar("user2_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const dmMessages = pgTable("dm_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   status: true,
@@ -103,6 +119,17 @@ export const insertReactionSchema = createInsertSchema(reactions).omit({
   createdAt: true,
 });
 
+export const insertConversationSchema = createInsertSchema(conversations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDmMessageSchema = createInsertSchema(dmMessages).omit({
+  id: true,
+  isDeleted: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -120,3 +147,9 @@ export type Notification = typeof notifications.$inferSelect;
 
 export type InsertReaction = z.infer<typeof insertReactionSchema>;
 export type Reaction = typeof reactions.$inferSelect;
+
+export type InsertConversation = z.infer<typeof insertConversationSchema>;
+export type Conversation = typeof conversations.$inferSelect;
+
+export type InsertDmMessage = z.infer<typeof insertDmMessageSchema>;
+export type DmMessage = typeof dmMessages.$inferSelect;
