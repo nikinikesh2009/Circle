@@ -1,58 +1,113 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { MessageBubble } from "@/components/MessageBubble";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
-// todo: remove mock functionality
-const mockConversation = [
-  {
-    id: "1",
-    content: "Hello! I'm your AI assistant. I can help you with circle recommendations, answer questions, and provide suggestions. How can I help you today?",
-    sender: { name: "AI Assistant", fallback: "AI" },
-    timestamp: "Just now",
-    isSent: false,
-    isAI: true,
-  },
-];
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  sender: { name: string; fallback: string };
+  timestamp: string;
+  isSent: boolean;
+  isAI?: boolean;
+}
 
 const suggestedPrompts = [
   "Find circles about web development",
   "Help me write a good circle description",
   "What are the most active circles?",
-  "Suggest a reply to the latest message",
+  "Suggest topics for a tech circle",
 ];
 
 export default function AIAssistant() {
-  const [messages, setMessages] = useState(mockConversation);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: "1",
+      role: "assistant",
+      content: "Hello! I'm your AI assistant for Circle. I can help you with circle recommendations, answer questions, and provide suggestions. How can I help you today?",
+      sender: { name: "AI Assistant", fallback: "AI" },
+      timestamp: "Just now",
+      isSent: false,
+      isAI: true,
+    },
+  ]);
   const [input, setInput] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  const aiChatMutation = useMutation({
+    mutationFn: async (userMessage: string) => {
+      const chatMessages = messages
+        .filter((m) => m.id !== "1")
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+      chatMessages.push({ role: "user", content: userMessage });
+
+      const response = await apiRequest("POST", "/api/ai/chat", {
+        messages: chatMessages,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const aiMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: data.message,
+        sender: { name: "AI Assistant", fallback: "AI" },
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        isSent: false,
+        isAI: true,
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to get AI response",
+      });
+    },
+  });
 
   const handleSend = () => {
-    if (input.trim()) {
-      const userMessage = {
+    if (input.trim() && !aiChatMutation.isPending) {
+      const userMessage: Message = {
         id: Date.now().toString(),
+        role: "user",
         content: input,
         sender: { name: "You", fallback: "ME" },
-        timestamp: "Just now",
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         isSent: true,
         isAI: false,
       };
 
-      const aiResponse = {
-        id: (Date.now() + 1).toString(),
-        content: "I understand your question. Let me help you with that...",
-        sender: { name: "AI Assistant", fallback: "AI" },
-        timestamp: "Just now",
-        isSent: false,
-        isAI: true,
-      };
-
-      setMessages([...messages, userMessage, aiResponse]);
+      setMessages((prev) => [...prev, userMessage]);
+      aiChatMutation.mutate(input);
       setInput("");
     }
   };
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-full">
@@ -63,7 +118,7 @@ export default function AIAssistant() {
           </div>
           <div>
             <h1 className="text-xl font-semibold">AI Assistant</h1>
-            <p className="text-sm text-muted-foreground">Powered by ChatGPT</p>
+            <p className="text-sm text-muted-foreground">Powered by GPT-5</p>
           </div>
         </div>
       </div>
@@ -73,6 +128,15 @@ export default function AIAssistant() {
           {messages.map((msg) => (
             <MessageBubble key={msg.id} {...msg} />
           ))}
+
+          {aiChatMutation.isPending && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-75" />
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-150" />
+              <span className="text-sm ml-2">AI is thinking...</span>
+            </div>
+          )}
 
           {messages.length === 1 && (
             <div className="mt-8">
@@ -93,6 +157,7 @@ export default function AIAssistant() {
               </div>
             </div>
           )}
+          <div ref={scrollRef} />
         </div>
       </ScrollArea>
 
@@ -103,9 +168,15 @@ export default function AIAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
+            disabled={aiChatMutation.isPending}
             data-testid="input-ai-message"
           />
-          <Button onClick={handleSend} size="icon" data-testid="button-send-ai-message">
+          <Button
+            onClick={handleSend}
+            size="icon"
+            disabled={!input.trim() || aiChatMutation.isPending}
+            data-testid="button-send-ai-message"
+          >
             <Send className="h-5 w-5" />
           </Button>
         </div>

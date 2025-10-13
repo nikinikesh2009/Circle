@@ -6,6 +6,8 @@ import passport from "passport";
 import { insertUserSchema, insertCircleSchema, insertMessageSchema } from "@shared/schema";
 import { WebSocketServer } from "ws";
 import type { Store } from "express-session";
+import OpenAI from "openai";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express, sessionStore: Store): Promise<Server> {
   setupAuth(app);
@@ -145,6 +147,76 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
       const messages = await storage.getCircleMessages(circleId);
       res.json(messages);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // This is using Replit's AI Integrations service for OpenAI-compatible API access
+  const openai = new OpenAI({
+    baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY
+  });
+
+  const chatMessageSchema = z.object({
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string().min(1).max(10000),
+  });
+
+  const chatRequestSchema = z.object({
+    messages: z.array(chatMessageSchema).min(1).max(50),
+  });
+
+  const userRequestCounts = new Map<string, { count: number; resetTime: number }>();
+  const RATE_LIMIT = 20;
+  const RATE_WINDOW = 60000;
+
+  app.post("/api/ai/chat", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      
+      const now = Date.now();
+      const userLimit = userRequestCounts.get(userId);
+      
+      if (userLimit) {
+        if (now < userLimit.resetTime) {
+          if (userLimit.count >= RATE_LIMIT) {
+            return res.status(429).json({ error: "Too many requests. Please try again later." });
+          }
+          userLimit.count++;
+        } else {
+          userRequestCounts.set(userId, { count: 1, resetTime: now + RATE_WINDOW });
+        }
+      } else {
+        userRequestCounts.set(userId, { count: 1, resetTime: now + RATE_WINDOW });
+      }
+
+      const result = chatRequestSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid request", details: result.error });
+      }
+
+      const { messages } = result.data;
+      const trimmedMessages = messages.slice(-20);
+
+      // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+      const completion = await openai.chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful AI assistant for Circle, a social communities platform. Help users with their questions about their circles, provide suggestions, and engage in meaningful conversations. Be friendly, concise, and helpful."
+          },
+          ...trimmedMessages
+        ],
+        max_completion_tokens: 8192,
+      });
+
+      res.json({
+        message: completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.",
+        usage: completion.usage
+      });
+    } catch (error: any) {
+      console.error("AI chat error:", error);
       res.status(500).json({ error: error.message });
     }
   });
