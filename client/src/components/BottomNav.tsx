@@ -1,4 +1,4 @@
-import { Home, Compass, MessageCircle, User } from "lucide-react";
+import { Home, Compass, MessageCircle, MessageSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "wouter";
 
@@ -9,6 +9,7 @@ export function BottomNav() {
     { icon: Home, label: "Home", path: "/", testId: "nav-home" },
     { icon: Compass, label: "Explore", path: "/explore", testId: "nav-explore" },
     { icon: MessageCircle, label: "Chat", path: "/chat", testId: "nav-chat" },
+    { icon: MessageSquare, label: "DMs", path: "/dm", testId: "nav-dm" },
     { icon: User, label: "Profile", path: "/profile", testId: "nav-profile" },
   ];
 
@@ -16,7 +17,9 @@ export function BottomNav() {
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-inset-bottom">
       <div className="flex items-center justify-around h-16">
         {navItems.map(({ icon: Icon, label, path, testId }) => {
-          const isActive = location === path || (path === "/chat" && location.startsWith("/chat"));
+          const isActive = location === path || 
+            (path === "/chat" && location.startsWith("/chat")) ||
+            (path === "/dm" && location.startsWith("/dm"));
           return (
             <Link key={path} href={path}>
               <button
