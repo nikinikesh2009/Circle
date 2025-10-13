@@ -1,0 +1,26 @@
+{
+  "name": "Circle - Connect Through Shared Interests",
+  "short_name": "Circle",
+  "description": "Join interest-based communities, chat in real-time, and connect with people who share your passions",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#141618",
+  "theme_color": "#217BF4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "lifestyle"],
+  "screenshots": []
+}
