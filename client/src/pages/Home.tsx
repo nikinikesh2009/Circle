@@ -31,7 +31,7 @@ export default function Home() {
   const { toast } = useToast();
 
   const { data: allCircles = [], isLoading } = useQuery<any[]>({
-    queryKey: ["/api/circles"],
+    queryKey: ["/api/circles/official"],
   });
 
   const { data: myCircles = [] } = useQuery<any[]>({
@@ -44,7 +44,7 @@ export default function Home() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/official"] });
       queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
       toast({ title: "Success", description: "Circle created successfully!" });
       setCreateDialogOpen(false);
@@ -61,7 +61,7 @@ export default function Home() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/official"] });
       queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
       toast({ title: "Success", description: "Joined circle successfully!" });
     },
@@ -76,7 +76,7 @@ export default function Home() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/official"] });
       queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
       toast({ title: "Success", description: "Left circle successfully!" });
     },

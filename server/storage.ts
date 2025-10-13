@@ -33,6 +33,8 @@ export interface IStorage {
   createCircle(circle: InsertCircle): Promise<Circle>;
   getCircle(id: string): Promise<Circle | undefined>;
   getCircles(): Promise<Circle[]>;
+  getOfficialCircles(): Promise<Circle[]>;
+  getUserCreatedCircles(userId: string): Promise<Circle[]>;
   getUserCircles(userId: string): Promise<Circle[]>;
   updateCircleMemberCount(circleId: string): Promise<void>;
 
@@ -112,6 +114,28 @@ export class DbStorage implements IStorage {
     return db.select().from(circles).orderBy(desc(circles.createdAt));
   }
 
+  async getOfficialCircles(): Promise<Circle[]> {
+    return db.select().from(circles).where(eq(circles.isOfficial, true)).orderBy(desc(circles.createdAt));
+  }
+
+  async getUserCreatedCircles(userId: string): Promise<Circle[]> {
+    const userCircleIds = db
+      .select({ circleId: circleMembers.circleId })
+      .from(circleMembers)
+      .where(eq(circleMembers.userId, userId));
+
+    const result = await db
+      .select()
+      .from(circles)
+      .where(and(
+        eq(circles.isOfficial, false),
+      ))
+      .orderBy(desc(circles.createdAt));
+
+    const joinedCircleIds = (await userCircleIds).map(c => c.circleId);
+    return result.filter(circle => !joinedCircleIds.includes(circle.id));
+  }
+
   async getUserCircles(userId: string): Promise<Circle[]> {
     const result = await db
       .select({
@@ -121,6 +145,7 @@ export class DbStorage implements IStorage {
         coverImage: circles.coverImage,
         category: circles.category,
         isPrivate: circles.isPrivate,
+        isOfficial: circles.isOfficial,
         createdBy: circles.createdBy,
         memberCount: circles.memberCount,
         createdAt: circles.createdAt,

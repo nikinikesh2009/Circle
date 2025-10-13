@@ -22,6 +22,7 @@ export const circles = pgTable("circles", {
   coverImage: text("cover_image"),
   category: text("category"),
   isPrivate: boolean("is_private").default(false).notNull(),
+  isOfficial: boolean("is_official").default(false).notNull(),
   createdBy: varchar("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
   memberCount: integer("member_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

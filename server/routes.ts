@@ -74,6 +74,25 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  app.get("/api/circles/official", requireAuth, async (req, res) => {
+    try {
+      const circles = await storage.getOfficialCircles();
+      res.json(circles);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/circles/explore", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const circles = await storage.getUserCreatedCircles(userId);
+      res.json(circles);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/circles/my", requireAuth, async (req, res) => {
     try {
       const userId = (req.user as any).id;

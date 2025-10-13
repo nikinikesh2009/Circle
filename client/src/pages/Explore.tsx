@@ -28,12 +28,8 @@ export default function Explore() {
   });
   const { toast } = useToast();
 
-  const { data: allCircles = [], isLoading } = useQuery<any[]>({
-    queryKey: ["/api/circles"],
-  });
-
-  const { data: myCircles = [] } = useQuery<any[]>({
-    queryKey: ["/api/circles/my"],
+  const { data: exploreCircles = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/circles/explore"],
   });
 
   const createCircleMutation = useMutation({
@@ -42,8 +38,7 @@ export default function Explore() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/explore"] });
       toast({ title: "Success", description: "Circle created successfully!" });
       setCreateDialogOpen(false);
       setNewCircle({ name: "", description: "", category: "" });
@@ -53,12 +48,9 @@ export default function Explore() {
     },
   });
 
-  const myCircleIds = new Set(myCircles.map((c: any) => c.id));
-  const exploreCircles = allCircles
-    .filter((circle: any) => !myCircleIds.has(circle.id))
-    .filter((circle: any) => 
-      circle.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const filteredCircles = exploreCircles.filter((circle: any) => 
+    circle.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) {
     return (
@@ -143,9 +135,9 @@ export default function Explore() {
 
         <div>
           <h2 className="text-2xl font-bold mb-4">Explore Circles</h2>
-          {exploreCircles.length > 0 ? (
+          {filteredCircles.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {exploreCircles.map((circle: any) => (
+              {filteredCircles.map((circle: any) => (
                 <CircleCard
                   key={circle.id}
                   {...circle}
