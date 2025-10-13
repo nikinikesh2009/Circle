@@ -1,4 +1,4 @@
-import { Home, Compass, MessageCircle, User, HelpCircle, Bot, LogOut } from "lucide-react";
+import { Home, Compass, MessageCircle, MessageSquare, User, HelpCircle, Bot, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -19,8 +19,9 @@ import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home, testId: "nav-home" },
-  { title: "Discover", url: "/discover", icon: Compass, testId: "nav-discover" },
-  { title: "Messages", url: "/chat", icon: MessageCircle, testId: "nav-chat" },
+  { title: "Discover", url: "/explore", icon: Compass, testId: "nav-discover" },
+  { title: "Circles", url: "/chat", icon: MessageCircle, testId: "nav-chat" },
+  { title: "Direct Messages", url: "/dm", icon: MessageSquare, testId: "nav-dm" },
   { title: "Profile", url: "/profile", icon: User, testId: "nav-profile" },
 ];
 
