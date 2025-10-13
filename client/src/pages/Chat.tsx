@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { CircleListItem } from "@/components/CircleListItem";
-import { MessageBubble } from "@/components/MessageBubble";
+import { ChatMessage } from "@/components/ChatMessage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, MoreVertical, ArrowLeft } from "lucide-react";
@@ -23,7 +23,10 @@ interface Message {
   circleId: string;
   userId: string;
   content: string;
+  isEdited?: boolean;
+  isDeleted?: boolean;
   createdAt: string;
+  editedAt?: string;
   user?: {
     id: string;
     name: string;
@@ -222,18 +225,22 @@ export default function Chat() {
           ) : (
             <div className="space-y-4">
               {messages.map((msg) => (
-                <MessageBubble
+                <ChatMessage
                   key={msg.id}
+                  id={msg.id}
                   content={msg.content}
                   sender={{
+                    id: msg.user?.id || "",
                     name: msg.user?.name || "Unknown",
-                    fallback: msg.user?.name?.substring(0, 2).toUpperCase() || "UN",
+                    username: msg.user?.username || "",
+                    avatar: msg.user?.avatar,
                   }}
-                  timestamp={new Date(msg.createdAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                  isSent={msg.userId === user?.id}
+                  createdAt={msg.createdAt}
+                  isEdited={msg.isEdited}
+                  isDeleted={msg.isDeleted}
+                  isOwn={msg.userId === user?.id}
+                  currentUserId={user?.id || ""}
+                  circleId={circleId || ""}
                 />
               ))}
             </div>

@@ -48,7 +48,7 @@ export interface IStorage {
   deleteMessage(messageId: string, userId: string): Promise<void>;
 
   // Reaction methods
-  addReaction(reaction: InsertReaction): Promise<Reaction>;
+  addReaction(reaction: InsertReaction): Promise<Reaction | null>;
   removeReaction(messageId: string, userId: string, emoji: string): Promise<void>;
   getMessageReactions(messageId: string): Promise<Reaction[]>;
 
@@ -187,7 +187,7 @@ export class DbStorage implements IStorage {
     const messageList = await db
       .select()
       .from(messages)
-      .where(and(eq(messages.circleId, circleId), eq(messages.isDeleted, false)))
+      .where(eq(messages.circleId, circleId))
       .orderBy(messages.createdAt)
       .limit(limit);
 
@@ -223,13 +223,13 @@ export class DbStorage implements IStorage {
       .where(and(eq(messages.id, messageId), eq(messages.userId, userId)));
   }
 
-  async addReaction(reaction: InsertReaction): Promise<Reaction> {
+  async addReaction(reaction: InsertReaction): Promise<Reaction | null> {
     const [newReaction] = await db
       .insert(reactions)
       .values(reaction)
       .onConflictDoNothing()
       .returning();
-    return newReaction;
+    return newReaction || null;
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string): Promise<void> {

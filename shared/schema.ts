@@ -59,13 +59,12 @@ export const notifications = pgTable("notifications", {
 });
 
 export const reactions = pgTable("reactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   messageId: varchar("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   emoji: varchar("emoji", { length: 10 }).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
-  unique: primaryKey({ columns: [table.messageId, table.userId, table.emoji] }),
+  pk: primaryKey({ columns: [table.messageId, table.userId, table.emoji] }),
 }));
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -100,7 +99,6 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 });
 
 export const insertReactionSchema = createInsertSchema(reactions).omit({
-  id: true,
   createdAt: true,
 });
 
