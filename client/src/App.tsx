@@ -13,6 +13,8 @@ import Signup from "@/pages/Signup";
 import Home from "@/pages/Home";
 import Explore from "@/pages/Explore";
 import Chat from "@/pages/Chat";
+import DirectMessages from "@/pages/DirectMessages";
+import DMChat from "@/pages/DMChat";
 import Support from "@/pages/Support";
 import AIAssistant from "@/pages/AIAssistant";
 import Profile from "@/pages/Profile";
@@ -53,6 +55,8 @@ function Router() {
       <Route path="/explore">{() => <ProtectedRouteWithLayout component={Explore} />}</Route>
       <Route path="/chat">{() => <ProtectedRouteWithLayout component={Chat} />}</Route>
       <Route path="/chat/:circleId">{() => <ProtectedRouteWithLayout component={Chat} />}</Route>
+      <Route path="/dm">{() => <ProtectedRouteWithLayout component={DirectMessages} />}</Route>
+      <Route path="/dm/:conversationId">{() => <ProtectedRouteWithLayout component={DMChat} />}</Route>
       <Route path="/support">{() => <ProtectedRouteWithLayout component={Support} />}</Route>
       <Route path="/ai">{() => <ProtectedRouteWithLayout component={AIAssistant} />}</Route>
       <Route path="/profile">{() => <ProtectedRouteWithLayout component={Profile} />}</Route>
