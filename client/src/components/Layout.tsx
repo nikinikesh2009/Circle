@@ -25,9 +25,9 @@ export function Layout({ children }: LayoutProps) {
         <AppSidebar />
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile Header */}
-          <header className="flex items-center justify-between p-4 border-b border-border lg:hidden">
-            <SidebarTrigger data-testid="button-sidebar-toggle" />
+          <header className="flex items-center justify-between w-full px-4 py-2 border-b border-border lg:hidden">
             <div className="flex items-center gap-3">
+              <SidebarTrigger data-testid="button-sidebar-toggle" />
               <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
                 <span className="text-primary-foreground font-bold text-lg">C</span>
               </div>
@@ -40,7 +40,13 @@ export function Layout({ children }: LayoutProps) {
           </header>
           
           {/* Desktop Header */}
-          <header className="hidden lg:flex items-center justify-end p-4 border-b border-border">
+          <header className="hidden lg:flex items-center justify-between w-full px-4 py-2 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-lg">C</span>
+              </div>
+              <span className="font-bold text-xl">Circle</span>
+            </div>
             <div className="flex items-center gap-2">
               <NotificationBell />
               <ThemeToggle />
