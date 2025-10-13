@@ -21,6 +21,12 @@ Circle is a production-grade Progressive Web App for creating and managing inter
   - Soft deletion with "Message deleted" placeholder
   - Reactions stored with composite PK (message_id, user_id, emoji)
   - All features tested end-to-end and verified working
+- ✅ **Chat Layout & Media Improvements**:
+  - Fixed full-width layout - content now fills entire screen
+  - Sticky chat input bar stays at bottom while scrolling
+  - Added media attachment buttons (image, file, audio pickers)
+  - Proper mobile spacing to prevent BottomNav overlap (mb-16)
+  - All media buttons functional with file selection dialogs
 - Fixed critical notification system bugs:
   - Added WebSocket import for server-side notification broadcasting
   - Fixed unread count to use SQL COUNT() aggregate for accurate counts
