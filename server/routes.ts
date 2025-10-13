@@ -217,9 +217,12 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
       });
     } catch (error: any) {
       console.error("AI chat error:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "An error occurred while processing your request. Please try again." });
     }
   });
+
+  // Note: Rate limiter is in-memory and resets on server restart.
+  // For production horizontal scaling, replace with Redis or similar shared store.
 
   const httpServer = createServer(app);
 

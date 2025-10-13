@@ -1,0 +1,363 @@
+# PROMPT 2 — Routing, Navigation & Layout (React PWA • Supabase Auth)
+
+You are a **Senior Full-Stack Web Engineer**. Continue the “Circle” PWA build (React + Vite + Supabase + Tailwind). Implement **routing**, **protected routes**, **responsive layouts**, and **navigation (bottom nav on mobile, sidebar on desktop)**. Keep code modular, production-grade, and accessible.
+
+---
+
+## 0) Requirements & Standards
+- Use **React Router v6+** for routing.
+- Use **TailwindCSS** for styling (already installed in Prompt 1).
+- Auth state from **Supabase**; protect routes for logged-in users.
+- **Mobile-first**: bottom tab bar; **desktop**: left sidebar + top app bar.
+- No hardcoded secrets; no inline Supabase keys.
+- Pass **eslint**/**ts-check**; keep components small & reusable.
+
+---
+
+## 1) Install deps
+```bash
+npm i react-router-dom zustand @tanstack/react-query
+
+> Use Zustand for lightweight UI/global state (e.g., layout, unread counts). Use React Query for server requests/caching.
+
+
+
+
+---
+
+2) Folder scaffold (append to existing)
+
+src/
+  app/
+    App.tsx
+    routes.tsx
+    ProtectedRoute.tsx
+  layout/
+    AppShell.tsx
+    DesktopSidebar.tsx
+    MobileTabBar.tsx
+    TopBar.tsx
+  hooks/
+    useAuth.ts
+  pages/
+    Home.tsx
+    Explore.tsx
+    CircleDetail.tsx
+    Messages.tsx
+    AI.tsx
+    Notifications.tsx
+    Profile.tsx
+    Settings.tsx
+    Support.tsx
+    Auth/
+      SignIn.tsx
+      SignUp.tsx
+      MagicLink.tsx
+  state/
+    ui.store.ts
+
+
+---
+
+3) Auth hook (Supabase session)
+
+Create src/hooks/useAuth.ts:
+
+import { useEffect, useState } from 'react';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from '../services/supabaseService';
+
+export function useAuth() {
+  const [session, setSession] = useState<Session|null>(null);
+  const [user, setUser] = useState<User|null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session ?? null);
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+    });
+    return () => { mounted = false; sub.subscription.unsubscribe(); };
+  }, []);
+
+  return { session, user, loading, isAuthed: !!user };
+}
+
+
+---
+
+4) Protected route wrapper
+
+Create src/app/ProtectedRoute.tsx:
+
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+
+export default function ProtectedRoute() {
+  const { isAuthed, loading } = useAuth();
+  const loc = useLocation();
+  if (loading) return null; // or a skeleton
+  if (!isAuthed) return <Navigate to="/auth/sign-in" replace state={{ from: loc }} />;
+  return <Outlet />;
+}
+
+
+---
+
+5) Global UI state (unreads, panes)
+
+Create src/state/ui.store.ts:
+
+import { create } from 'zustand';
+
+type UIState = {
+  unreadCount: number;
+  setUnreadCount: (n: number) => void;
+  sidebarOpen: boolean;
+  setSidebarOpen: (v: boolean) => void;
+};
+
+export const useUI = create<UIState>((set) => ({
+  unreadCount: 0,
+  setUnreadCount: (n) => set({ unreadCount: n }),
+  sidebarOpen: false,
+  setSidebarOpen: (v) => set({ sidebarOpen: v }),
+}));
+
+
+---
+
+6) Layout components
+
+Top bar – src/layout/TopBar.tsx:
+
+import { useUI } from '../state/ui.store';
+
+export default function TopBar() {
+  const { setSidebarOpen } = useUI();
+  return (
+    <header className="sticky top-0 z-20 bg-white/70 backdrop-blur border-b">
+      <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+        <button className="md:hidden p-2" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
+          ☰
+        </button>
+        <h1 className="font-semibold">Circle</h1>
+        <div className="flex items-center gap-3">
+          {/* placeholder for search, profile avatar */}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+Desktop sidebar – src/layout/DesktopSidebar.tsx:
+
+import { NavLink } from 'react-router-dom';
+
+const items = [
+  { to: '/', label: 'Home' },
+  { to: '/explore', label: 'Explore' },
+  { to: '/messages', label: 'Messages' },
+  { to: '/ai', label: 'AI' },
+  { to: '/notifications', label: 'Notifications' },
+  { to: '/profile', label: 'Profile' },
+  { to: '/settings', label: 'Settings' },
+  { to: '/support', label: 'Support' },
+];
+
+export default function DesktopSidebar() {
+  return (
+    <aside className="hidden md:flex md:w-64 border-r h-[calc(100vh-56px)] sticky top-14">
+      <nav className="p-3 w-full">
+        <ul className="space-y-1">
+          {items.map((it) => (
+            <li key={it.to}>
+              <NavLink
+                to={it.to}
+                className={({ isActive }) =>
+                  `block rounded px-3 py-2 ${isActive ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'}`
+                }
+              >
+                {it.label}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
+  );
+}
+
+Mobile bottom nav – src/layout/MobileTabBar.tsx:
+
+import { NavLink } from 'react-router-dom';
+
+const tabs = [
+  { to: '/', label: 'Home' },
+  { to: '/explore', label: 'Explore' },
+  { to: '/messages', label: 'Chat' },
+  { to: '/ai', label: 'AI' },
+  { to: '/profile', label: 'Me' },
+];
+
+export default function MobileTabBar() {
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-20">
+      <ul className="flex justify-around h-14 items-center">
+        {tabs.map((t) => (
+          <li key={t.to}>
+            <NavLink
+              to={t.to}
+              className={({ isActive }) => `px-3 py-2 ${isActive ? 'text-blue-600' : 'text-gray-600'}`}
+            >
+              {t.label}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
+App shell – src/layout/AppShell.tsx:
+
+import DesktopSidebar from './DesktopSidebar';
+import MobileTabBar from './MobileTabBar';
+import TopBar from './TopBar';
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-white text-gray-900">
+      <TopBar />
+      <div className="mx-auto max-w-6xl px-4">
+        <div className="md:flex gap-6">
+          <DesktopSidebar />
+          <main className="flex-1 pb-16 md:pb-6 pt-4">{children}</main>
+        </div>
+      </div>
+      <MobileTabBar />
+    </div>
+  );
+}
+
+
+---
+
+7) Pages (placeholders)
+
+Create simple placeholders now; we’ll fill logic in later:
+
+src/pages/Home.tsx, Explore.tsx, CircleDetail.tsx, Messages.tsx, AI.tsx, Notifications.tsx, Profile.tsx, Settings.tsx, Support.tsx – each exports a default component with a heading.
+
+Auth pages (src/pages/Auth/SignIn.tsx, SignUp.tsx, MagicLink.tsx) – add basic forms; hook into Supabase in Prompt 3.
+
+
+---
+
+8) Routes & composition
+
+routes.tsx – src/app/routes.tsx:
+
+import { createBrowserRouter } from 'react-router-dom';
+import AppShell from '../layout/AppShell';
+import ProtectedRoute from './ProtectedRoute';
+
+import Home from '../pages/Home';
+import Explore from '../pages/Explore';
+import CircleDetail from '../pages/CircleDetail';
+import Messages from '../pages/Messages';
+import AI from '../pages/AI';
+import Notifications from '../pages/Notifications';
+import Profile from '../pages/Profile';
+import Settings from '../pages/Settings';
+import Support from '../pages/Support';
+
+import SignIn from '../pages/Auth/SignIn';
+import SignUp from '../pages/Auth/SignUp';
+import MagicLink from '../pages/Auth/MagicLink';
+
+export const router = createBrowserRouter([
+  // public auth routes
+  { path: '/auth/sign-in', element: <SignIn /> },
+  { path: '/auth/sign-up', element: <SignUp /> },
+  { path: '/auth/magic-link', element: <MagicLink /> },
+
+  // protected application
+  {
+    path: '/',
+    element: <ProtectedRoute />, // gate everything behind auth
+    children: [
+      {
+        element: <AppShell><Home /></AppShell>,
+        index: true,
+      },
+      { path: 'explore', element: <AppShell><Explore /></AppShell> },
+      { path: 'circle/:id', element: <AppShell><CircleDetail /></AppShell> },
+      { path: 'messages', element: <AppShell><Messages /></AppShell> },
+      { path: 'ai', element: <AppShell><AI /></AppShell> },
+      { path: 'notifications', element: <AppShell><Notifications /></AppShell> },
+      { path: 'profile', element: <AppShell><Profile /></AppShell> },
+      { path: 'settings', element: <AppShell><Settings /></AppShell> },
+      { path: 'support', element: <AppShell><Support /></AppShell> },
+    ],
+  },
+
+  // 404
+  { path: '*', element: <div className="p-8">Not Found</div> },
+]);
+
+App.tsx – src/app/App.tsx:
+
+import { RouterProvider } from 'react-router-dom';
+import { router } from './routes';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const qc = new QueryClient();
+
+export default function App() {
+  return (
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+}
+
+main.tsx – ensure it renders <App />.
+
+
+---
+
+9) Accessibility & SEO (PWA)
+
+Set page titles per route (we’ll add a useDocumentTitle hook later).
+
+Ensure nav elements have proper aria-* labels and focus states.
+
+Keyboard accessible: tab order, focus ring visible.
+
+
+
+---
+
+10) Acceptance criteria
+
+App runs with npm run dev.
+
+Public routes: /auth/* show forms.
+
+After manual session injection (we’ll wire real auth in Prompt 3), protected routes render with AppShell.
+
+Mobile: bottom tab visible; Desktop: sidebar visible; content responsive.
+
+No ESLint/Type errors; build succeeds.
+
+
+
+---

@@ -43,15 +43,15 @@ export default function AIAssistant() {
   const { toast } = useToast();
 
   const aiChatMutation = useMutation({
-    mutationFn: async (userMessage: string) => {
-      const chatMessages = messages
+    mutationFn: async (payload: { userMessage: string; conversationHistory: Message[] }) => {
+      const chatMessages = payload.conversationHistory
         .filter((m) => m.id !== "1")
         .map((m) => ({
           role: m.role,
           content: m.content,
         }));
 
-      chatMessages.push({ role: "user", content: userMessage });
+      chatMessages.push({ role: "user", content: payload.userMessage });
 
       const response = await apiRequest("POST", "/api/ai/chat", {
         messages: chatMessages,
@@ -97,8 +97,11 @@ export default function AIAssistant() {
         isAI: false,
       };
 
-      setMessages((prev) => [...prev, userMessage]);
-      aiChatMutation.mutate(input);
+      setMessages((prev) => {
+        const updated = [...prev, userMessage];
+        aiChatMutation.mutate({ userMessage: input, conversationHistory: updated });
+        return updated;
+      });
       setInput("");
     }
   };
