@@ -69,6 +69,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.static("public"));
+
 (async () => {
   const server = await registerRoutes(app, sessionStore);
 
