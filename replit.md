@@ -14,21 +14,34 @@ Circle is a production-grade Progressive Web App for creating and managing inter
 - ✅ In-app notification system with real-time updates (complete)
 
 ### Latest Updates (October 13, 2025)
-- ✅ **Unified Layout Structure** (Production-Ready):
+- ✅ **Official Circles & Home/Explore Separation** (Production-Ready):
+  - Added `isOfficial` flag to circles schema (default: false)
+  - Created 7 official circles as seed data (AI & Tech, Python, Gaming, Music, Books, Movies, Sports)
+  - Home page shows ONLY official circles for everyone
+  - Explore page shows ONLY user-created circles (non-official, not yet joined)
+  - Clear separation between official/common content and user-generated content
+- ✅ **Direct Messaging System** (Production-Ready):
+  - Implemented DM schema with `conversations` and `dm_messages` tables
+  - Unique index on participant pair (LEAST/GREATEST) prevents duplicate conversations
+  - Check constraint prevents self-messaging
+  - Storage methods: getOrCreateConversation, getUserConversations, sendDmMessage, getDmMessages
+  - API routes with participant authorization: POST/GET /api/dm/conversations, POST/GET /api/dm/conversations/:id/messages
+  - Security: All DM routes verify user is conversation participant before allowing access
+  - Fixed critical authorization vulnerability preventing unauthorized access to conversations
+- ✅ **Unified Layout Structure**:
   - Created single Layout component wrapping all protected routes
-  - Separated Explore page from Home (Explore shows only non-joined circles)
   - Standardized content padding (p-4 lg:p-6) across all pages
   - Fixed bottom navigation with consistent labels (Home, Explore, Chat, Profile)
   - Theme toggle accessible on both mobile and desktop
   - AI FAB uses SPA navigation without page reloads
   - No vertical shifting between pages
-- ✅ **Navigation Bar Alignment Fix** (Production-Ready):
+- ✅ **Navigation Bar Alignment Fix**:
   - Fixed top navbar with justify-between flex layout
   - Mobile: SidebarTrigger + Logo + "Circle" on left, NotificationBell + ThemeToggle on right
   - Desktop: Logo + "Circle" on left, NotificationBell + ThemeToggle on right
   - Full width (w-full) with proper padding (px-4 py-2)
   - No empty space on right side, visually centered and responsive
-- ✅ **Mobile Chat Enhancements** (Production-Ready):
+- ✅ **Mobile Chat Enhancements**:
   - Message reactions system with emoji support (👍❤️😂😮🎉🔥)
   - Long-press context menu for edit/delete on mobile
   - Message editing with real-time sync across clients
@@ -79,6 +92,8 @@ Circle is a production-grade Progressive Web App for creating and managing inter
   - `POST /api/auth/logout` - Logout
   - `GET /api/auth/me` - Get current user
   - `GET /api/circles` - List all circles
+  - `GET /api/circles/official` - Get official circles
+  - `GET /api/circles/explore` - Get user-created circles (not joined)
   - `GET /api/circles/my` - Get user's circles
   - `POST /api/circles` - Create circle
   - `POST /api/circles/:id/join` - Join circle
@@ -89,14 +104,20 @@ Circle is a production-grade Progressive Web App for creating and managing inter
   - `GET /api/messages/:id/reactions` - Get message reactions
   - `POST /api/messages/:id/reactions` - Add reaction
   - `DELETE /api/messages/:id/reactions/:emoji` - Remove reaction
+  - `POST /api/dm/conversations` - Create/get conversation with another user
+  - `GET /api/dm/conversations` - Get user's all conversations
+  - `POST /api/dm/conversations/:id/messages` - Send a DM message
+  - `GET /api/dm/conversations/:id/messages` - Get DM messages
 
 ### Database Schema
 - **users**: id, email, password (hashed), name, username, avatar, bio, status, created_at
-- **circles**: id, name, description, cover_image, category, is_private, created_by, member_count, created_at
+- **circles**: id, name, description, cover_image, category, is_private, is_official, created_by, member_count, created_at
 - **circle_members**: circle_id, user_id, role, joined_at (composite PK)
 - **messages**: id, circle_id, user_id, content, is_edited, is_deleted, created_at
 - **reactions**: message_id, user_id, emoji, created_at (composite PK on message_id, user_id, emoji)
 - **notifications**: id, user_id, type, title, message, link, read, created_at
+- **conversations**: id, user_1_id, user_2_id, created_at (unique index on LEAST/GREATEST pair)
+- **dm_messages**: id, conversation_id, sender_id, content, created_at
 
 ### Security
 - Passwords hashed with bcryptjs (10 rounds)
