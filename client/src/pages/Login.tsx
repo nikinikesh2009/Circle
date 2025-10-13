@@ -3,15 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted", { email, password });
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      toast({ title: "Welcome back!", description: "You've successfully logged in." });
+      setLocation("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login failed",
+        description: error.message || "Invalid email or password",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -38,6 +58,7 @@ export default function Login() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
                 data-testid="input-email"
               />
             </div>
@@ -49,11 +70,12 @@ export default function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
                 data-testid="input-password"
               />
             </div>
-            <Button type="submit" className="w-full" data-testid="button-login">
-              Sign in
+            <Button type="submit" className="w-full" disabled={loading} data-testid="button-login">
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
           </form>
         </CardContent>

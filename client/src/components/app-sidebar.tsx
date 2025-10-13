@@ -1,4 +1,4 @@
-import { Home, Compass, MessageCircle, User, HelpCircle, Bot } from "lucide-react";
+import { Home, Compass, MessageCircle, User, HelpCircle, Bot, LogOut } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,8 @@ import {
 import { Link, useLocation } from "wouter";
 import { UserAvatar } from "./UserAvatar";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { title: "Home", url: "/", icon: Home, testId: "nav-home" },
@@ -29,6 +31,7 @@ const supportItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
 
   return (
     <Sidebar>
@@ -85,20 +88,30 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <UserAvatar
-              fallback="JD"
-              alt="John Doe"
+              fallback={user?.name?.substring(0, 2).toUpperCase() || "U"}
+              alt={user?.name || "User"}
               status="online"
               size="sm"
             />
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">John Doe</span>
-              <span className="text-xs text-muted-foreground">@johndoe</span>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium truncate">{user?.name}</span>
+              <span className="text-xs text-muted-foreground truncate">@{user?.username}</span>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex gap-1">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => logout()}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </SidebarFooter>
     </Sidebar>

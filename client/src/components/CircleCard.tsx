@@ -3,6 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 type CircleCardProps = {
   id: string;
@@ -17,6 +20,7 @@ type CircleCardProps = {
 };
 
 export function CircleCard({
+  id,
   name,
   description,
   coverImage,
@@ -26,6 +30,47 @@ export function CircleCard({
   category,
   onClick,
 }: CircleCardProps) {
+  const { toast } = useToast();
+
+  const joinMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/circles/${id}/join`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
+      toast({ title: "Success", description: "Joined circle successfully!" });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    },
+  });
+
+  const leaveMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/circles/${id}/leave`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/circles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/circles/my"] });
+      toast({ title: "Success", description: "Left circle successfully!" });
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Error", description: error.message });
+    },
+  });
+
+  const handleToggleMembership = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isMember) {
+      leaveMutation.mutate();
+    } else {
+      joinMutation.mutate();
+    }
+  };
+
   return (
     <Card
       className={cn(
@@ -66,13 +111,15 @@ export function CircleCard({
           <Button
             size="sm"
             variant={isMember ? "secondary" : "default"}
-            onClick={(e) => {
-              e.stopPropagation();
-              console.log(`${isMember ? 'Leave' : 'Join'} circle clicked`);
-            }}
+            onClick={handleToggleMembership}
+            disabled={joinMutation.isPending || leaveMutation.isPending}
             data-testid={`button-${isMember ? 'leave' : 'join'}-circle`}
           >
-            {isMember ? "Joined" : "Join"}
+            {joinMutation.isPending || leaveMutation.isPending
+              ? "..."
+              : isMember
+              ? "Joined"
+              : "Join"}
           </Button>
         </div>
       </div>
