@@ -1,10 +1,11 @@
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import {
   users,
   circles,
   circleMembers,
   messages,
+  notifications,
   type User,
   type InsertUser,
   type Circle,
@@ -12,6 +13,8 @@ import {
   type InsertCircleMember,
   type Message,
   type InsertMessage,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
@@ -38,6 +41,14 @@ export interface IStorage {
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
   getCircleMessages(circleId: string, limit?: number): Promise<Message[]>;
+
+  // Notification methods
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getUserNotifications(userId: string, limit?: number): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  markNotificationAsRead(notificationId: string, userId: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  deleteNotification(notificationId: string, userId: string): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -113,16 +124,16 @@ export class DbStorage implements IStorage {
   }
 
   async updateCircleMemberCount(circleId: string): Promise<void> {
-    const [result] = await db
-      .select({ count: circleMembers.userId })
+    const result = await db
+      .select({ count: count() })
       .from(circleMembers)
       .where(eq(circleMembers.circleId, circleId));
 
-    const count = result ? 1 : 0;
+    const memberCount = Number(result[0]?.count) || 0;
     
     await db
       .update(circles)
-      .set({ memberCount: count })
+      .set({ memberCount })
       .where(eq(circles.id, circleId));
   }
 
@@ -186,6 +197,46 @@ export class DbStorage implements IStorage {
     );
 
     return messagesWithUsers;
+  }
+
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(insertNotification).returning();
+    return notification;
+  }
+
+  async getUserNotifications(userId: string, limit = 50): Promise<Notification[]> {
+    return db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: count() })
+      .from(notifications)
+      .where(and(eq(notifications.userId, userId), eq(notifications.read, false)));
+    return Number(result[0]?.count) || 0;
+  }
+
+  async markNotificationAsRead(notificationId: string, userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.userId, userId));
+  }
+
+  async deleteNotification(notificationId: string, userId: string): Promise<void> {
+    await db.delete(notifications).where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
   }
 }
 

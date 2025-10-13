@@ -116,6 +116,16 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
       }
 
       await storage.joinCircle({ circleId, userId });
+      
+      const user = await storage.getUser(userId);
+      await createAndBroadcastNotification({
+        userId: circle.createdBy,
+        type: "circle_join",
+        title: "New Member",
+        message: `${user?.name} joined ${circle.name}`,
+        link: `/chat/${circleId}`,
+      });
+
       res.json({ message: "Joined successfully" });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
@@ -224,6 +234,61 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
   // Note: Rate limiter is in-memory and resets on server restart.
   // For production horizontal scaling, replace with Redis or similar shared store.
 
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const notifications = await storage.getUserNotifications(userId);
+      res.json(notifications);
+    } catch (error: any) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error: any) {
+      console.error("Get unread count error:", error);
+      res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      await storage.markNotificationAsRead(req.params.id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Mark as read error:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  app.patch("/api/notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Mark all as read error:", error);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  app.delete("/api/notifications/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      await storage.deleteNotification(req.params.id, userId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete notification error:", error);
+      res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
@@ -237,6 +302,23 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     if (!client.userId) return;
     const userCircles = await storage.getUserCircles(client.userId);
     client.circleIds = new Set(userCircles.map(c => c.id));
+  }
+
+  async function broadcastNotification(userId: string, notification: any) {
+    for (const client of wss.clients as Set<AuthenticatedWebSocket>) {
+      if (client.readyState === WebSocket.OPEN && client.userId === userId) {
+        client.send(JSON.stringify({
+          type: "notification",
+          data: notification
+        }));
+      }
+    }
+  }
+
+  async function createAndBroadcastNotification(notification: { userId: string; type: string; title: string; message: string; link?: string }) {
+    const newNotification = await storage.createNotification(notification);
+    await broadcastNotification(notification.userId, newNotification);
+    return newNotification;
   }
 
   wss.on("connection", async (ws: AuthenticatedWebSocket, req) => {

@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { BottomNav } from "@/components/BottomNav";
 import { AIAssistantFAB } from "@/components/AIAssistantFAB";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/NotificationBell";
 
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
@@ -84,7 +85,10 @@ function AppContent() {
               </div>
               <span className="font-bold text-xl">Circle</span>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <ThemeToggle />
+            </div>
           </header>
           <main className="flex-1 overflow-auto pb-16 lg:pb-0">
             <Router />
