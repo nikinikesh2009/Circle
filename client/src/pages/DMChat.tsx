@@ -98,11 +98,11 @@ export default function DMChat() {
       setMessages((prev) => [...prev, newMessage]);
       setMessage("");
       
-      // Broadcast via WebSocket
+      // Broadcast via WebSocket with message ID
       send({
         type: "dm",
         conversationId,
-        message: newMessage,
+        messageId: newMessage.id,
       });
     },
   });

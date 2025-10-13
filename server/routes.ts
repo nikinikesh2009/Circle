@@ -554,6 +554,36 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
         } else if (message.type === "refresh_circles") {
           await refreshClientCircles(ws);
           ws.send(JSON.stringify({ type: "circles_refreshed" }));
+        } else if (message.type === "dm") {
+          // Broadcast DM to the recipient (message ID is provided by client after persisting)
+          const { conversationId, messageId } = message;
+          
+          // Fetch the persisted message from storage to ensure integrity
+          const dmMessages = await storage.getDmMessages(conversationId);
+          const persistedMessage = dmMessages.find(m => m.id === messageId);
+          
+          if (!persistedMessage) {
+            ws.send(JSON.stringify({ type: "error", error: "Message not found" }));
+            return;
+          }
+          
+          // Get conversation to find the other participant
+          const conversations = await storage.getUserConversations(userId as string);
+          const conversation = conversations.find(c => c.id === conversationId);
+          
+          if (conversation) {
+            const otherUserId = conversation.user1Id === userId ? conversation.user2Id : conversation.user1Id;
+            
+            // Send to the other user if they're connected
+            for (const client of wss.clients as Set<AuthenticatedWebSocket>) {
+              if (client.readyState === WebSocket.OPEN && client.userId === otherUserId) {
+                client.send(JSON.stringify({
+                  type: "dm",
+                  message: persistedMessage,
+                }));
+              }
+            }
+          }
         }
       } catch (error) {
         console.error("WebSocket error:", error);
