@@ -6,6 +6,7 @@ import {
   circleMembers,
   messages,
   notifications,
+  reactions,
   type User,
   type InsertUser,
   type Circle,
@@ -15,6 +16,8 @@ import {
   type InsertMessage,
   type Notification,
   type InsertNotification,
+  type Reaction,
+  type InsertReaction,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
@@ -41,6 +44,13 @@ export interface IStorage {
   // Message methods
   createMessage(message: InsertMessage): Promise<Message>;
   getCircleMessages(circleId: string, limit?: number): Promise<Message[]>;
+  editMessage(messageId: string, userId: string, content: string): Promise<void>;
+  deleteMessage(messageId: string, userId: string): Promise<void>;
+
+  // Reaction methods
+  addReaction(reaction: InsertReaction): Promise<Reaction>;
+  removeReaction(messageId: string, userId: string, emoji: string): Promise<void>;
+  getMessageReactions(messageId: string): Promise<Reaction[]>;
 
   // Notification methods
   createNotification(notification: InsertNotification): Promise<Notification>;
@@ -177,7 +187,7 @@ export class DbStorage implements IStorage {
     const messageList = await db
       .select()
       .from(messages)
-      .where(eq(messages.circleId, circleId))
+      .where(and(eq(messages.circleId, circleId), eq(messages.isDeleted, false)))
       .orderBy(messages.createdAt)
       .limit(limit);
 
@@ -197,6 +207,48 @@ export class DbStorage implements IStorage {
     );
 
     return messagesWithUsers;
+  }
+
+  async editMessage(messageId: string, userId: string, content: string): Promise<void> {
+    await db
+      .update(messages)
+      .set({ content, isEdited: true, editedAt: new Date() })
+      .where(and(eq(messages.id, messageId), eq(messages.userId, userId)));
+  }
+
+  async deleteMessage(messageId: string, userId: string): Promise<void> {
+    await db
+      .update(messages)
+      .set({ isDeleted: true, content: "Message deleted" })
+      .where(and(eq(messages.id, messageId), eq(messages.userId, userId)));
+  }
+
+  async addReaction(reaction: InsertReaction): Promise<Reaction> {
+    const [newReaction] = await db
+      .insert(reactions)
+      .values(reaction)
+      .onConflictDoNothing()
+      .returning();
+    return newReaction;
+  }
+
+  async removeReaction(messageId: string, userId: string, emoji: string): Promise<void> {
+    await db
+      .delete(reactions)
+      .where(
+        and(
+          eq(reactions.messageId, messageId),
+          eq(reactions.userId, userId),
+          eq(reactions.emoji, emoji)
+        )
+      );
+  }
+
+  async getMessageReactions(messageId: string): Promise<Reaction[]> {
+    return await db
+      .select()
+      .from(reactions)
+      .where(eq(reactions.messageId, messageId));
   }
 
   async createNotification(insertNotification: InsertNotification): Promise<Notification> {

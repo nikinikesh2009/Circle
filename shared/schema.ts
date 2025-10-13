@@ -41,7 +41,10 @@ export const messages = pgTable("messages", {
   circleId: varchar("circle_id").notNull().references(() => circles.id, { onDelete: "cascade" }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  isEdited: boolean("is_edited").default(false).notNull(),
+  isDeleted: boolean("is_deleted").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  editedAt: timestamp("edited_at"),
 });
 
 export const notifications = pgTable("notifications", {
@@ -54,6 +57,16 @@ export const notifications = pgTable("notifications", {
   read: boolean("read").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const reactions = pgTable("reactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  messageId: varchar("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  emoji: varchar("emoji", { length: 10 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  unique: primaryKey({ columns: [table.messageId, table.userId, table.emoji] }),
+}));
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -74,12 +87,20 @@ export const insertCircleMemberSchema = createInsertSchema(circleMembers).omit({
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
+  isEdited: true,
+  isDeleted: true,
   createdAt: true,
+  editedAt: true,
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,
   read: true,
+  createdAt: true,
+});
+
+export const insertReactionSchema = createInsertSchema(reactions).omit({
+  id: true,
   createdAt: true,
 });
 
@@ -97,3 +118,6 @@ export type Message = typeof messages.$inferSelect;
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export type InsertReaction = z.infer<typeof insertReactionSchema>;
+export type Reaction = typeof reactions.$inferSelect;
