@@ -5,8 +5,9 @@ import { setupAuth, requireAuth } from "./auth";
 import passport from "passport";
 import { insertUserSchema, insertCircleSchema, insertMessageSchema } from "@shared/schema";
 import { WebSocketServer } from "ws";
+import type { Store } from "express-session";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, sessionStore: Store): Promise<Server> {
   setupAuth(app);
 
   app.post("/api/auth/signup", async (req, res, next) => {
@@ -152,31 +153,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
-  wss.on("connection", (ws, req) => {
+  interface AuthenticatedWebSocket extends WebSocket {
+    userId?: string;
+    circleIds?: Set<string>;
+  }
+
+  async function refreshClientCircles(client: AuthenticatedWebSocket) {
+    if (!client.userId) return;
+    const userCircles = await storage.getUserCircles(client.userId);
+    client.circleIds = new Set(userCircles.map(c => c.id));
+  }
+
+  wss.on("connection", async (ws: AuthenticatedWebSocket, req) => {
     console.log("WebSocket client connected");
+    
+    const cookies = req.headers.cookie;
+    let userId: string | null = null;
+
+    if (cookies) {
+      const sessionCookie = cookies.split(';').find(c => c.trim().startsWith('connect.sid='));
+      if (sessionCookie) {
+        try {
+          const sessionIdRaw = decodeURIComponent(sessionCookie.split('=')[1]);
+          const sessionId = sessionIdRaw.startsWith('s:') ? sessionIdRaw.slice(2).split('.')[0] : sessionIdRaw;
+          
+          userId = await new Promise((resolve) => {
+            sessionStore.get(sessionId, (err: any, session: any) => {
+              if (!err && session?.passport?.user) {
+                resolve(session.passport.user);
+              } else {
+                resolve(null);
+              }
+            });
+          });
+        } catch (error) {
+          console.error("Session validation error:", error);
+        }
+      }
+    }
+
+    if (!userId) {
+      ws.close(1008, "Authentication required");
+      return;
+    }
+
+    ws.userId = userId;
+    await refreshClientCircles(ws);
 
     ws.on("message", async (data) => {
       try {
         const message = JSON.parse(data.toString());
         
         if (message.type === "chat") {
+          const isSenderMember = await storage.isCircleMember(message.circleId, userId as string);
+          if (!isSenderMember) {
+            await refreshClientCircles(ws);
+            ws.send(JSON.stringify({ type: "error", error: "Not a member of this circle" }));
+            return;
+          }
+
           const newMessage = await storage.createMessage({
             circleId: message.circleId,
-            userId: message.userId,
+            userId: userId as string,
             content: message.content,
           });
 
-          wss.clients.forEach((client) => {
-            if (client.readyState === 1) {
-              client.send(JSON.stringify({
-                type: "chat",
-                message: newMessage,
-              }));
+          for (const client of wss.clients as Set<AuthenticatedWebSocket>) {
+            if (client.readyState === WebSocket.OPEN && client.circleIds?.has(newMessage.circleId) && client.userId) {
+              const isStillMember = await storage.isCircleMember(newMessage.circleId, client.userId);
+              if (isStillMember) {
+                client.send(JSON.stringify({
+                  type: "chat",
+                  message: newMessage,
+                }));
+              } else {
+                await refreshClientCircles(client);
+              }
             }
-          });
+          }
+        } else if (message.type === "refresh_circles") {
+          await refreshClientCircles(ws);
+          ws.send(JSON.stringify({ type: "circles_refreshed" }));
         }
       } catch (error) {
         console.error("WebSocket error:", error);
+        ws.send(JSON.stringify({ type: "error", error: "Internal server error" }));
       }
     });
 

@@ -19,13 +19,14 @@ app.use(express.urlencoded({ extended: false }));
 
 const PgSession = connectPgSimple(session);
 const sessionPool = new Pool({ connectionString: process.env.DATABASE_URL });
+const sessionStore = new PgSession({
+  pool: sessionPool,
+  createTableIfMissing: true,
+});
 
 app.use(
   session({
-    store: new PgSession({
-      pool: sessionPool,
-      createTableIfMissing: true,
-    }),
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "dev-secret-only-for-development",
     resave: false,
     saveUninitialized: false,
@@ -69,7 +70,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, sessionStore);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

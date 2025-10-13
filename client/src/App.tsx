@@ -51,6 +51,7 @@ function Router() {
       <Route path="/">{() => <ProtectedRoute component={Home} />}</Route>
       <Route path="/discover">{() => <ProtectedRoute component={Home} />}</Route>
       <Route path="/chat">{() => <ProtectedRoute component={Chat} />}</Route>
+      <Route path="/chat/:circleId">{() => <ProtectedRoute component={Chat} />}</Route>
       <Route path="/support">{() => <ProtectedRoute component={Support} />}</Route>
       <Route path="/ai">{() => <ProtectedRoute component={AIAssistant} />}</Route>
       <Route path="/profile">{() => <ProtectedRoute component={Profile} />}</Route>

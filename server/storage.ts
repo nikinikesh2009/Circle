@@ -92,19 +92,24 @@ export class DbStorage implements IStorage {
   }
 
   async getUserCircles(userId: string): Promise<Circle[]> {
-    const userCircleIds = await db
-      .select({ circleId: circleMembers.circleId })
+    const result = await db
+      .select({
+        id: circles.id,
+        name: circles.name,
+        description: circles.description,
+        coverImage: circles.coverImage,
+        category: circles.category,
+        isPrivate: circles.isPrivate,
+        createdBy: circles.createdBy,
+        memberCount: circles.memberCount,
+        createdAt: circles.createdAt,
+      })
       .from(circleMembers)
-      .where(eq(circleMembers.userId, userId));
-
-    if (userCircleIds.length === 0) return [];
-
-    const circleIds = userCircleIds.map(m => m.circleId);
-    return db
-      .select()
-      .from(circles)
-      .where(eq(circles.id, circleIds[0]))
+      .innerJoin(circles, eq(circleMembers.circleId, circles.id))
+      .where(eq(circleMembers.userId, userId))
       .orderBy(desc(circles.createdAt));
+
+    return result;
   }
 
   async updateCircleMemberCount(circleId: string): Promise<void> {
@@ -141,18 +146,46 @@ export class DbStorage implements IStorage {
     return !!member;
   }
 
-  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+  async createMessage(insertMessage: InsertMessage): Promise<any> {
     const [message] = await db.insert(messages).values(insertMessage).returning();
-    return message;
+    
+    const [user] = await db.select().from(users).where(eq(users.id, message.userId));
+    
+    return {
+      ...message,
+      user: user ? {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        avatar: user.avatar,
+      } : undefined,
+    };
   }
 
-  async getCircleMessages(circleId: string, limit = 50): Promise<Message[]> {
-    return db
+  async getCircleMessages(circleId: string, limit = 50): Promise<any[]> {
+    const messageList = await db
       .select()
       .from(messages)
       .where(eq(messages.circleId, circleId))
-      .orderBy(desc(messages.createdAt))
+      .orderBy(messages.createdAt)
       .limit(limit);
+
+    const messagesWithUsers = await Promise.all(
+      messageList.map(async (message) => {
+        const [user] = await db.select().from(users).where(eq(users.id, message.userId));
+        return {
+          ...message,
+          user: user ? {
+            id: user.id,
+            name: user.name,
+            username: user.username,
+            avatar: user.avatar,
+          } : undefined,
+        };
+      })
+    );
+
+    return messagesWithUsers;
   }
 }
 
