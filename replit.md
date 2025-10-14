@@ -14,6 +14,16 @@ Circle is a production-grade Progressive Web App for creating and managing inter
 - ✅ In-app notification system with real-time updates (complete)
 
 ### Latest Updates (October 14, 2025)
+- ✅ **Global Centered Layout System** (Production-Ready):
+  - Created ContentContainer component for consistent centered content across all pages
+  - Max-width: 800px (mobile), 1200px (desktop), mx-auto for centering, px-4 for gutters
+  - All non-chat pages (Home, Explore, Profile, AI, Support, DirectMessages, UserProfile) use centered layout
+  - Chat and DM chat pages remain full-width for immersive messaging experience
+  - Layout.tsx detects chat/DM routes and conditionally hides navigation (sidebar + top/bottom nav)
+  - Navbar content wrapped in ContentContainer to align with page content
+  - No content sticks to screen edges on any page
+  - No layout shift when navigating between pages
+  - Consistent spacing and padding across all pages (py-4 lg:py-6)
 - ✅ **Purple Color Scheme** (Production-Ready):
   - Changed theme from blue to purple (hue 270) across all primary colors
   - Updated all CSS variables in index.css for consistent purple branding
@@ -97,14 +107,22 @@ Circle is a production-grade Progressive Web App for creating and managing inter
   - React Context for auth state
   - Local state with useState/useReducer
 - **UI**: Tailwind CSS + Shadcn UI components
+- **Layout System**: 
+  - ContentContainer component (max-w-800px mobile, 1200px desktop, centered)
+  - Full-width chat/DM pages with hidden navigation
+  - Responsive navigation (sidebar on desktop, bottom nav on mobile)
 - **Theme**: Dark mode by default with light mode toggle
 - **Pages**:
   - `/login`, `/signup` - Authentication
-  - `/` - Home/Circles dashboard
-  - `/chat` - Real-time messaging
-  - `/ai` - AI Assistant
-  - `/profile` - User profile
-  - `/support` - Help & FAQ
+  - `/` - Home/Circles dashboard (centered)
+  - `/explore` - User circles (centered)
+  - `/chat/:id` - Real-time messaging (full-width)
+  - `/dm` - Direct messages list (centered)
+  - `/dm/:id` - DM chat (full-width)
+  - `/ai` - AI Assistant (centered)
+  - `/profile` - User profile (centered)
+  - `/user/:id` - View user profile (centered)
+  - `/support` - Help & FAQ (centered)
 
 ### Backend (Express + PostgreSQL)
 - **Runtime**: Node.js with TypeScript
