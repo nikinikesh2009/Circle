@@ -88,6 +88,22 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  app.get("/api/users/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.params.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/circles", requireAuth, async (req, res) => {
     try {
       const circles = await storage.getCircles();

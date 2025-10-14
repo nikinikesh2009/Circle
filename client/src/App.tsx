@@ -18,6 +18,7 @@ import DMChat from "@/pages/DMChat";
 import Support from "@/pages/Support";
 import AIAssistant from "@/pages/AIAssistant";
 import Profile from "@/pages/Profile";
+import UserProfile from "@/pages/UserProfile";
 
 function ProtectedRouteWithLayout({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/support">{() => <ProtectedRouteWithLayout component={Support} />}</Route>
       <Route path="/ai">{() => <ProtectedRouteWithLayout component={AIAssistant} />}</Route>
       <Route path="/profile">{() => <ProtectedRouteWithLayout component={Profile} />}</Route>
+      <Route path="/user/:userId">{() => <ProtectedRouteWithLayout component={UserProfile} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );
