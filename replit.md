@@ -14,16 +14,17 @@ Circle is a production-grade Progressive Web App for creating and managing inter
 - ✅ In-app notification system with real-time updates (complete)
 
 ### Latest Updates (October 14, 2025)
-- ✅ **Global Centered Layout System** (Production-Ready):
-  - Created ContentContainer component for consistent centered content across all pages
-  - Max-width: 800px (mobile), 1200px (desktop), mx-auto for centering, px-4 for gutters
-  - All non-chat pages (Home, Explore, Profile, AI, Support, DirectMessages, UserProfile) use centered layout
-  - Chat and DM chat pages remain full-width for immersive messaging experience
-  - Layout.tsx detects chat/DM routes and conditionally hides navigation (sidebar + top/bottom nav)
-  - Navbar content wrapped in ContentContainer to align with page content
-  - No content sticks to screen edges on any page
-  - No layout shift when navigating between pages
-  - Consistent spacing and padding across all pages (py-4 lg:py-6)
+- ✅ **Mobile-First Layout System Refactor** (Production-Ready):
+  - **Deleted broken ContentContainer** - Caused left-alignment issues on mobile
+  - **Refactored Layout.tsx with PageShell pattern** - Centralized responsive layout logic
+  - **Responsive padding scale**: `px-4 sm:px-6 lg:px-8` for mobile → tablet → desktop
+  - **Max-width constraints**: `max-w-7xl mx-auto` for desktop centering (1280px)
+  - **All 7 pages updated**: Home, Explore, Profile, Support, AI, DirectMessages, UserProfile
+  - **Full-screen chat mode**: Layout detects `/chat/:id` and `/dm/:id` routes, hides AppSidebar
+  - **Chat pages**: Own internal circle list sidebar, full-width immersive experience
+  - **No edge-touching content**: Proper safe-area padding on all screen sizes
+  - **No layout shift**: Consistent spacing between page transitions
+  - **Comprehensive testing**: Verified mobile (375px), tablet (768px), desktop (1440px) layouts
 - ✅ **Purple Color Scheme** (Production-Ready):
   - Changed theme from blue to purple (hue 270) across all primary colors
   - Updated all CSS variables in index.css for consistent purple branding
