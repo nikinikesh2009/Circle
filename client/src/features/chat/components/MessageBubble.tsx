@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { UserAvatar } from "./UserAvatar";
+import { UserAvatar } from "@/features/profile/components/UserAvatar";
 
 type MessageBubbleProps = {
   content: string;

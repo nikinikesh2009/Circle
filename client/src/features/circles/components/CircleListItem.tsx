@@ -1,4 +1,4 @@
-import { UserAvatar } from "./UserAvatar";
+import { UserAvatar } from "@/features/profile/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
