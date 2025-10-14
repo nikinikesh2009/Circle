@@ -16,9 +16,9 @@ import Chat from "@/features/chat/pages/Chat";
 import DirectMessages from "@/features/chat/pages/DirectMessages";
 import DMChat from "@/features/chat/pages/DMChat";
 import Support from "@/pages/Support";
-import AIAssistant from "@/pages/AIAssistant";
-import Profile from "@/pages/Profile";
-import UserProfile from "@/pages/UserProfile";
+import AIAssistant from "@/features/ai/pages/AIAssistant";
+import Profile from "@/features/profile/pages/Profile";
+import UserProfile from "@/features/profile/pages/UserProfile";
 
 function ProtectedRouteWithLayout({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
