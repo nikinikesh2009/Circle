@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,6 +63,7 @@ export function ChatMessage({
   const [editContent, setEditContent] = useState(content);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   // Sync editContent when content changes (from WebSocket or refetch)
   useEffect(() => {
@@ -177,9 +179,19 @@ export function ChatMessage({
           )}
         >
           {!isOwn && (
-            <span className="text-xs text-muted-foreground mb-1 px-1">
-              {sender.name}
-            </span>
+            sender.id ? (
+              <button
+                onClick={() => navigate(`/user/${sender.id}`)}
+                className="text-xs text-muted-foreground mb-1 px-1 hover:text-primary transition-colors cursor-pointer"
+                data-testid="button-username"
+              >
+                {sender.name}
+              </button>
+            ) : (
+              <span className="text-xs text-muted-foreground mb-1 px-1">
+                {sender.name}
+              </span>
+            )
           )}
           
           <div className="relative">

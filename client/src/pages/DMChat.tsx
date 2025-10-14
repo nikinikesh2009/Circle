@@ -149,22 +149,28 @@ export default function DMChat() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         
-        {conversation?.otherUser && (
+        {conversation?.otherUser && conversation.otherUser.id && (
           <>
-            <Avatar className="h-10 w-10">
+            <Avatar 
+              className="h-10 w-10 cursor-pointer" 
+              onClick={() => navigate(`/user/${conversation.otherUser.id}`)}
+            >
               <AvatarImage src={conversation.otherUser.avatar} />
               <AvatarFallback>
                 {getInitials(conversation.otherUser.name)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <h2 className="font-semibold" data-testid="text-dm-chat-name">
+            <button 
+              onClick={() => navigate(`/user/${conversation.otherUser.id}`)} 
+              className="flex-1 text-left"
+            >
+              <h2 className="font-semibold hover:text-primary transition-colors" data-testid="text-dm-chat-name">
                 {conversation.otherUser.name}
               </h2>
               <p className="text-sm text-muted-foreground" data-testid="text-dm-chat-username">
                 @{conversation.otherUser.username}
               </p>
-            </div>
+            </button>
           </>
         )}
         
@@ -211,9 +217,21 @@ export default function DMChat() {
                   </Avatar>
                   <div className={`flex-1 ${isCurrentUser ? "text-right" : ""}`}>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-sm font-semibold ${isCurrentUser ? "order-2" : ""}`}>
-                        {isCurrentUser ? "You" : msg.sender?.name || "Unknown"}
-                      </span>
+                      {isCurrentUser ? (
+                        <span className="text-sm font-semibold order-2">You</span>
+                      ) : msg.senderId ? (
+                        <button
+                          onClick={() => navigate(`/user/${msg.senderId}`)}
+                          className="text-sm font-semibold hover:text-primary transition-colors cursor-pointer"
+                          data-testid="button-dm-username"
+                        >
+                          {msg.sender?.name || "Unknown"}
+                        </button>
+                      ) : (
+                        <span className="text-sm font-semibold">
+                          {msg.sender?.name || "Unknown"}
+                        </span>
+                      )}
                       <span className={`text-xs text-muted-foreground ${isCurrentUser ? "order-1" : ""}`}>
                         {formatDistanceToNow(new Date(msg.createdAt), { addSuffix: true })}
                       </span>
