@@ -8,6 +8,7 @@ import { Send, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { ContentContainer } from "@/components/ContentContainer";
 
 interface Message {
   id: string;
@@ -114,75 +115,81 @@ export default function AIAssistant() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 lg:p-6 border-b border-border">
-        <div className="flex items-center gap-3 max-w-4xl mx-auto">
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
+      <div className="border-b border-border">
+        <ContentContainer className="py-4 lg:py-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold">AI Assistant</h1>
+              <p className="text-sm text-muted-foreground">Powered by GPT-5</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold">AI Assistant</h1>
-            <p className="text-sm text-muted-foreground">Powered by GPT-5</p>
-          </div>
-        </div>
+        </ContentContainer>
       </div>
 
-      <ScrollArea className="flex-1 p-4 lg:p-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {messages.map((msg) => (
-            <MessageBubble key={msg.id} {...msg} />
-          ))}
+      <ScrollArea className="flex-1">
+        <ContentContainer className="py-4 lg:py-6">
+          <div className="space-y-6">
+            {messages.map((msg) => (
+              <MessageBubble key={msg.id} {...msg} />
+            ))}
 
-          {aiChatMutation.isPending && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-75" />
-              <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-150" />
-              <span className="text-sm ml-2">AI is thinking...</span>
-            </div>
-          )}
-
-          {messages.length === 1 && (
-            <div className="mt-8">
-              <p className="text-sm text-muted-foreground mb-4">
-                Try asking me about:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {suggestedPrompts.map((prompt, index) => (
-                  <Card
-                    key={index}
-                    className="p-4 cursor-pointer hover-elevate active-elevate-2 transition-transform hover:-translate-y-1"
-                    onClick={() => setInput(prompt)}
-                    data-testid={`suggestion-${index}`}
-                  >
-                    <p className="text-sm">{prompt}</p>
-                  </Card>
-                ))}
+            {aiChatMutation.isPending && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-75" />
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse delay-150" />
+                <span className="text-sm ml-2">AI is thinking...</span>
               </div>
-            </div>
-          )}
-          <div ref={scrollRef} />
-        </div>
+            )}
+
+            {messages.length === 1 && (
+              <div className="mt-8">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Try asking me about:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {suggestedPrompts.map((prompt, index) => (
+                    <Card
+                      key={index}
+                      className="p-4 cursor-pointer hover-elevate active-elevate-2 transition-transform hover:-translate-y-1"
+                      onClick={() => setInput(prompt)}
+                      data-testid={`suggestion-${index}`}
+                    >
+                      <p className="text-sm">{prompt}</p>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div ref={scrollRef} />
+          </div>
+        </ContentContainer>
       </ScrollArea>
 
-      <div className="p-4 lg:p-6 border-t border-border">
-        <div className="max-w-4xl mx-auto flex gap-2">
-          <Input
-            placeholder="Ask me anything..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            disabled={aiChatMutation.isPending}
-            data-testid="input-ai-message"
-          />
-          <Button
-            onClick={handleSend}
-            size="icon"
-            disabled={!input.trim() || aiChatMutation.isPending}
-            data-testid="button-send-ai-message"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        </div>
+      <div className="border-t border-border">
+        <ContentContainer className="py-4 lg:py-6">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Ask me anything..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              disabled={aiChatMutation.isPending}
+              data-testid="input-ai-message"
+            />
+            <Button
+              onClick={handleSend}
+              size="icon"
+              disabled={!input.trim() || aiChatMutation.isPending}
+              data-testid="button-send-ai-message"
+            >
+              <Send className="h-5 w-5" />
+            </Button>
+          </div>
+        </ContentContainer>
       </div>
     </div>
   );

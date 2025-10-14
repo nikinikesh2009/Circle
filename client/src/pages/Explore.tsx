@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ContentContainer } from "@/components/ContentContainer";
 
 export default function Explore() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,8 +62,8 @@ export default function Explore() {
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
-      <div className="p-4 lg:p-6 space-y-6 w-full">
+    <ContentContainer className="py-4 lg:py-6">
+      <div className="space-y-6">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -153,6 +154,6 @@ export default function Explore() {
           )}
         </div>
       </div>
-    </div>
+    </ContentContainer>
   );
 }

@@ -8,6 +8,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ContentContainer } from "@/components/ContentContainer";
 
 export default function UserProfile() {
   const { userId } = useParams();
@@ -58,8 +59,8 @@ export default function UserProfile() {
   const isOwnProfile = currentUser?.id === userId;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto w-full">
+    <ContentContainer className="py-4 lg:py-6">
+      <div className="space-y-6">
         <Card className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
             <UserAvatar
@@ -124,6 +125,6 @@ export default function UserProfile() {
           </div>
         </Card>
       </div>
-    </div>
+    </ContentContainer>
   );
 }

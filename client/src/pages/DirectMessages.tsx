@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, MessageSquare } from "lucide-react";
 import { useState } from "react";
+import { ContentContainer } from "@/components/ContentContainer";
 
 interface Conversation {
   id: string;
@@ -51,9 +52,10 @@ export default function DirectMessages() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b p-4">
-        <h1 className="text-2xl font-bold mb-4" data-testid="text-dm-title">Direct Messages</h1>
-        <div className="relative">
+      <div className="border-b">
+        <ContentContainer className="py-4">
+          <h1 className="text-2xl font-bold mb-4" data-testid="text-dm-title">Direct Messages</h1>
+          <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search conversations..."
@@ -62,7 +64,8 @@ export default function DirectMessages() {
             className="pl-10"
             data-testid="input-dm-search"
           />
-        </div>
+          </div>
+        </ContentContainer>
       </div>
 
       <ScrollArea className="flex-1">
@@ -91,7 +94,8 @@ export default function DirectMessages() {
             </p>
           </div>
         ) : (
-          <div className="p-4 space-y-2">
+          <ContentContainer className="py-4">
+            <div className="space-y-2">
             {filteredConversations.map((conv) => (
               <Button
                 key={conv.id}
@@ -116,7 +120,8 @@ export default function DirectMessages() {
                 </div>
               </Button>
             ))}
-          </div>
+            </div>
+          </ContentContainer>
         )}
       </ScrollArea>
     </div>
