@@ -13,7 +13,33 @@ Circle is a production-grade Progressive Web App for creating and managing inter
 - ✅ PWA service worker with offline support (complete)
 - ✅ In-app notification system with real-time updates (complete)
 
-### Latest Updates (October 13, 2025)
+### Latest Updates (October 14, 2025)
+- ✅ **Purple Color Scheme** (Production-Ready):
+  - Changed theme from blue to purple (hue 270) across all primary colors
+  - Updated all CSS variables in index.css for consistent purple branding
+  - Glass effect on bottom navigation with backdrop-blur and semi-transparent background
+  - Bottom nav icons centered with proper spacing (gap-2) for cleaner mobile UX
+- ✅ **Profile System with Bio and Targets** (Production-Ready):
+  - Added `targets` text array field to users schema for user goals/objectives
+  - Profile editing dialog allows users to update name, bio, and add/remove targets
+  - PATCH /api/user/profile endpoint with validation and password stripping
+  - Auth context now includes `refreshUser()` function to sync profile updates
+  - Profile mutations immediately refresh user data for real-time UI updates
+  - Targets displayed as badges on profile with proper responsive layout
+- ✅ **User Profile View & Navigation** (Production-Ready):
+  - Created `/user/:userId` route for viewing other users' profiles
+  - GET /api/users/:id endpoint with auth protection for fetching user data
+  - Displays avatar, name, username, bio, and targets with "Send Message" DM button
+  - Clickable usernames in chat messages and DM conversations
+  - Navigation guards prevent clicks on system messages (undefined sender IDs)
+  - Safe routing with proper error handling for missing or invalid user IDs
+- ✅ **UI/UX Polish**:
+  - Simplified navigation structure (sidebar shows AI Assistant and Help only)
+  - Removed duplicate menu items between sidebar and bottom nav
+  - All layout issues resolved - content properly centered and responsive
+  - Consistent purple theme across buttons, badges, and interactive elements
+
+### Previous Updates (October 13, 2025)
 - ✅ **Official Circles & Home/Explore Separation** (Production-Ready):
   - Added `isOfficial` flag to circles schema (default: false)
   - Created 7 official circles as seed data (AI & Tech, Python, Gaming, Music, Books, Movies, Sports)
@@ -108,9 +134,11 @@ Circle is a production-grade Progressive Web App for creating and managing inter
   - `GET /api/dm/conversations` - Get user's all conversations
   - `POST /api/dm/conversations/:id/messages` - Send a DM message
   - `GET /api/dm/conversations/:id/messages` - Get DM messages
+  - `GET /api/users/:id` - Get user profile by ID (auth required)
+  - `PATCH /api/user/profile` - Update current user's profile (name, bio, targets)
 
 ### Database Schema
-- **users**: id, email, password (hashed), name, username, avatar, bio, status, created_at
+- **users**: id, email, password (hashed), name, username, avatar, bio, targets (text array), status, created_at
 - **circles**: id, name, description, cover_image, category, is_private, is_official, created_by, member_count, created_at
 - **circle_members**: circle_id, user_id, role, joined_at (composite PK)
 - **messages**: id, circle_id, user_id, content, is_edited, is_deleted, created_at
