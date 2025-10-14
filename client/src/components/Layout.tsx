@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -23,7 +23,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <SidebarProvider style={style as React.CSSProperties}>
+    <SidebarProvider style={style as CSSProperties}>
       <div className="flex h-screen w-full">
         {!isFullScreenChat && <AppSidebar />}
         <div className="flex flex-col flex-1 overflow-hidden">
