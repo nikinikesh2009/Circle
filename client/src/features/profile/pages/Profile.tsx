@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { UserAvatar } from "@/components/UserAvatar";
+import { UserAvatar } from "@/features/profile/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Settings, Edit, Plus, X, Target } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CircleCard } from "@/components/CircleCard";
-import { useAuth } from "@/lib/auth-context";
+import { CircleCard } from "@/features/circles/components/CircleCard";
+import { useAuth } from "@/features/auth/auth-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/services/queryClient";
 import {
   Dialog,
   DialogContent,

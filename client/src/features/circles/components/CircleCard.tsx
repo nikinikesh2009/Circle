@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/services/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 type CircleCardProps = {

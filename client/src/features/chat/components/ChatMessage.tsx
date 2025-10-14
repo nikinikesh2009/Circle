@@ -20,7 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { MoreVertical, Smile, Edit2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/services/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Reaction {

@@ -12,9 +12,9 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "wouter";
-import { UserAvatar } from "./UserAvatar";
+import { UserAvatar } from "@/features/profile/components/UserAvatar";
 import { ThemeToggle } from "./ThemeToggle";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/features/auth/auth-context";
 import { Button } from "@/components/ui/button";
 
 const navItems = [

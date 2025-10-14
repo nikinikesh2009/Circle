@@ -3,8 +3,8 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { apiRequest, queryClient } from "@/services/queryClient";
+import { useWebSocket } from "@/features/chat/hooks/useWebSocket";
 import {
   DropdownMenu,
   DropdownMenuContent,

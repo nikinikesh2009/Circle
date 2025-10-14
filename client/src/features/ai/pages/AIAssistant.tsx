@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { MessageBubble } from "@/components/MessageBubble";
+import { apiRequest } from "@/services/queryClient";
+import { MessageBubble } from "@/features/chat/components/MessageBubble";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, Sparkles } from "lucide-react";

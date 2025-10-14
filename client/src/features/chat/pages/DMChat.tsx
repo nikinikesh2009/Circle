@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth-context";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useAuth } from "@/features/auth/auth-context";
+import { useWebSocket } from "@/features/chat/hooks/useWebSocket";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, ArrowLeft, MoreVertical } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/services/queryClient";
 import { formatDistanceToNow } from "date-fns";
 
 interface DmMessage {

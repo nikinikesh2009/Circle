@@ -1,11 +1,11 @@
 import { ReactNode, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { BottomNav } from "@/components/BottomNav";
-import { AIAssistantFAB } from "@/components/AIAssistantFAB";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { NotificationBell } from "@/components/NotificationBell";
+import { AppSidebar } from "@/layout/app-sidebar";
+import { BottomNav } from "@/layout/BottomNav";
+import { AIAssistantFAB } from "@/layout/AIAssistantFAB";
+import { ThemeToggle } from "@/layout/ThemeToggle";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 interface LayoutProps {
   children: ReactNode;

@@ -1,12 +1,12 @@
 import { useParams, useLocation } from "wouter";
-import { UserAvatar } from "@/components/UserAvatar";
+import { UserAvatar } from "@/features/profile/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MessageSquare, Target } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth-context";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/features/auth/auth-context";
+import { apiRequest } from "@/services/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function UserProfile() {

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { CircleCard } from "@/components/CircleCard";
+import { CircleCard } from "@/features/circles/components/CircleCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/services/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth-context";
-import { useWebSocket } from "@/hooks/useWebSocket";
-import { CircleListItem } from "@/components/CircleListItem";
-import { ChatMessage } from "@/components/ChatMessage";
+import { useAuth } from "@/features/auth/auth-context";
+import { useWebSocket } from "@/features/chat/hooks/useWebSocket";
+import { CircleListItem } from "@/features/circles/components/CircleListItem";
+import { ChatMessage } from "@/features/chat/components/ChatMessage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send, MoreVertical, ArrowLeft, Image, Paperclip, Mic } from "lucide-react";
