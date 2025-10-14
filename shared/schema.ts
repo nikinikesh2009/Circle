@@ -131,6 +131,49 @@ export const insertDmMessageSchema = createInsertSchema(dmMessages).omit({
   createdAt: true,
 });
 
+export const adminCredentials = pgTable("admin_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  password: text("password").notNull(),
+  secretEmails: text("secret_emails").array().notNull(),
+  backupCodes: text("backup_codes").array().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const adminLogs = pgTable("admin_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  action: text("action").notNull(),
+  details: text("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  success: boolean("success").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const systemSettings = pgTable("system_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAdminCredentialsSchema = createInsertSchema(adminCredentials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdminLogSchema = createInsertSchema(adminLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -154,3 +197,12 @@ export type Conversation = typeof conversations.$inferSelect;
 
 export type InsertDmMessage = z.infer<typeof insertDmMessageSchema>;
 export type DmMessage = typeof dmMessages.$inferSelect;
+
+export type InsertAdminCredentials = z.infer<typeof insertAdminCredentialsSchema>;
+export type AdminCredentials = typeof adminCredentials.$inferSelect;
+
+export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
+export type AdminLog = typeof adminLogs.$inferSelect;
+
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+export type SystemSettings = typeof systemSettings.$inferSelect;

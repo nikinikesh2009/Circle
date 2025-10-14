@@ -9,6 +9,9 @@ import {
   reactions,
   conversations,
   dmMessages,
+  adminCredentials,
+  adminLogs,
+  systemSettings,
   type User,
   type InsertUser,
   type Circle,
@@ -24,6 +27,12 @@ import {
   type InsertConversation,
   type DmMessage,
   type InsertDmMessage,
+  type AdminCredentials,
+  type InsertAdminCredentials,
+  type AdminLog,
+  type InsertAdminLog,
+  type SystemSettings,
+  type InsertSystemSettings,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 
@@ -74,6 +83,34 @@ export interface IStorage {
   getUserConversations(userId: string): Promise<any[]>;
   sendDmMessage(conversationId: string, senderId: string, content: string): Promise<any>;
   getDmMessages(conversationId: string, limit?: number): Promise<any[]>;
+
+  // Admin methods
+  getAdminCredentials(): Promise<AdminCredentials | undefined>;
+  createAdminCredentials(credentials: InsertAdminCredentials): Promise<AdminCredentials>;
+  updateAdminCredentials(id: string, updates: Partial<InsertAdminCredentials>): Promise<AdminCredentials>;
+  verifyAdminPassword(password: string): Promise<boolean>;
+  verifySecretEmail(email: string): Promise<boolean>;
+  verifyBackupCode(code: string): Promise<boolean>;
+  
+  // Admin log methods
+  createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
+  getAdminLogs(limit?: number): Promise<AdminLog[]>;
+  getFailedLoginLogs(limit?: number): Promise<AdminLog[]>;
+  
+  // System settings methods
+  getSystemSetting(key: string): Promise<SystemSettings | undefined>;
+  getAllSystemSettings(): Promise<SystemSettings[]>;
+  upsertSystemSetting(key: string, value: string, description?: string): Promise<SystemSettings>;
+  
+  // Admin user management
+  getAllUsers(limit?: number): Promise<User[]>;
+  banUser(userId: string): Promise<void>;
+  unbanUser(userId: string): Promise<void>;
+  deleteUserAdmin(userId: string): Promise<void>;
+  
+  // Admin circle management
+  deleteCircleAdmin(circleId: string): Promise<void>;
+  updateCircle(circleId: string, updates: Partial<Circle>): Promise<Circle>;
 }
 
 export class DbStorage implements IStorage {
@@ -426,6 +463,130 @@ export class DbStorage implements IStorage {
     );
 
     return messagesWithUsers.reverse();
+  }
+
+  // Admin credentials methods
+  async getAdminCredentials(): Promise<AdminCredentials | undefined> {
+    const [credentials] = await db.select().from(adminCredentials).limit(1);
+    return credentials;
+  }
+
+  async createAdminCredentials(credentials: InsertAdminCredentials): Promise<AdminCredentials> {
+    const hashedPassword = await bcrypt.hash(credentials.password, 10);
+    const [adminCreds] = await db
+      .insert(adminCredentials)
+      .values({ ...credentials, password: hashedPassword })
+      .returning();
+    return adminCreds;
+  }
+
+  async updateAdminCredentials(id: string, updates: Partial<InsertAdminCredentials>): Promise<AdminCredentials> {
+    const updatedData: any = { ...updates, updatedAt: new Date() };
+    if (updates.password) {
+      updatedData.password = await bcrypt.hash(updates.password, 10);
+    }
+    const [updated] = await db
+      .update(adminCredentials)
+      .set(updatedData)
+      .where(eq(adminCredentials.id, id))
+      .returning();
+    return updated;
+  }
+
+  async verifyAdminPassword(password: string): Promise<boolean> {
+    const creds = await this.getAdminCredentials();
+    if (!creds) return false;
+    return bcrypt.compare(password, creds.password);
+  }
+
+  async verifySecretEmail(email: string): Promise<boolean> {
+    const creds = await this.getAdminCredentials();
+    if (!creds) return false;
+    return creds.secretEmails.includes(email);
+  }
+
+  async verifyBackupCode(code: string): Promise<boolean> {
+    const creds = await this.getAdminCredentials();
+    if (!creds) return false;
+    return creds.backupCodes.includes(code);
+  }
+
+  // Admin log methods
+  async createAdminLog(log: InsertAdminLog): Promise<AdminLog> {
+    const [adminLog] = await db.insert(adminLogs).values(log).returning();
+    return adminLog;
+  }
+
+  async getAdminLogs(limit = 100): Promise<AdminLog[]> {
+    return db.select().from(adminLogs).orderBy(desc(adminLogs.createdAt)).limit(limit);
+  }
+
+  async getFailedLoginLogs(limit = 100): Promise<AdminLog[]> {
+    return db
+      .select()
+      .from(adminLogs)
+      .where(and(eq(adminLogs.success, false), eq(adminLogs.action, 'admin_login')))
+      .orderBy(desc(adminLogs.createdAt))
+      .limit(limit);
+  }
+
+  // System settings methods
+  async getSystemSetting(key: string): Promise<SystemSettings | undefined> {
+    const [setting] = await db.select().from(systemSettings).where(eq(systemSettings.key, key));
+    return setting;
+  }
+
+  async getAllSystemSettings(): Promise<SystemSettings[]> {
+    return db.select().from(systemSettings);
+  }
+
+  async upsertSystemSetting(key: string, value: string, description?: string): Promise<SystemSettings> {
+    const existing = await this.getSystemSetting(key);
+    if (existing) {
+      const [updated] = await db
+        .update(systemSettings)
+        .set({ value, description: description || existing.description, updatedAt: new Date() })
+        .where(eq(systemSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(systemSettings)
+        .values({ key, value, description })
+        .returning();
+      return created;
+    }
+  }
+
+  // Admin user management
+  async getAllUsers(limit = 1000): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt)).limit(limit);
+  }
+
+  async banUser(userId: string): Promise<void> {
+    await db.update(users).set({ status: 'banned' }).where(eq(users.id, userId));
+  }
+
+  async unbanUser(userId: string): Promise<void> {
+    await db.update(users).set({ status: 'offline' }).where(eq(users.id, userId));
+  }
+
+  async deleteUserAdmin(userId: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  // Admin circle management
+  async deleteCircleAdmin(circleId: string): Promise<void> {
+    await db.delete(circles).where(eq(circles.id, circleId));
+  }
+
+  async updateCircle(circleId: string, updates: Partial<Circle>): Promise<Circle> {
+    const [updated] = await db
+      .update(circles)
+      .set(updates)
+      .where(eq(circles.id, circleId))
+      .returning();
+    return updated;
   }
 }
 

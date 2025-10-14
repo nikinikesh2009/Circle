@@ -23,10 +23,10 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <SidebarProvider style={style as CSSProperties}>
+    <SidebarProvider style={style as CSSProperties} defaultOpen={false}>
       <div className="flex h-screen w-full">
         {!isFullScreenChat && <AppSidebar />}
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden w-full lg:w-auto">
           {/* Mobile Header - Hidden in full-screen chat */}
           {!isFullScreenChat && (
             <header className="w-full border-b border-border lg:hidden">

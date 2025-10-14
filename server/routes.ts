@@ -491,6 +491,234 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  // Admin authentication routes using session storage
+  app.post("/api/admin/auth/step1", async (req, res) => {
+    try {
+      const { password } = req.body;
+      const isValid = await storage.verifyAdminPassword(password);
+      
+      if (isValid) {
+        (req.session as any).adminAuth = { step: 1, verified: { password: true, email: false } };
+        await storage.createAdminLog({
+          action: 'admin_login_step1',
+          details: 'Password verified successfully',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: true,
+        });
+        res.json({ success: true });
+      } else {
+        await storage.createAdminLog({
+          action: 'admin_login',
+          details: 'Failed password verification',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: false,
+        });
+        res.status(401).json({ success: false, error: 'Invalid password' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/auth/step2", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const session = (req.session as any).adminAuth;
+      
+      if (!session || !session.verified.password) {
+        return res.status(403).json({ success: false, error: 'Complete step 1 first' });
+      }
+      
+      const isValid = await storage.verifySecretEmail(email);
+      
+      if (isValid) {
+        (req.session as any).adminAuth.step = 2;
+        (req.session as any).adminAuth.verified.email = true;
+        await storage.createAdminLog({
+          action: 'admin_login_step2',
+          details: 'Email verified successfully',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: true,
+        });
+        res.json({ success: true });
+      } else {
+        await storage.createAdminLog({
+          action: 'admin_login',
+          details: 'Failed email verification',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: false,
+        });
+        res.status(401).json({ success: false, error: 'Invalid email' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/auth/step3", async (req, res) => {
+    try {
+      const { codes } = req.body;
+      const session = (req.session as any).adminAuth;
+      
+      if (!session || !session.verified.password || !session.verified.email) {
+        return res.status(403).json({ success: false, error: 'Complete previous steps first' });
+      }
+      
+      const code1Valid = await storage.verifyBackupCode(codes[0]);
+      const code2Valid = await storage.verifyBackupCode(codes[1]);
+      
+      if (code1Valid && code2Valid) {
+        const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        (req.session as any).adminAuth.authenticated = true;
+        (req.session as any).adminAuth.token = token;
+        delete (req.session as any).adminAuth.step;
+        await storage.createAdminLog({
+          action: 'admin_login',
+          details: 'Full authentication successful',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: true,
+        });
+        res.json({ success: true, token });
+      } else {
+        await storage.createAdminLog({
+          action: 'admin_login',
+          details: 'Failed backup code verification',
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'],
+          success: false,
+        });
+        res.status(401).json({ success: false, error: 'Invalid backup codes' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Admin API routes (protected)
+  const requireAdminAuth = (req: any, res: any, next: any) => {
+    const session = (req.session as any).adminAuth;
+    const authHeader = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!session?.authenticated && !authHeader) {
+      return res.status(401).json({ error: 'Admin authentication required' });
+    }
+    next();
+  };
+
+  app.get("/api/admin/users", requireAdminAuth, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const sanitized = users.map(({ password, ...user }) => user);
+      res.json(sanitized);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/stats", requireAdminAuth, async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const circles = await storage.getCircles();
+      const activeUsers = users.filter(u => u.status === 'online').length;
+      
+      res.json({
+        totalUsers: users.length,
+        totalCircles: circles.length,
+        activeUsers,
+        trendingCircles: circles.filter(c => c.isOfficial).length,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/logs", requireAdminAuth, async (req, res) => {
+    try {
+      const logs = await storage.getAdminLogs(100);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/logs/failed", requireAdminAuth, async (req, res) => {
+    try {
+      const logs = await storage.getFailedLoginLogs(100);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/admin/settings", requireAdminAuth, async (req, res) => {
+    try {
+      const settings = await storage.getAllSystemSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/admin/settings", requireAdminAuth, async (req, res) => {
+    try {
+      const { key, value, description } = req.body;
+      const setting = await storage.upsertSystemSetting(key, value, description);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/users/:id/ban", requireAdminAuth, async (req, res) => {
+    try {
+      await storage.banUser(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/users/:id/unban", requireAdminAuth, async (req, res) => {
+    try {
+      await storage.unbanUser(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", requireAdminAuth, async (req, res) => {
+    try {
+      await storage.deleteUserAdmin(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.put("/api/admin/circles/:id", requireAdminAuth, async (req, res) => {
+    try {
+      const updated = await storage.updateCircle(req.params.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.delete("/api/admin/circles/:id", requireAdminAuth, async (req, res) => {
+    try {
+      await storage.deleteCircleAdmin(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });

@@ -1,0 +1,123 @@
+You are a senior full-stack engineer.
+
+🎯 GOAL:
+Build a clean, responsive, production-ready ADMIN DASHBOARD for the Circle platform 
+and FIX the mobile layout alignment issue (current layout is shifted to the left).
+
+=====================================================
+📁 STRUCTURE REQUIREMENTS
+- Place the dashboard inside `features/admin/` with this structure:
+
+features/admin/
+ ├─ pages/
+ │   ├─ LoginStep1.jsx
+ │   ├─ LoginStep2.jsx
+ │   ├─ LoginStep3.jsx
+ │   ├─ DashboardOverview.jsx
+ │   ├─ UsersPanel.jsx
+ │   ├─ CirclesPanel.jsx
+ │   ├─ AIPanel.jsx
+ │   ├─ SettingsPanel.jsx
+ │   └─ LogsPanel.jsx
+ ├─ components/
+ │   ├─ AdminSidebar.jsx
+ │   ├─ AdminNavbar.jsx
+ │   ├─ UserTable.jsx
+ │   ├─ CircleTable.jsx
+ │   └─ AIEditor.jsx
+ ├─ services/
+ │   ├─ adminAuthService.js
+ │   ├─ adminLogsService.js
+ │   ├─ adminCircleService.js
+ │   └─ adminUserService.js
+ └─ hooks/
+     └─ useAdminAuth.js
+
+=====================================================
+🧠 FUNCTIONAL REQUIREMENTS
+
+1. 🔐 AUTHENTICATION (Multi-layer Security)
+   - Step 1: Password field (32 characters)
+   - Step 2: Secret emails
+   - Step 3: Backup codes (two 4-digit codes)
+   - Show/hide password toggle
+   - Redirect to dashboard after successful verification
+
+2. 🧭 LAYOUT
+   - Top Nav (AdminNavbar.jsx) — Title, logout button, notifications
+   - Sidebar (AdminSidebar.jsx) — collapsible menu for all panels
+   - Responsive layout that works seamlessly on mobile, tablet, and desktop.
+   - Sticky positioning, no unwanted scrollbars.
+   - Fix mobile layout shift:
+     ✅ Center all content properly using responsive Tailwind containers
+     ✅ Use `max-w-screen`, `mx-auto`, `px-4`, `w-full` for alignment
+     ✅ Ensure no fixed pixel margins that break responsiveness
+     ✅ Prevent horizontal scrolling on mobile
+
+3. 📊 DASHBOARD PANELS
+   - DashboardOverview.jsx:
+     - Show total users, total circles, active users, trending circles
+     - Last 5 AI activity logs
+   - UsersPanel.jsx:
+     - List users (username, email, join date)
+     - Search + filter
+     - Ban / unban / delete / trust user
+   - CirclesPanel.jsx:
+     - View all circles
+     - Create / edit / delete
+     - Mark as trending
+   - AIPanel.jsx:
+     - Edit system prompt
+     - View last 20 AI logs
+     - Clear logs
+     - Toggle AI assistant globally
+   - SettingsPanel.jsx:
+     - Toggle DM / Explore / Circle creation / AI visibility
+     - Maintenance mode switch
+     - Global announcement banner
+   - LogsPanel.jsx:
+     - View failed login attempts
+     - Track IP/device (optional)
+     - Export logs (JSON/CSV)
+
+4. 🕵️ PRIVATE CIRCLES MANAGEMENT
+   - View all private circles
+   - Add/remove moderators
+   - View members
+   - Expire invite links
+   - Member caps
+   - AI moderation toggle
+
+=====================================================
+🎨 STYLE REQUIREMENTS
+- Use TailwindCSS for layout and styling
+- Brand color: purple (#8b5cf6)
+- Minimal, professional dashboard UI
+- Sidebar collapses into hamburger on mobile
+- Auto hide/show sidebar and topbar based on screen size
+- Smooth transitions for panel navigation
+- Scrollable panels without shifting main layout
+
+=====================================================
+📱 RESPONSIVENESS & LAYOUT FIX
+- On mobile:
+  ✅ Center all pages
+  ✅ No left/right overflow
+  ✅ Navbar & sidebar adapt into mobile view
+- On tablet:
+  ✅ Collapsible sidebar + top navbar combo
+- On desktop:
+  ✅ Full layout with sidebar and top navbar visible
+
+=====================================================
+⚙️ ADDITIONAL
+- Use context or zustand to manage admin auth session
+- Keep all admin routes protected
+- Add error boundaries to handle crashes in panels
+- Modular, clean, well-documented code
+
+=====================================================
+🚀 DELIVERABLE
+- Fully structured Admin Dashboard with panels, navigation, and security layers
+- Mobile layout alignment issue fixed across all pages
+- Clean, scalable architecture ready for backend connection

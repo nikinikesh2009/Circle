@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/services/theme-provider";
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
+import { AdminAuthProvider, useAdminAuth } from "@/features/admin/hooks/useAdminAuth";
 import { Layout } from "@/layout/Layout";
 
 import NotFound from "@/pages/not-found";
@@ -19,6 +20,16 @@ import Support from "@/pages/Support";
 import AIAssistant from "@/features/ai/pages/AIAssistant";
 import Profile from "@/features/profile/pages/Profile";
 import UserProfile from "@/features/profile/pages/UserProfile";
+
+import AdminLoginStep1 from "@/features/admin/pages/LoginStep1";
+import AdminLoginStep2 from "@/features/admin/pages/LoginStep2";
+import AdminLoginStep3 from "@/features/admin/pages/LoginStep3";
+import DashboardOverview from "@/features/admin/pages/DashboardOverview";
+import UsersPanel from "@/features/admin/pages/UsersPanel";
+import CirclesPanel from "@/features/admin/pages/CirclesPanel";
+import AIPanel from "@/features/admin/pages/AIPanel";
+import SettingsPanel from "@/features/admin/pages/SettingsPanel";
+import LogsPanel from "@/features/admin/pages/LogsPanel";
 
 function ProtectedRouteWithLayout({ component: Component }: { component: React.ComponentType }) {
   const { user, loading } = useAuth();
@@ -47,11 +58,34 @@ function ProtectedRouteWithLayout({ component: Component }: { component: React.C
   );
 }
 
+function ProtectedAdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isAuthenticated } = useAdminAuth();
+
+  if (!isAuthenticated) {
+    return <Redirect to="/admin/login/step1" />;
+  }
+
+  return <Component />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
+      
+      {/* Admin Routes */}
+      <Route path="/admin/login/step1" component={AdminLoginStep1} />
+      <Route path="/admin/login/step2" component={AdminLoginStep2} />
+      <Route path="/admin/login/step3" component={AdminLoginStep3} />
+      <Route path="/admin/dashboard">{() => <ProtectedAdminRoute component={DashboardOverview} />}</Route>
+      <Route path="/admin/users">{() => <ProtectedAdminRoute component={UsersPanel} />}</Route>
+      <Route path="/admin/circles">{() => <ProtectedAdminRoute component={CirclesPanel} />}</Route>
+      <Route path="/admin/ai">{() => <ProtectedAdminRoute component={AIPanel} />}</Route>
+      <Route path="/admin/settings">{() => <ProtectedAdminRoute component={SettingsPanel} />}</Route>
+      <Route path="/admin/logs">{() => <ProtectedAdminRoute component={LogsPanel} />}</Route>
+      
+      {/* User Routes */}
       <Route path="/">{() => <ProtectedRouteWithLayout component={Home} />}</Route>
       <Route path="/explore">{() => <ProtectedRouteWithLayout component={Explore} />}</Route>
       <Route path="/chat">{() => <ProtectedRouteWithLayout component={Chat} />}</Route>
@@ -76,10 +110,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark">
         <AuthProvider>
-          <TooltipProvider>
-            <AppContent />
-            <Toaster />
-          </TooltipProvider>
+          <AdminAuthProvider>
+            <TooltipProvider>
+              <AppContent />
+              <Toaster />
+            </TooltipProvider>
+          </AdminAuthProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
