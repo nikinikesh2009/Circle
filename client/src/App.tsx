@@ -1,9 +1,9 @@
 import { Switch, Route, Redirect } from "wouter";
-import { queryClient } from "./lib/queryClient";
+import { queryClient } from "@/services/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/lib/theme-provider";
+import { ThemeProvider } from "@/services/theme-provider";
 import { AuthProvider, useAuth } from "@/features/auth/auth-context";
 import { Layout } from "@/layout/Layout";
 
