@@ -1,0 +1,54 @@
+You are a senior front-end engineer.
+
+Refactor the entire Circle PWA codebase into a clean, feature-based folder structure.
+Do not break existing functionality. Update all imports automatically.
+
+📁 Create the following structure:
+src/
+ ├─ assets/                     # Images, icons, fonts
+ ├─ components/                 # Reusable UI elements (buttons, modals, inputs, cards)
+ ├─ layout/                     # Global layout components (TopNavbar, BottomNavbar, Sidebar, MainLayout)
+ ├─ features/
+ │   ├─ auth/                   # Login, signup, password reset
+ │   │   ├─ pages/
+ │   │   ├─ components/
+ │   │   └─ hooks/
+ │   ├─ circles/                # Explore, create, join circles
+ │   │   ├─ pages/
+ │   │   ├─ components/
+ │   │   └─ services/
+ │   ├─ chat/                   # DM + group chat
+ │   │   ├─ pages/
+ │   │   ├─ components/
+ │   │   └─ hooks/
+ │   ├─ ai/                     # AI assistant system
+ │   │   ├─ components/
+ │   │   └─ services/
+ │   ├─ notifications/          # Notification system
+ │   │   ├─ components/
+ │   │   └─ services/
+ │   ├─ profile/                # User profile & settings
+ │   │   ├─ pages/
+ │   │   ├─ components/
+ │   │   └─ hooks/
+ │   └─ admin/                  # Admin dashboard
+ │       ├─ pages/
+ │       ├─ components/
+ │       └─ services/
+ ├─ pages/                      # Main routing entry points (Home, Explore, etc.)
+ ├─ services/                   # Global services (supabase, ai, notifications)
+ ├─ store/                      # Global state management
+ ├─ styles/                     # Tailwind, theme files, custom styles
+ ├─ utils/                      # Helper functions, constants, formatters
+ └─ App.jsx                     # Root component
+
+🧠 Additional Requirements:
+- Automatically move existing code into the correct folders.
+- Keep routing logic working without errors.
+- Update all import paths to reflect new structure.
+- Maintain component naming conventions (PascalCase for components, camelCase for hooks/services).
+- Do not touch .env or sensitive configs.
+- Do not modify any core feature logic yet.
+
+🚀 Goal:
+After this refactor, the codebase should be cleanly organized, easy to navigate, and ready for modular feature development.
