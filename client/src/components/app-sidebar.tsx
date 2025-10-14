@@ -18,14 +18,6 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { title: "Home", url: "/", icon: Home, testId: "nav-home" },
-  { title: "Discover", url: "/explore", icon: Compass, testId: "nav-discover" },
-  { title: "Circles", url: "/chat", icon: MessageCircle, testId: "nav-chat" },
-  { title: "Direct Messages", url: "/dm", icon: MessageSquare, testId: "nav-dm" },
-  { title: "Profile", url: "/profile", icon: User, testId: "nav-profile" },
-];
-
-const supportItems = [
   { title: "AI Assistant", url: "/ai", icon: Bot, testId: "nav-ai" },
   { title: "Help & Support", url: "/support", icon: HelpCircle, testId: "nav-support" },
 ];
@@ -46,31 +38,10 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>More</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === item.url}
-                    data-testid={item.testId}
-                  >
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Support</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {supportItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
