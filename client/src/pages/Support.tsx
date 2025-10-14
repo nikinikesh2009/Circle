@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { ContentContainer } from "@/components/ContentContainer";
 import {
   Accordion,
   AccordionContent,
@@ -35,8 +34,7 @@ const faqs = [
 
 export default function Support() {
   return (
-    <ContentContainer className="py-4 lg:py-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">Help & Support</h1>
           <p className="text-muted-foreground">
@@ -82,7 +80,6 @@ export default function Support() {
             Contact Support →
           </button>
         </Card>
-      </div>
-    </ContentContainer>
+    </div>
   );
 }

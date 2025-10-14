@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ContentContainer } from "@/components/ContentContainer";
 
 export default function Profile() {
   const { user, refreshUser } = useAuth();
@@ -85,8 +84,7 @@ export default function Profile() {
   };
 
   return (
-    <ContentContainer className="py-4 lg:py-6">
-      <div className="space-y-6">
+    <div className="space-y-6">
         <Card className="p-6">
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
             <UserAvatar
@@ -262,7 +260,6 @@ export default function Profile() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </ContentContainer>
+    </div>
   );
 }

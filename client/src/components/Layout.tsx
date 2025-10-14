@@ -6,7 +6,6 @@ import { BottomNav } from "@/components/BottomNav";
 import { AIAssistantFAB } from "@/components/AIAssistantFAB";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
-import { ContentContainer } from "@/components/ContentContainer";
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,8 +29,8 @@ export function Layout({ children }: LayoutProps) {
         <div className="flex flex-col flex-1 overflow-hidden">
           {/* Mobile Header - Hidden in full-screen chat */}
           {!isFullScreenChat && (
-            <header className="flex items-center justify-between w-full border-b border-border lg:hidden">
-              <ContentContainer className="py-2">
+            <header className="w-full border-b border-border lg:hidden">
+              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <SidebarTrigger data-testid="button-sidebar-toggle" />
@@ -45,14 +44,14 @@ export function Layout({ children }: LayoutProps) {
                     <ThemeToggle />
                   </div>
                 </div>
-              </ContentContainer>
+              </div>
             </header>
           )}
           
           {/* Desktop Header - Hidden in full-screen chat */}
           {!isFullScreenChat && (
-            <header className="hidden lg:flex items-center justify-between w-full border-b border-border">
-              <ContentContainer className="py-2">
+            <header className="hidden lg:block w-full border-b border-border">
+              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
@@ -65,12 +64,18 @@ export function Layout({ children }: LayoutProps) {
                     <ThemeToggle />
                   </div>
                 </div>
-              </ContentContainer>
+              </div>
             </header>
           )}
           
           <main className={`flex-1 overflow-auto w-full ${!isFullScreenChat ? 'pb-16 lg:pb-0' : ''}`}>
-            {children}
+            {isFullScreenChat ? (
+              children
+            ) : (
+              <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>

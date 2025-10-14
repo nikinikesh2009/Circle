@@ -19,8 +19,8 @@
 - Border: 220 13% 91%
 
 **Brand & Accent**
-- Primary (Circle Blue): 217 91% 60%
-- Primary Hover: 217 91% 55%
+- Primary (Circle Purple): 270 91% 60%
+- Primary Hover: 270 91% 55%
 - Text Primary (Dark): 220 9% 98%
 - Text Secondary (Dark): 220 9% 70%
 - Success (Online Status): 142 76% 36%

@@ -8,7 +8,6 @@ import { Send, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { ContentContainer } from "@/components/ContentContainer";
 
 interface Message {
   id: string;
@@ -115,9 +114,8 @@ export default function AIAssistant() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-border">
-        <ContentContainer className="py-4 lg:py-6">
-          <div className="flex items-center gap-3">
+      <div className="border-b border-border px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
@@ -125,12 +123,11 @@ export default function AIAssistant() {
               <h1 className="text-xl font-semibold">AI Assistant</h1>
               <p className="text-sm text-muted-foreground">Powered by GPT-5</p>
             </div>
-          </div>
-        </ContentContainer>
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
-        <ContentContainer className="py-4 lg:py-6">
+        <div className="px-4 sm:px-6 lg:px-8 py-6">
           <div className="space-y-6">
             {messages.map((msg) => (
               <MessageBubble key={msg.id} {...msg} />
@@ -166,12 +163,11 @@ export default function AIAssistant() {
             )}
             <div ref={scrollRef} />
           </div>
-        </ContentContainer>
+        </div>
       </ScrollArea>
 
-      <div className="border-t border-border">
-        <ContentContainer className="py-4 lg:py-6">
-          <div className="flex gap-2">
+      <div className="border-t border-border px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex gap-2">
             <Input
               placeholder="Ask me anything..."
               value={input}
@@ -188,8 +184,7 @@ export default function AIAssistant() {
             >
               <Send className="h-5 w-5" />
             </Button>
-          </div>
-        </ContentContainer>
+        </div>
       </div>
     </div>
   );
