@@ -8,6 +8,7 @@ type User = {
   username: string;
   avatar: string | null;
   bio: string | null;
+  targets: string[] | null;
   status: string | null;
 };
 
@@ -17,6 +18,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   signup: (data: { email: string; password: string; name: string; username: string }) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,8 +62,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const refreshUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me");
+      if (response.ok) {
+        const data = await response.json();
+        setUser(data);
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

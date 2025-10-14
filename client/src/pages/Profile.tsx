@@ -23,7 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editData, setEditData] = useState({
@@ -42,7 +42,8 @@ export default function Profile() {
       const response = await apiRequest("PATCH", "/api/user/profile", data);
       return response.json();
     },
-    onSuccess: (updatedUser) => {
+    onSuccess: async (updatedUser) => {
+      await refreshUser();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       toast({ title: "Success", description: "Profile updated successfully!" });
       setEditDialogOpen(false);
