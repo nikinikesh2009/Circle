@@ -11,6 +11,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   avatar: text("avatar"),
   bio: text("bio"),
+  targets: text("targets").array(),
   status: varchar("status", { length: 20 }).default("offline"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

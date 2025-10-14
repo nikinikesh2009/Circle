@@ -33,6 +33,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(userId: string, updates: Partial<Pick<User, 'name' | 'bio' | 'targets' | 'avatar'>>): Promise<User>;
   updateUserStatus(userId: string, status: string): Promise<void>;
 
   // Circle methods
@@ -98,6 +99,15 @@ export class DbStorage implements IStorage {
       .values({ ...insertUser, password: hashedPassword })
       .returning();
     return user;
+  }
+
+  async updateUser(userId: string, updates: Partial<Pick<User, 'name' | 'bio' | 'targets' | 'avatar'>>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
   }
 
   async updateUserStatus(userId: string, status: string): Promise<void> {

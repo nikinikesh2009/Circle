@@ -65,6 +65,29 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     res.json(userWithoutPassword);
   });
 
+  app.patch("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const updateSchema = z.object({
+        name: z.string().min(1).optional(),
+        bio: z.string().optional(),
+        targets: z.array(z.string()).optional(),
+        avatar: z.string().optional(),
+      });
+      
+      const result = updateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid input", details: result.error });
+      }
+
+      const updatedUser = await storage.updateUser(userId, result.data);
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/circles", requireAuth, async (req, res) => {
     try {
       const circles = await storage.getCircles();
