@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,14 @@ export default function LoginStep3() {
   const [code2, setCode2] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { login } = useAdminAuth();
+  const { login, isAuthenticated } = useAdminAuth();
+
+  // Navigate to dashboard after successful authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/admin/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +49,7 @@ export default function LoginStep3() {
           title: "Authentication successful",
           description: "Welcome to the admin dashboard",
         });
-        navigate("/admin/dashboard");
+        // Navigation will happen via useEffect when isAuthenticated becomes true
       } else {
         toast({
           variant: "destructive",

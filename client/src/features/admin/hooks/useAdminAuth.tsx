@@ -17,19 +17,38 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem('admin-auth');
-    if (stored) {
+    // Verify session with server on mount
+    const verifySession = async () => {
       try {
-        const parsed = JSON.parse(stored);
-        if (parsed.isAuthenticated && parsed.sessionToken) {
-          setIsAuthenticated(parsed.isAuthenticated);
-          setSessionToken(parsed.sessionToken);
-          setStep(parsed.step || 'complete');
+        const response = await fetch('/api/admin/auth/verify', {
+          credentials: 'include',
+        });
+        const data = await response.json();
+        
+        if (data.authenticated && data.token) {
+          setIsAuthenticated(true);
+          setSessionToken(data.token);
+          setStep('complete');
+          localStorage.setItem('admin-auth', JSON.stringify({ 
+            isAuthenticated: true, 
+            sessionToken: data.token, 
+            step: 'complete' 
+          }));
+        } else {
+          // Clear stale localStorage if server session is invalid
+          localStorage.removeItem('admin-auth');
+          setIsAuthenticated(false);
+          setSessionToken(null);
+          setStep('password');
         }
-      } catch (e) {
-        console.error('Failed to parse admin auth', e);
+      } catch (error) {
+        console.error('Failed to verify admin session', error);
+        localStorage.removeItem('admin-auth');
+        setIsAuthenticated(false);
       }
-    }
+    };
+
+    verifySession();
   }, []);
 
   const login = (token: string) => {

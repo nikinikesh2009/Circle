@@ -18,11 +18,11 @@ export default function LoginStep1() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password.length !== 32) {
+    if (password.length < 8) {
       toast({
         variant: "destructive",
         title: "Invalid password",
-        description: "Password must be exactly 32 characters",
+        description: "Password is required",
       });
       return;
     }
@@ -79,9 +79,8 @@ export default function LoginStep1() {
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter 32-character password"
+                  placeholder="Enter admin password"
                   className="pl-10 pr-10"
-                  maxLength={32}
                   data-testid="input-admin-password"
                   autoFocus
                 />
@@ -95,14 +94,14 @@ export default function LoginStep1() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                {password.length}/32 characters
+                {password.length} characters
               </p>
             </div>
 
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading || password.length !== 32}
+              disabled={isLoading || password.length < 8}
               data-testid="button-submit-password"
             >
               {isLoading ? "Verifying..." : "Continue to Step 2"}

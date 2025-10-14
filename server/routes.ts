@@ -599,6 +599,16 @@ export async function registerRoutes(app: Express, sessionStore: Store): Promise
     }
   });
 
+  // Admin session verification
+  app.get("/api/admin/auth/verify", (req, res) => {
+    const session = (req.session as any).adminAuth;
+    if (session?.authenticated) {
+      res.json({ authenticated: true, token: session.token });
+    } else {
+      res.json({ authenticated: false });
+    }
+  });
+
   // Admin API routes (protected)
   const requireAdminAuth = (req: any, res: any, next: any) => {
     const session = (req.session as any).adminAuth;
