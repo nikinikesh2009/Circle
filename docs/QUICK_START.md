@@ -34,8 +34,9 @@ npx drizzle-kit studio   # Open visual DB manager
 
 ### Quick Fixes
 ```bash
-# Server won't start (port busy)
-# Restart the "Start application" workflow in Replit UI
+# Server won't start (port 5000 busy)
+# → Restart "Start application" workflow in Replit UI
+# → Click on workflow name → Click restart button
 
 # Clear build cache
 rm -rf dist node_modules/.vite

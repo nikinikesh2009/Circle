@@ -62,8 +62,11 @@ Create these in your terminal for better workflow:
 
 #### Kill Port 5000
 ```bash
-# If port 5000 is stuck
-lsof -ti:5000 | xargs kill -9
+# If port 5000 is stuck, restart the workflow in Replit UI
+# Click on "Start application" workflow → Click restart button
+
+# Or use pkill (if available)
+pkill -f "tsx server/index.ts"
 ```
 
 #### Database Studio (Visual Interface)
@@ -356,9 +359,11 @@ curl http://localhost:5000/api/auth/me
 
 ### Port 5000 Already in Use
 ```bash
-# Kill the process
-lsof -ti:5000 | xargs kill -9
-# Restart
+# Restart the workflow in Replit UI
+# Click on "Start application" workflow → Click restart button
+
+# Or try pkill (if available)
+pkill -f "tsx server/index.ts"
 npm run dev
 ```
 
