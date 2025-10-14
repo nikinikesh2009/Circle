@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import "./index.css";
+import "./styles/index.css";
 import { registerServiceWorker } from "./utils/registerServiceWorker";
 
 if (import.meta.env.PROD) {
